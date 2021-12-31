@@ -1,0 +1,14 @@
+/target
+Cargo.lock
+.vs
+.vscode
+Content
+DerivedDataCache
+Intermediate
+Saved
+Script
+Plugins/RustPlugin/Intermediate
+rusttemp
+*.pdb
+*.exp
+*.lib
