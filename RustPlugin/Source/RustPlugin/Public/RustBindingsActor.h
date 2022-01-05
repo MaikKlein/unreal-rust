@@ -4,17 +4,16 @@
 
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
-#include "RustActor.generated.h"
+#include "RustBindingsActor.generated.h"
 
 UCLASS()
-class ARustActor : public AActor
+class RUSTPLUGIN_API ARustBindingsActor : public AActor
 {
 	GENERATED_BODY()
 	
 public:	
-	uint64 Entity;
 	// Sets default values for this actor's properties
-	ARustActor();
+	ARustBindingsActor();
 
 protected:
 	// Called when the game starts or when spawned

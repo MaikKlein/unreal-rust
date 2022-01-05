@@ -3,3 +3,6 @@ members = [
     "unreal-api",
     "unreal-rust-example",
 ]
+
+#[profile.release]
+#debug = true

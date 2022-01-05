@@ -1,6 +1,3 @@
 [target.x86_64-pc-windows-msvc]
-linker = "lld-link"                 
 rustflags = [
-    "-C", "target-feature=+crt-static", # use static MSVC CRT so we do not have to distribute vc_redist
-    "-C", "link-args=-fuse-ld=lld-link",
-    "-C", "lto=no"]                     # disable LTO for faster incremental link times
+]

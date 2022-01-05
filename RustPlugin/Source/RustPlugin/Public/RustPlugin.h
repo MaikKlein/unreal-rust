@@ -14,13 +14,17 @@ class FMenuBuilder;
 class FDelegateHandle;
 struct FFileChangeData;
 class FString;
+class ARustGameModeBase;
 
 struct FPlugin {
 	FString TargetPath;
 	void* Handle;
 	EntryUnrealBindingsFn Bindings;
 	EntryBeginPlayFn BeginPlay;
+	EntryTickFn Tick;
 
+
+	bool NeedsInit;
 	bool IsLoaded();
 	bool TryLoad(FString& Path);
 	void CallEntryPoints();
@@ -39,9 +43,11 @@ public:
 	void PluginButtonClicked();
 	bool Tick(float dt);
 	
+	FPlugin Plugin;
+	bool ShouldReloadPlugin;
+	ARustGameModeBase* GameMode;
 private:
 
-	FPlugin Plugin;
 	FTickerDelegate TickDelegate;
  	FDelegateHandle TickDelegateHandle;
 	void RegisterMenus();

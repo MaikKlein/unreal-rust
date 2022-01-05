@@ -14,11 +14,17 @@ macro_rules! implement_unreal_module {
         #[no_mangle]
         pub unsafe extern "C" fn register_unreal_bindings(bindings: $crate::ffi::UnrealBindings) {
             $crate::module::BINDINGS = Some(bindings);
+            $crate::log::init();
             MODULE = Some(<$module as $crate::module::UnrealModule>::initialize());
         }
 
         #[no_mangle]
-        pub extern "C" fn tick(dt: f32) {}
+        pub extern "C" fn tick(dt: f32) {
+            unsafe {
+                UnrealModule::tick(MODULE.as_mut().unwrap(), dt);
+            }
+
+        }
 
         #[no_mangle]
         pub extern "C" fn begin_play() {

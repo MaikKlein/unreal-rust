@@ -1,10 +1,17 @@
 #include "Api.h"
+#include "Modules/ModuleManager.h"
+#include "RustPlugin.h"
+#include "EngineUtils.h"
 
 UnrealBindings CreateBindings() {
     UnrealBindings b;
     b.get_spatial_data = &GetSpatialData;
     b.set_spatial_data = &SetSpatialData;
     b.log = &Log;
+    b.iterate_actors = &IterateActors;
+    b.get_action_state = &GetActionState;
+    b.get_axis_value = &GetAxisValue;
+    b.set_entity_for_actor = &SetEntityForActor;
     return b;
 }
 
@@ -32,10 +39,9 @@ FVector ToFVector(Vector3 v)
     return FVector(v.x, v.y, v.z);
 }
 
-// W, X, Y, Z
 FQuat ToFQuat(Quaternion q)
 {
-    return FQuat(q.w, q.x, q.y, q.z);
+    return FQuat(q.x, q.y, q.z, q.w);
 }
 
 AActor *ToAActor(const AActorOpaque *actor)
@@ -45,4 +51,8 @@ AActor *ToAActor(const AActorOpaque *actor)
 AActor *ToAActor(AActorOpaque *actor)
 {
     return (AActor *)actor;
+}
+
+FRustPluginModule& GetModule() {
+    return FModuleManager::LoadModuleChecked<FRustPluginModule>(TEXT("RustPlugin"));
 }

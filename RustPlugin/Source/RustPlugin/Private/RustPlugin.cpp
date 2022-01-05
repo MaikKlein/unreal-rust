@@ -14,6 +14,10 @@
 #include "HAL/PlatformFilemanager.h"
 #include "Misc/Paths.h"
 #include "Api.h"
+#include "Modules/ModuleManager.h"
+#include "RustBindingsActor.h"
+#include "Framework/Notifications/NotificationManager.h"
+#include "Widgets/Notifications/SNotificationList.h"
 
 static const FName RustPluginTabName("RustPlugin");
 
@@ -39,10 +43,13 @@ bool FPlugin::TryLoad(FString &Path)
 
 	void *LocalBindings = FPlatformProcess::GetDllExport(LocalHandle, TEXT("register_unreal_bindings\0"));
 	void *LocalBeginPlay = FPlatformProcess::GetDllExport(LocalHandle, TEXT("begin_play\0"));
+	void *LocalTick = FPlatformProcess::GetDllExport(LocalHandle, TEXT("tick\0"));
 
 	this->Bindings = (EntryUnrealBindingsFn)LocalBindings;
 	this->BeginPlay = (EntryBeginPlayFn)LocalBeginPlay;
+	this->Tick = (EntryTickFn)LocalTick;
 	this->TargetPath = LocalTargetPath;
+	NeedsInit = true;
 	CallEntryPoints();
 	return true;
 }
@@ -57,12 +64,13 @@ void FPlugin::CallEntryPoints()
 		return;
 
 	Bindings(CreateBindings());
-	Log("Foo");
-	BeginPlay();
 }
 
 bool FRustPluginModule::Tick(float dt)
 {
+	if (!Plugin.IsLoaded())
+		return false;
+
 	return true;
 }
 
@@ -86,8 +94,8 @@ void FRustPluginModule::StartupModule()
 
 	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(RustPluginTabName, FOnSpawnTab::CreateRaw(this, &FRustPluginModule::OnSpawnPluginTab)).SetDisplayName(LOCTEXT("FRustPluginTabTitle", "RustPlugin")).SetMenuType(ETabSpawnerMenuType::Hidden);
 
-	TickDelegate = FTickerDelegate::CreateRaw(this, &FRustPluginModule::Tick);
-	TickDelegateHandle = FTicker::GetCoreTicker().AddTicker(TickDelegate);
+	//TickDelegate = FTickerDelegate::CreateRaw(this, &FRustPluginModule::Tick);
+	//TickDelegateHandle = FTicker::GetCoreTicker().AddTicker(TickDelegate);
 
 	IDirectoryWatcher *watcher = FModuleManager::LoadModuleChecked<FDirectoryWatcherModule>(TEXT("DirectoryWatcher")).Get();
 	watcher->RegisterDirectoryChangedCallback_Handle(
@@ -105,7 +113,13 @@ void FRustPluginModule::OnProjectDirectoryChanged(const TArray<FFileChangeData> 
 		FString Leaf = FPaths::GetPathLeaf(FPaths::GetPath(Changed.Filename));
 		if (Name == TEXT("unreal_rust_example") && Ext == TEXT("dll"))
 		{
-			Plugin.TryLoad(Changed.Filename);
+			ShouldReloadPlugin = true;
+   //     	UE_LOG(LogTemp, Warning, TEXT("Change"));
+			//if(Plugin.TryLoad(Changed.Filename)){
+			////		FNotificationInfo Info(LOCTEXT("SpawnNotification_Notification", "Hotreload: Rust"));
+			////		Info.ExpireDuration = 2.0f;
+			////		FSlateNotificationManager::Get().AddNotification(Info);
+			//}
 			return;
 		}
 	}

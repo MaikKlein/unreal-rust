@@ -11,6 +11,7 @@ fn main() {
       .include_item("CreateRustBindings")
       .include_item("EntryUnrealBindingsFn")
       .include_item("EntryBeginPlayFn")
+      .include_item("EntryTickFn")
       .with_pragma_once(true)
       //.with_parse_expand(&["unreal-api"])
       .generate()

@@ -2,8 +2,10 @@
 
 #include "CoreMinimal.h"
 #include "Bindings.h"
+#include "Engine/World.h"
 
 class AActor;
+class FRustPluginModule;
 
 Quaternion ToQuaternion(FQuat q);
 
@@ -18,3 +20,4 @@ AActor *ToAActor(const AActorOpaque *actor);
 AActor *ToAActor(AActorOpaque *actor);
 
 UnrealBindings CreateBindings();
+FRustPluginModule& GetModule();
