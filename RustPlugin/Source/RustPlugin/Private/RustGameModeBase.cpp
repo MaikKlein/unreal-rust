@@ -13,6 +13,8 @@
 #include "Widgets/Notifications/SNotificationList.h"
 #include "Framework/Notifications/NotificationManager.h"
 
+#include "Editor.h"
+
 #define LOCTEXT_NAMESPACE "FRustPluginModule"
 
 ARustGameModeBase::~ARustGameModeBase()
@@ -29,35 +31,42 @@ ARustGameModeBase::ARustGameModeBase()
     bBlockInput = false;
     AutoReceiveInput = EAutoReceiveInput::Player0;
     InputComponent = CreateDefaultSubobject<UInputComponent>(TEXT("InputComponent"));
-    //InputComponent->RegisterComponent();
+    // InputComponent->RegisterComponent();
     InputComponent->bBlockInput = bBlockInput;
     InputComponent->Priority = InputPriority;
     UInputDelegateBinding::BindInputDelegates(GetClass(), InputComponent);
 
     // PlayerInput = CreateDefaultSubobject<UPlayerInput>(TEXT("Input"));
 }
-void ARustGameModeBase::PostLogin(APlayerController* NewPlayer) {
-
+void ARustGameModeBase::PostLogin(APlayerController *NewPlayer)
+{
 }
 void ARustGameModeBase::Tick(float Dt)
 {
     Super::Tick(Dt);
     FRustPluginModule &Module = FModuleManager::LoadModuleChecked<FRustPluginModule>(TEXT("RustPlugin"));
-	FString P = FString(TEXT("F:/unreal/unreal/example/UnrealLearningKitGames/rusttemp/unreal_rust_example.dll"));
-    if(Module.ShouldReloadPlugin && Module.Plugin.TryLoad(P)){
-      Module.ShouldReloadPlugin = false;
-      FNotificationInfo Info(LOCTEXT("SpawnNotification_Notification", "Hotreload: Rust"));
-      Info.ExpireDuration = 2.0f;
-      FSlateNotificationManager::Get().AddNotification(Info);
-	}
+    FString P = FString(TEXT("F:/unreal/unreal/example/UnrealLearningKitGames/rusttemp/unreal_rust_example.dll"));
+    if (Module.ShouldReloadPlugin && Module.Plugin.TryLoad(P))
+    {
+        Module.ShouldReloadPlugin = false;
+        FNotificationInfo Info(LOCTEXT("SpawnNotification_Notification", "Hotreload: Rust"));
+        Info.ExpireDuration = 2.0f;
+        FSlateNotificationManager::Get().AddNotification(Info);
+    }
 
     if (Module.Plugin.NeedsInit)
     {
-      UE_LOG(LogTemp, Warning, TEXT("REINIT"));
-      Module.Plugin.BeginPlay();
-      Module.Plugin.NeedsInit = false;
+        UE_LOG(LogTemp, Warning, TEXT("REINIT"));
+        if (Module.Plugin.BeginPlay() == ResultCode::Panic)
+        {
+            Module.Plugin.NeedsInit = false;
+            Module.Exit();
+        }
     }
-    Module.Plugin.Tick(Dt);
+    if (Module.Plugin.Tick(Dt) == ResultCode::Panic)
+    {
+        Module.Exit();
+    }
 }
 void ARustGameModeBase::StartPlay()
 {
@@ -70,6 +79,9 @@ void ARustGameModeBase::StartPlay()
     }
 
     FRustPluginModule &Module = FModuleManager::LoadModuleChecked<FRustPluginModule>(TEXT("RustPlugin"));
-    Module.Plugin.BeginPlay();
-    Module.Plugin.NeedsInit = false;
+    if (Module.Plugin.BeginPlay() == ResultCode::Panic)
+    {
+        Module.Plugin.NeedsInit = false;
+        Module.Exit();
+    }
 }

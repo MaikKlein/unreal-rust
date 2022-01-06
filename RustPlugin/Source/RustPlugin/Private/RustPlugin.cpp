@@ -54,6 +54,12 @@ bool FPlugin::TryLoad(FString &Path)
 	return true;
 }
 
+void FRustPluginModule::Exit() {
+	if(GEditor) {
+    	GEditor->RequestEndPlayMap();
+	}
+}
+
 bool FPlugin::IsLoaded()
 {
 	return Handle != nullptr;

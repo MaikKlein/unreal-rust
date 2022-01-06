@@ -46,6 +46,7 @@ public:
 	FPlugin Plugin;
 	bool ShouldReloadPlugin;
 	ARustGameModeBase* GameMode;
+	void Exit();
 private:
 
 	FTickerDelegate TickDelegate;

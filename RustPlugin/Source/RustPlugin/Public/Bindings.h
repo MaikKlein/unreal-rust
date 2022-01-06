@@ -13,6 +13,11 @@ enum class ActionState : uint8_t {
   Nothing = 3,
 };
 
+enum class ResultCode : uint8_t {
+  Success = 0,
+  Panic = 1,
+};
+
 struct AActorOpaque {
   uint8_t _inner[0];
 };
@@ -38,7 +43,7 @@ using GetSpatialDataFn = void(*)(const AActorOpaque *actor, Vector3 *position, Q
 
 using SetSpatialDataFn = void(*)(AActorOpaque *actor, Vector3 position, Quaternion rotation, Vector3 scale);
 
-using LogFn = void(*)(const char*);
+using LogFn = void(*)(const char*, int32_t);
 
 using IterateActorsFn = void(*)(AActorOpaque **array, uint64_t *len);
 
@@ -66,9 +71,9 @@ struct RustBindings {
 
 using EntryUnrealBindingsFn = void(*)(UnrealBindings bindings);
 
-using EntryBeginPlayFn = void(*)();
+using EntryBeginPlayFn = ResultCode(*)();
 
-using EntryTickFn = void(*)(float dt);
+using EntryTickFn = ResultCode(*)(float dt);
 
 extern "C" {
 
@@ -84,7 +89,7 @@ extern void GetSpatialData(const AActorOpaque *actor,
 
 extern void TickActor(AActorOpaque *actor, float dt);
 
-extern void Log(const char *s);
+extern void Log(const char *s, int32_t len);
 
 extern void IterateActors(AActorOpaque **array, uint64_t *len);
 

@@ -19,17 +19,24 @@ macro_rules! implement_unreal_module {
         }
 
         #[no_mangle]
-        pub extern "C" fn tick(dt: f32) {
-            unsafe {
+        pub extern "C" fn tick(dt: f32) -> $crate::ffi::ResultCode {
+            let r = std::panic::catch_unwind(|| unsafe {
                 UnrealModule::tick(MODULE.as_mut().unwrap(), dt);
+            });
+            match r {
+                Ok(_) => $crate::ffi::ResultCode::Success,
+                Err(_) => $crate::ffi::ResultCode::Panic,
             }
-
         }
 
         #[no_mangle]
-        pub extern "C" fn begin_play() {
-            unsafe {
+        pub extern "C" fn begin_play() -> $crate::ffi::ResultCode {
+            let r = std::panic::catch_unwind(|| unsafe {
                 UnrealModule::begin_play(MODULE.as_mut().unwrap());
+            });
+            match r {
+                Ok(_) => $crate::ffi::ResultCode::Success,
+                Err(_) => $crate::ffi::ResultCode::Panic,
             }
         }
     };

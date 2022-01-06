@@ -10,8 +10,9 @@ impl log::Log for UnrealLogger {
     fn log(&self, record: &Record) {
         use std::ffi::CString;
         if self.enabled(record.metadata()) {
-            let text = CString::new(record.args().to_string()).unwrap();
-            (crate::module::bindings().log)(text.as_ptr());
+            //let text = CString::new(record.args().to_string()).unwrap();
+            let text = record.args().to_string();
+            (crate::module::bindings().log)(text.as_ptr() as *const _, text.len() as i32);
         }
     }
 

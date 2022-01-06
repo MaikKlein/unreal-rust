@@ -18,6 +18,13 @@
 use crate::math::{Quat, Vec3};
 use std::os::raw::c_char;
 
+#[repr(u8)]
+#[derive(Debug)]
+pub enum ResultCode {
+    Success = 0,
+    Panic = 1,
+}
+
 #[repr(C)]
 #[derive(Default, Debug)]
 pub struct Quaternion {
@@ -83,7 +90,7 @@ pub type GetSpatialDataFn = extern "C" fn(
     scale: &mut Vector3,
 );
 
-pub type LogFn = extern "C" fn(*const c_char);
+pub type LogFn = extern "C" fn(*const c_char, i32);
 
 pub type SetSpatialDataFn = extern "C" fn(
     actor: *mut AActorOpaque,
@@ -133,7 +140,7 @@ extern "C" {
         scale: &mut Vector3,
     );
     pub fn TickActor(actor: *mut AActorOpaque, dt: f32);
-    pub fn Log(s: *const c_char);
+    pub fn Log(s: *const c_char, len: i32);
     pub fn IterateActors(array: *mut *mut AActorOpaque, len: *mut u64);
     pub fn GetActionState(name: *const c_char, state: &mut ActionState);
     pub fn GetAxisValue(name: *const c_char, value: &mut f32);
@@ -158,5 +165,5 @@ extern "C" fn create_rust_bindings() -> RustBindings {
 }
 pub type CreateRustBindingsFn = extern "C" fn() -> RustBindings;
 pub type EntryUnrealBindingsFn = extern "C" fn(bindings: UnrealBindings);
-pub type EntryBeginPlayFn = extern "C" fn();
-pub type EntryTickFn = extern "C" fn(dt: f32);
+pub type EntryBeginPlayFn = extern "C" fn() -> ResultCode;
+pub type EntryTickFn = extern "C" fn(dt: f32) -> ResultCode;

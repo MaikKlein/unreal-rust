@@ -20,7 +20,7 @@ pub struct Frame {
 }
 
 pub struct ActorComponent {
-    ptr: ActorPtr
+    ptr: ActorPtr,
 }
 
 #[derive(Default, Debug)]
@@ -113,7 +113,9 @@ fn register_actors(mut actor_register: ResMut<ActorRegistration>, mut commands: 
         let entity = commands
             .spawn()
             .insert_bundle((
-                ActorComponent { ptr: ActorPtr(actor) },
+                ActorComponent {
+                    ptr: ActorPtr(actor),
+                },
                 SpatialComponent::default(),
                 MovementComponent::default(),
             ))
@@ -174,6 +176,16 @@ impl UnrealModule for MyModule {
     }
 
     fn begin_play(&mut self) {
+        std::panic::set_hook(Box::new(|panic_info| {
+            if let Some(s) = panic_info.payload().downcast_ref::<&str>() {
+                let location = panic_info.location().map_or("".to_string(), |loc| {
+                    format!("{}, at line {}", loc.file(), loc.line())
+                });
+                log::error!("Panic: {} => {}", location, s);
+            } else {
+                log::error!("panic occurred");
+            }
+        }));
         *self = Self::initialize();
         log::info!("BeginPlay Rust");
         self.world.insert_resource(Frame::default());
@@ -195,6 +207,7 @@ impl UnrealModule for MyModule {
             frame.dt = dt;
         }
         self.schedule.run_once(&mut self.world);
+        panic!("FOOOO")
     }
 }
 unreal_api::implement_unreal_module!(MyModule);

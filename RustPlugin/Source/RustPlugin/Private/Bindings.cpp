@@ -32,10 +32,11 @@ void GetSpatialData(const AActorOpaque *actor,
     *rotation = ToQuaternion(t.GetRotation());
     *scale = ToVector3(t.GetScale3D());
 }
-void Log(const char *s)
+void Log(const char *s, int32 len)
 {
-    FString foo = FString(UTF8_TO_TCHAR(s));
-    UE_LOG(LogTemp, Warning, TEXT("%s"), *foo);
+    // TODO: Can we get rid of that allocation?
+    FString logString = FString(len, UTF8_TO_TCHAR(s));
+    UE_LOG(LogTemp, Warning, TEXT("%s"), *logString);
 }
 void IterateActors(AActorOpaque **array, uint64_t* len)
 {
