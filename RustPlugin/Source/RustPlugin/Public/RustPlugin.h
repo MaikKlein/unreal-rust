@@ -22,7 +22,7 @@ struct FPlugin {
 	EntryUnrealBindingsFn Bindings;
 	EntryBeginPlayFn BeginPlay;
 	EntryTickFn Tick;
-
+	RustBindings Rust;
 
 	bool NeedsInit;
 	bool IsLoaded();

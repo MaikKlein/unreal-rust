@@ -49,7 +49,7 @@ using IterateActorsFn = void(*)(AActorOpaque **array, uint64_t *len);
 
 using GetActionStateFn = void(*)(const char *name, ActionState *state);
 
-using GetAxisValueFn = void(*)(const char *name, float *value);
+using GetAxisValueFn = void(*)(const char *name, uintptr_t len, float *value);
 
 using SetEntityForActorFn = void(*)(AActorOpaque *name, Entity entity);
 
@@ -63,13 +63,15 @@ struct UnrealBindings {
   SetEntityForActorFn set_entity_for_actor;
 };
 
-using RegisterActorFn = Entity(*)(const AActorOpaque *actor);
+using Uuid = uint8_t[16];
+
+using RetrieveUuids = void(*)(Uuid *ptr, uintptr_t *len);
 
 struct RustBindings {
-  RegisterActorFn register_actor;
+  RetrieveUuids retrieve_uuids;
 };
 
-using EntryUnrealBindingsFn = void(*)(UnrealBindings bindings);
+using EntryUnrealBindingsFn = RustBindings(*)(UnrealBindings bindings);
 
 using EntryBeginPlayFn = ResultCode(*)();
 
@@ -95,7 +97,7 @@ extern void IterateActors(AActorOpaque **array, uint64_t *len);
 
 extern void GetActionState(const char *name, ActionState *state);
 
-extern void GetAxisValue(const char *name, float *value);
+extern void GetAxisValue(const char *name, uintptr_t len, float *value);
 
 extern void SetEntityForActor(AActorOpaque *name, Entity entity);
 

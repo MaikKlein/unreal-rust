@@ -69,7 +69,7 @@ void FPlugin::CallEntryPoints()
 	if (!IsLoaded())
 		return;
 
-	Bindings(CreateBindings());
+	Rust = Bindings(CreateBindings());
 }
 
 bool FRustPluginModule::Tick(float dt)

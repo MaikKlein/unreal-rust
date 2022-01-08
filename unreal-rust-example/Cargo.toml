@@ -7,6 +7,7 @@ edition = "2021"
 
 [dependencies]
 unreal-api = { path = "../unreal-api"}
+unreal-reflect = { path = "../unreal-reflect" }
 bevy_ecs = "0.5"
 log = "0.4"
 

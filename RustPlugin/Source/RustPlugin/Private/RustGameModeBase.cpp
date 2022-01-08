@@ -59,8 +59,11 @@ void ARustGameModeBase::Tick(float Dt)
         UE_LOG(LogTemp, Warning, TEXT("REINIT"));
         if (Module.Plugin.BeginPlay() == ResultCode::Panic)
         {
-            Module.Plugin.NeedsInit = false;
             Module.Exit();
+        }
+        else
+        {
+            Module.Plugin.NeedsInit = false;
         }
     }
     if (Module.Plugin.Tick(Dt) == ResultCode::Panic)
@@ -81,7 +84,10 @@ void ARustGameModeBase::StartPlay()
     FRustPluginModule &Module = FModuleManager::LoadModuleChecked<FRustPluginModule>(TEXT("RustPlugin"));
     if (Module.Plugin.BeginPlay() == ResultCode::Panic)
     {
-        Module.Plugin.NeedsInit = false;
         Module.Exit();
+    }
+    else
+    {
+        Module.Plugin.NeedsInit = false;
     }
 }

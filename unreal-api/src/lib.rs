@@ -1,5 +1,6 @@
 pub mod ffi;
 pub mod log;
+pub mod core;
 pub mod module;
 
 pub use bevy_ecs as ecs;

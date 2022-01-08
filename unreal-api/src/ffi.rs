@@ -101,8 +101,30 @@ pub type SetSpatialDataFn = extern "C" fn(
 pub type IterateActorsFn = extern "C" fn(array: *mut *mut AActorOpaque, len: *mut u64);
 
 pub type GetActionStateFn = extern "C" fn(name: *const c_char, state: &mut ActionState);
-pub type GetAxisValueFn = extern "C" fn(name: *const c_char, value: &mut f32);
+pub type GetAxisValueFn = extern "C" fn(name: *const c_char, len: usize, value: &mut f32);
 pub type SetEntityForActorFn = extern "C" fn(name: *mut AActorOpaque, entity: Entity);
+
+extern "C" {
+    pub fn SetSpatialData(
+        actor: *mut AActorOpaque,
+        position: Vector3,
+        rotation: Quaternion,
+        scale: Vector3,
+    );
+
+    pub fn GetSpatialData(
+        actor: *const AActorOpaque,
+        position: &mut Vector3,
+        rotation: &mut Quaternion,
+        scale: &mut Vector3,
+    );
+    pub fn TickActor(actor: *mut AActorOpaque, dt: f32);
+    pub fn Log(s: *const c_char, len: i32);
+    pub fn IterateActors(array: *mut *mut AActorOpaque, len: *mut u64);
+    pub fn GetActionState(name: *const c_char, state: &mut ActionState);
+    pub fn GetAxisValue(name: *const c_char, len: usize, value: &mut f32);
+    pub fn SetEntityForActor(name: *mut AActorOpaque, entity: Entity);
+}
 #[repr(C)]
 pub struct UnrealBindings {
     pub get_spatial_data: GetSpatialDataFn,
@@ -125,28 +147,6 @@ pub enum ActionState {
     Nothing = 3,
 }
 
-extern "C" {
-    pub fn SetSpatialData(
-        actor: *mut AActorOpaque,
-        position: Vector3,
-        rotation: Quaternion,
-        scale: Vector3,
-    );
-
-    pub fn GetSpatialData(
-        actor: *const AActorOpaque,
-        position: &mut Vector3,
-        rotation: &mut Quaternion,
-        scale: &mut Vector3,
-    );
-    pub fn TickActor(actor: *mut AActorOpaque, dt: f32);
-    pub fn Log(s: *const c_char, len: i32);
-    pub fn IterateActors(array: *mut *mut AActorOpaque, len: *mut u64);
-    pub fn GetActionState(name: *const c_char, state: &mut ActionState);
-    pub fn GetAxisValue(name: *const c_char, value: &mut f32);
-    pub fn SetEntityForActor(name: *mut AActorOpaque, entity: Entity);
-}
-
 pub extern "C" fn register_actor(actor: *const AActorOpaque) -> Entity {
     todo!()
 }
@@ -154,16 +154,15 @@ pub type RegisterActorFn = extern "C" fn(actor: *const AActorOpaque) -> Entity;
 
 #[repr(C)]
 pub struct RustBindings {
-    pub register_actor: RegisterActorFn,
+    pub retrieve_uuids: RetrieveUuids,
 }
 
-#[no_mangle]
-extern "C" fn create_rust_bindings() -> RustBindings {
-    RustBindings {
-        register_actor: register_actor,
-    }
+#[repr(transparent)]
+pub struct Uuid {
+    pub bytes: [u8; 16]
 }
-pub type CreateRustBindingsFn = extern "C" fn() -> RustBindings;
-pub type EntryUnrealBindingsFn = extern "C" fn(bindings: UnrealBindings);
+
+pub type EntryUnrealBindingsFn = extern "C" fn(bindings: UnrealBindings) -> RustBindings;
 pub type EntryBeginPlayFn = extern "C" fn() -> ResultCode;
 pub type EntryTickFn = extern "C" fn(dt: f32) -> ResultCode;
+pub type RetrieveUuids = unsafe extern "C" fn(ptr: *mut Uuid, len: *mut usize);

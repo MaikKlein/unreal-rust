@@ -43,6 +43,8 @@ void IterateActors(AActorOpaque **array, uint64_t* len)
     uint64_t i = 0;
     for (TActorIterator<ARustActor> ActorItr(GetModule().GameMode->GetWorld()); ActorItr; ++ActorItr, ++i)
     {
+        //APlayerController *PC = UGameplayStatics::GetPlayerController(GetModule().GameMode, 0);
+        //PC->SetViewTarget(*ActorItr, FViewTargetTransitionParams());
         if(i >= *len) return;
         AActorOpaque* a = (AActorOpaque*) *ActorItr;
         array[i] = a;
@@ -69,8 +71,9 @@ void GetActionState(const char *name, ActionState *state) {
     }
     *state = ActionState::Nothing;
 }
-void GetAxisValue(const char *name, float *value) {
-    *value = GetModule().GameMode->InputComponent->GetAxisValue(name);
+void GetAxisValue(const char *name, uintptr_t len, float *value){
+    FName AxisName((int32)len, name);
+    *value = GetModule().GameMode->InputComponent->GetAxisValue(AxisName);
 }
 
 void SetEntityForActor(AActorOpaque * actor, Entity entity) {

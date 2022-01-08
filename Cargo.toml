@@ -1,8 +1,10 @@
 [workspace]
 members = [
     "unreal-api",
+    "unreal-reflect",
+    "unreal-reflect-derive",
     "unreal-rust-example",
 ]
 
-#[profile.release]
-#debug = true
+[profile.release]
+debug = true
