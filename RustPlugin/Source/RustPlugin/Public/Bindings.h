@@ -13,14 +13,17 @@ enum class ActionState : uint8_t {
   Nothing = 3,
 };
 
+enum class ActorClass : uint32_t {
+  RustActor = 0,
+  CameraActor = 1,
+};
+
 enum class ResultCode : uint8_t {
   Success = 0,
   Panic = 1,
 };
 
-struct AActorOpaque {
-  uint8_t _inner[0];
-};
+using AActorOpaque = void;
 
 struct Vector3 {
   float x;
@@ -53,6 +56,12 @@ using GetAxisValueFn = void(*)(const char *name, uintptr_t len, float *value);
 
 using SetEntityForActorFn = void(*)(AActorOpaque *name, Entity entity);
 
+using SpawnActorFn = AActorOpaque*(*)(ActorClass actor_class, Vector3 position, Quaternion rotation, Vector3 scale);
+
+using SetViewTargetFn = void(*)(const AActorOpaque *actor);
+
+using GetMouseDeltaFn = void(*)(float *x, float *y);
+
 struct UnrealBindings {
   GetSpatialDataFn get_spatial_data;
   SetSpatialDataFn set_spatial_data;
@@ -61,21 +70,31 @@ struct UnrealBindings {
   GetActionStateFn get_action_state;
   GetAxisValueFn get_axis_value;
   SetEntityForActorFn set_entity_for_actor;
+  SpawnActorFn spawn_actor;
+  SetViewTargetFn set_view_target;
+  GetMouseDeltaFn get_mouse_delta;
 };
 
-using Uuid = uint8_t[16];
+struct Uuid {
+  uint8_t bytes[16];
+};
 
 using RetrieveUuids = void(*)(Uuid *ptr, uintptr_t *len);
 
+using GetVelocityFn = void(*)(const AActorOpaque *actor, Vector3 *velocity);
+
+using TickFn = ResultCode(*)(float dt);
+
+using BeginPlayFn = ResultCode(*)();
+
 struct RustBindings {
   RetrieveUuids retrieve_uuids;
+  GetVelocityFn get_velocity;
+  TickFn tick;
+  BeginPlayFn begin_play;
 };
 
 using EntryUnrealBindingsFn = RustBindings(*)(UnrealBindings bindings);
-
-using EntryBeginPlayFn = ResultCode(*)();
-
-using EntryTickFn = ResultCode(*)(float dt);
 
 extern "C" {
 
@@ -100,5 +119,14 @@ extern void GetActionState(const char *name, ActionState *state);
 extern void GetAxisValue(const char *name, uintptr_t len, float *value);
 
 extern void SetEntityForActor(AActorOpaque *name, Entity entity);
+
+extern AActorOpaque *SpawnActor(ActorClass actor_class,
+                                Vector3 position,
+                                Quaternion rotation,
+                                Vector3 scale);
+
+extern void SetViewTarget(const AActorOpaque *actor);
+
+extern void GetMouseDelta(float *x, float *y);
 
 } // extern "C"

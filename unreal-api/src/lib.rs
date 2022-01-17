@@ -1,4 +1,4 @@
-pub mod ffi;
+pub use unreal_ffi as ffi;
 pub mod log;
 pub mod core;
 pub mod module;

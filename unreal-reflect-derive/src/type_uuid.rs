@@ -1,7 +1,7 @@
 extern crate proc_macro;
 
 use quote::{quote, ToTokens};
-use syn::{parse::*, *};
+use syn::*;
 use uuid::Uuid;
 
 pub fn type_uuid_derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {

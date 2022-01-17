@@ -1,22 +1,5 @@
-//macro_rules! declare_fn {
-//    (fn $name: ident [$($param: ident: $ty: ty),*]) => {
-//        extern "C" {
-//            pub fn $name(
-//                $(
-//                    $param: $ty,
-//                )*
-//            );
-//        }
-//        pub type $name = extern  "C" fn(
-//            $(
-//                $param: $ty,
-//            )*
-//        );
-//
-//    };
-//}
-use crate::math::{Quat, Vec3};
-use std::os::raw::c_char;
+use glam::{Quat, Vec3};
+use std::{os::raw::c_char, ffi::c_void};
 
 #[repr(u8)]
 #[derive(Debug)]
@@ -78,10 +61,9 @@ impl From<Vec3> for Vector3 {
     }
 }
 
-#[repr(C)]
-pub struct AActorOpaque {
-    _inner: [u8; 0],
-}
+// TODO: Is there a more typesafe way of defining an opaque type that
+// is c ffi safe in Rust without nightly? 
+pub type AActorOpaque = c_void;
 
 pub type GetSpatialDataFn = extern "C" fn(
     actor: *const AActorOpaque,
@@ -99,10 +81,68 @@ pub type SetSpatialDataFn = extern "C" fn(
     scale: Vector3,
 );
 pub type IterateActorsFn = extern "C" fn(array: *mut *mut AActorOpaque, len: *mut u64);
-
 pub type GetActionStateFn = extern "C" fn(name: *const c_char, state: &mut ActionState);
 pub type GetAxisValueFn = extern "C" fn(name: *const c_char, len: usize, value: &mut f32);
 pub type SetEntityForActorFn = extern "C" fn(name: *mut AActorOpaque, entity: Entity);
+pub type SpawnActorFn = extern "C" fn(
+    actor_class: ActorClass,
+    position: Vector3,
+    rotation: Quaternion,
+    scale: Vector3,
+) -> *mut AActorOpaque;
+pub type SetViewTargetFn = extern "C" fn(actor: *const AActorOpaque);
+pub type GetMouseDeltaFn = extern "C" fn(x: &mut f32, y: &mut f32);
+
+#[repr(C)]
+pub struct UnrealBindings {
+    pub get_spatial_data: GetSpatialDataFn,
+    pub set_spatial_data: SetSpatialDataFn,
+    pub log: LogFn,
+    pub iterate_actors: IterateActorsFn,
+    pub get_action_state: GetActionStateFn,
+    pub get_axis_value: GetAxisValueFn,
+    pub set_entity_for_actor: SetEntityForActorFn,
+    pub spawn_actor: SpawnActorFn,
+    pub set_view_target: SetViewTargetFn,
+    pub get_mouse_delta: GetMouseDeltaFn,
+}
+unsafe impl Sync for UnrealBindings {}
+unsafe impl Send for UnrealBindings {}
+
+#[repr(u8)]
+#[derive(Debug)]
+pub enum ActionState {
+    Pressed = 0,
+    Released = 1,
+    Held = 2,
+    Nothing = 3,
+}
+#[repr(u32)]
+#[derive(Debug)]
+pub enum ActorClass {
+    RustActor = 0,
+    CameraActor = 1,
+}
+
+#[repr(C)]
+pub struct Uuid {
+    pub bytes: [u8; 16],
+}
+
+pub type EntryUnrealBindingsFn = extern "C" fn(bindings: UnrealBindings) -> RustBindings;
+pub type BeginPlayFn = extern "C" fn() -> ResultCode;
+pub type TickFn = extern "C" fn(dt: f32) -> ResultCode;
+pub type RetrieveUuids = unsafe extern "C" fn(ptr: *mut Uuid, len: *mut usize);
+pub type GetVelocityFn = unsafe extern "C" fn(actor: *const AActorOpaque, velocity: &mut Vector3);
+
+#[repr(C)]
+pub struct RustBindings {
+    pub retrieve_uuids: RetrieveUuids,
+    pub get_velocity: GetVelocityFn,
+    pub tick: TickFn,
+    pub begin_play: BeginPlayFn,
+}
+
 
 extern "C" {
     pub fn SetSpatialData(
@@ -124,45 +164,12 @@ extern "C" {
     pub fn GetActionState(name: *const c_char, state: &mut ActionState);
     pub fn GetAxisValue(name: *const c_char, len: usize, value: &mut f32);
     pub fn SetEntityForActor(name: *mut AActorOpaque, entity: Entity);
+    pub fn SpawnActor(
+        actor_class: ActorClass,
+        position: Vector3,
+        rotation: Quaternion,
+        scale: Vector3,
+    ) -> *mut AActorOpaque;
+    pub fn SetViewTarget(actor: *const AActorOpaque);
+    pub fn GetMouseDelta(x: &mut f32, y: &mut f32);
 }
-#[repr(C)]
-pub struct UnrealBindings {
-    pub get_spatial_data: GetSpatialDataFn,
-    pub set_spatial_data: SetSpatialDataFn,
-    pub log: LogFn,
-    pub iterate_actors: IterateActorsFn,
-    pub get_action_state: GetActionStateFn,
-    pub get_axis_value: GetAxisValueFn,
-    pub set_entity_for_actor: SetEntityForActorFn,
-}
-unsafe impl Sync for UnrealBindings {}
-unsafe impl Send for UnrealBindings {}
-
-#[repr(u8)]
-#[derive(Debug)]
-pub enum ActionState {
-    Pressed = 0,
-    Released = 1,
-    Held = 2,
-    Nothing = 3,
-}
-
-pub extern "C" fn register_actor(actor: *const AActorOpaque) -> Entity {
-    todo!()
-}
-pub type RegisterActorFn = extern "C" fn(actor: *const AActorOpaque) -> Entity;
-
-#[repr(C)]
-pub struct RustBindings {
-    pub retrieve_uuids: RetrieveUuids,
-}
-
-#[repr(transparent)]
-pub struct Uuid {
-    pub bytes: [u8; 16]
-}
-
-pub type EntryUnrealBindingsFn = extern "C" fn(bindings: UnrealBindings) -> RustBindings;
-pub type EntryBeginPlayFn = extern "C" fn() -> ResultCode;
-pub type EntryTickFn = extern "C" fn(dt: f32) -> ResultCode;
-pub type RetrieveUuids = unsafe extern "C" fn(ptr: *mut Uuid, len: *mut usize);

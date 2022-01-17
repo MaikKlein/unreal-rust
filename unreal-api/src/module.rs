@@ -1,54 +1,43 @@
 use bevy_ecs::schedule::Schedule;
 use unreal_reflect::registry::ReflectionRegistry;
 
-use crate::ffi::UnrealBindings;
+use crate::{ffi::UnrealBindings, core::UnrealCore};
 
-pub trait UnrealModule {
+
+pub static mut MODULE: Option<Global> = None;
+pub struct Global {
+    pub core: UnrealCore,
+    pub module: Box<dyn UserModule>,
+}
+
+pub trait InitUserModule {
     fn initialize() -> Self;
-    fn register(registry: &mut ReflectionRegistry);
-    fn systems(startup: &mut Schedule, update: &mut Schedule);
+}
+pub trait UserModule {
+    fn register(&self, registry: &mut ReflectionRegistry);
+    fn systems(&self, startup: &mut Schedule, update: &mut Schedule);
 }
 pub static mut BINDINGS: Option<UnrealBindings> = None;
 
 #[macro_export]
 macro_rules! implement_unreal_module {
     ($module: ty) => {
-        static mut MODULE: Option<$crate::core::UnrealCore<$module>> = None;
         #[no_mangle]
         pub unsafe extern "C" fn register_unreal_bindings(bindings: $crate::ffi::UnrealBindings) -> $crate::ffi::RustBindings {
             $crate::module::BINDINGS = Some(bindings);
             let _ = $crate::log::init();
-            let core = $crate::core::UnrealCore::new();
+            let module = Box::new(<$module as $crate::module::InitUserModule>::initialize());
+            let core = $crate::core::UnrealCore::new(module.as_ref());
 
-            MODULE = Some(core);
+            $crate::module::MODULE = Some($crate::module::Global {
+                core,
+                module,
+            });
             $crate::ffi::RustBindings {
-                retrieve_uuids: retrieve_uuids,
-            }
-        }
-        #[no_mangle]
-        pub unsafe extern "C" fn retrieve_uuids(ptr: *mut ffi::Uuid, len: *mut usize) {
-            $crate::core::UnrealCore::retrieve_uuids(MODULE.as_mut().unwrap(), ptr, len);
-        }
-
-        #[no_mangle]
-        pub extern "C" fn tick(dt: f32) -> $crate::ffi::ResultCode {
-            let r = std::panic::catch_unwind(|| unsafe {
-                $crate::core::UnrealCore::tick(MODULE.as_mut().unwrap(), dt);
-            });
-            match r {
-                Ok(_) => $crate::ffi::ResultCode::Success,
-                Err(_) => $crate::ffi::ResultCode::Panic,
-            }
-        }
-
-        #[no_mangle]
-        pub extern "C" fn begin_play() -> $crate::ffi::ResultCode {
-            let r = std::panic::catch_unwind(|| unsafe {
-                $crate::core::UnrealCore::begin_play(MODULE.as_mut().unwrap());
-            });
-            match r {
-                Ok(_) => $crate::ffi::ResultCode::Success,
-                Err(_) => $crate::ffi::ResultCode::Panic,
+                retrieve_uuids: $crate::core::retrieve_uuids,
+                get_velocity: $crate::core::get_velocity,
+                tick: $crate::core::tick,
+                begin_play: $crate::core::begin_play,
             }
         }
     };

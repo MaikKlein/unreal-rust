@@ -38,7 +38,7 @@ pub type InsertComponentFn = Box<dyn Fn(&'_ mut EntityCommands<'_, '_>)>;
 pub struct ReflectionRegistry {
     pub uuid_to_insert_component: HashMap<uuid::Uuid, InsertComponentFn>,
     pub uuid_to_refection_data: HashMap<uuid::Uuid, ReflectionData>,
-    pub uuid_set: HashSet<uuid::Uuid>
+    pub uuid_set: HashSet<uuid::Uuid>,
 }
 
 impl ReflectionRegistry {
@@ -46,9 +46,19 @@ impl ReflectionRegistry {
     where
         T: Reflection + InsertComponent + TypeUuid + 'static,
     {
+        if self.uuid_set.contains(&T::TYPE_UUID) {
+            //TODO: Log not ready here
+            log::error!(
+                "Duplicated UUID {} for {}",
+                T::TYPE_UUID,
+                std::any::type_name::<T>()
+            );
+            return;
+        }
         self.uuid_to_insert_component
             .insert(T::TYPE_UUID, Box::new(T::insert));
-        self.uuid_to_refection_data.insert(T::TYPE_UUID, T::reflection());
+        self.uuid_to_refection_data
+            .insert(T::TYPE_UUID, T::reflection());
         self.uuid_set.insert(T::TYPE_UUID);
     }
 }
@@ -61,6 +71,6 @@ pub struct ReflectionData {
     pub name: &'static str,
 }
 
-pub trait Reflection{
+pub trait Reflection {
     fn reflection() -> ReflectionData;
 }

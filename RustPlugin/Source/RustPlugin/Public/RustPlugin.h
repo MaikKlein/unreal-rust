@@ -7,6 +7,7 @@
 #include "Containers/Ticker.h"
 #include "Bindings.h"
 #include "Misc/Optional.h"
+#include "Containers/Array.h"
 
 
 class FToolBarBuilder;
@@ -20,14 +21,16 @@ struct FPlugin {
 	FString TargetPath;
 	void* Handle;
 	EntryUnrealBindingsFn Bindings;
-	EntryBeginPlayFn BeginPlay;
-	EntryTickFn Tick;
 	RustBindings Rust;
 
 	bool NeedsInit;
 	bool IsLoaded();
 	bool TryLoad(FString& Path);
 	void CallEntryPoints();
+	void RetrieveUuids();
+
+	TArray<Uuid> Uuids;
+	FPlugin();
 };
 
 

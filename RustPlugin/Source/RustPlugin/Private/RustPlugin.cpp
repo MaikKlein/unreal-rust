@@ -23,8 +23,12 @@ static const FName RustPluginTabName("RustPlugin");
 
 #define LOCTEXT_NAMESPACE "FRustPluginModule"
 
+FPlugin::FPlugin() {
+
+}
 bool FPlugin::TryLoad(FString &Path)
 {
+    UE_LOG(LogTemp, Warning, TEXT("TRY RELOAD"));
 	FString LocalTargetPath = FString::Printf(TEXT("%srusttemp/%s-%i"),
 											  *FPaths::ConvertRelativePathToFull(FPaths::ProjectDir()),
 											  TEXT("rustplugin.dll"), FDateTime::Now().ToUnixTimestamp());
@@ -37,17 +41,16 @@ bool FPlugin::TryLoad(FString &Path)
 	UE_LOG(LogTemp, Warning, TEXT("Copy From %s to %s"), *Path, *LocalTargetPath);
 	FPlatformFileManager::Get().GetPlatformFile().CopyFile(*LocalTargetPath, *Path);
 	void *LocalHandle = FPlatformProcess::GetDllHandle(*LocalTargetPath);
+	ensure(LocalHandle);
 	this->Handle = LocalHandle;
 	if (this->Handle == nullptr)
 		return false;
 
 	void *LocalBindings = FPlatformProcess::GetDllExport(LocalHandle, TEXT("register_unreal_bindings\0"));
-	void *LocalBeginPlay = FPlatformProcess::GetDllExport(LocalHandle, TEXT("begin_play\0"));
-	void *LocalTick = FPlatformProcess::GetDllExport(LocalHandle, TEXT("tick\0"));
+	ensure(LocalBindings);
 
 	this->Bindings = (EntryUnrealBindingsFn)LocalBindings;
-	this->BeginPlay = (EntryBeginPlayFn)LocalBeginPlay;
-	this->Tick = (EntryTickFn)LocalTick;
+	
 	this->TargetPath = LocalTargetPath;
 	NeedsInit = true;
 	CallEntryPoints();
@@ -70,6 +73,16 @@ void FPlugin::CallEntryPoints()
 		return;
 
 	Rust = Bindings(CreateBindings());
+	RetrieveUuids();
+}
+void FPlugin::RetrieveUuids() {
+	uintptr_t len = 0;
+	Rust.retrieve_uuids(nullptr, &len);
+	TArray<Uuid> LocalUuids;
+	LocalUuids.Reserve(len);
+	Rust.retrieve_uuids(LocalUuids.GetData(), &len);
+	LocalUuids.SetNum(len);
+	Uuids = LocalUuids;
 }
 
 bool FRustPluginModule::Tick(float dt)
@@ -100,8 +113,8 @@ void FRustPluginModule::StartupModule()
 
 	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(RustPluginTabName, FOnSpawnTab::CreateRaw(this, &FRustPluginModule::OnSpawnPluginTab)).SetDisplayName(LOCTEXT("FRustPluginTabTitle", "RustPlugin")).SetMenuType(ETabSpawnerMenuType::Hidden);
 
-	//TickDelegate = FTickerDelegate::CreateRaw(this, &FRustPluginModule::Tick);
-	//TickDelegateHandle = FTicker::GetCoreTicker().AddTicker(TickDelegate);
+	TickDelegate = FTickerDelegate::CreateRaw(this, &FRustPluginModule::Tick);
+	TickDelegateHandle = FTicker::GetCoreTicker().AddTicker(TickDelegate);
 
 	IDirectoryWatcher *watcher = FModuleManager::LoadModuleChecked<FDirectoryWatcherModule>(TEXT("DirectoryWatcher")).Get();
 	watcher->RegisterDirectoryChangedCallback_Handle(
@@ -120,12 +133,6 @@ void FRustPluginModule::OnProjectDirectoryChanged(const TArray<FFileChangeData> 
 		if (Name == TEXT("unreal_rust_example") && Ext == TEXT("dll"))
 		{
 			ShouldReloadPlugin = true;
-   //     	UE_LOG(LogTemp, Warning, TEXT("Change"));
-			//if(Plugin.TryLoad(Changed.Filename)){
-			////		FNotificationInfo Info(LOCTEXT("SpawnNotification_Notification", "Hotreload: Rust"));
-			////		Info.ExpireDuration = 2.0f;
-			////		FSlateNotificationManager::Get().AddNotification(Info);
-			//}
 			return;
 		}
 	}

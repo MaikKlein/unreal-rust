@@ -10,5 +10,4 @@ bevy_ecs = "0.5"
 glam = "0.20.2"
 log = { version = "0.4.14", features =["std"] }
 unreal-reflect= { path = "../unreal-reflect" }
-[build-dependencies]
-cbindgen = "0.20"
+unreal-ffi= { path = "../unreal-ffi" }

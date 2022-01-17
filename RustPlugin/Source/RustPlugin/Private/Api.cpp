@@ -12,6 +12,9 @@ UnrealBindings CreateBindings() {
     b.get_action_state = &GetActionState;
     b.get_axis_value = &GetAxisValue;
     b.set_entity_for_actor = &SetEntityForActor;
+    b.spawn_actor = &SpawnActor;
+    b.set_view_target = &SetViewTarget;
+    b.get_mouse_delta = &GetMouseDelta;
     return b;
 }
 

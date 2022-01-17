@@ -1,5 +1,4 @@
 use std::env;
-use std::path::PathBuf;
 
 fn main() {
     let crate_dir = env::var("CARGO_MANIFEST_DIR").unwrap();
@@ -14,7 +13,13 @@ fn main() {
         .include_item("EntryTickFn")
         .include_item("RetrieveUuids")
         .with_pragma_once(true)
-        //.with_parse_expand(&["unreal-api"])
+        //.with_config(Config {
+        //    structure: StructConfig  {
+        //        derive_constructor: true,
+        //        ..Default::default()
+        //    },
+        //    ..Default::default()
+        //})
         .generate()
         .expect("Unable to generate bindings")
         .write_to_file("../RustPlugin/Source/RustPlugin/Public/Bindings.h");

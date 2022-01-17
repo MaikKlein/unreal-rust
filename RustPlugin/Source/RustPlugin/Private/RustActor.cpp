@@ -2,6 +2,8 @@
 
 
 #include "RustActor.h"
+#include "RustPlugin.h"
+#include "Api.h"
 
 // Sets default values
 ARustActor::ARustActor()
@@ -25,3 +27,8 @@ void ARustActor::Tick(float DeltaTime)
 
 }
 
+FVector ARustActor::GetRustVelocity() {
+	Vector3 Velocity;
+	GetModule().Plugin.Rust.get_velocity((const AActorOpaque*) this, &Velocity);
+	return ToFVector(Velocity);
+}

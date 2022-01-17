@@ -46,18 +46,21 @@ void ARustGameModeBase::Tick(float Dt)
     Super::Tick(Dt);
     FRustPluginModule &Module = FModuleManager::LoadModuleChecked<FRustPluginModule>(TEXT("RustPlugin"));
     FString P = FString(TEXT("F:/unreal/unreal/example/UnrealLearningKitGames/rusttemp/unreal_rust_example.dll"));
-    if (Module.ShouldReloadPlugin && Module.Plugin.TryLoad(P))
+    if (Module.ShouldReloadPlugin)
     {
-        Module.ShouldReloadPlugin = false;
-        FNotificationInfo Info(LOCTEXT("SpawnNotification_Notification", "Hotreload: Rust"));
-        Info.ExpireDuration = 2.0f;
-        FSlateNotificationManager::Get().AddNotification(Info);
+        if (Module.Plugin.TryLoad(P))
+        {
+            Module.ShouldReloadPlugin = false;
+            FNotificationInfo Info(LOCTEXT("SpawnNotification_Notification", "Hotreload: Rust"));
+            Info.ExpireDuration = 2.0f;
+            FSlateNotificationManager::Get().AddNotification(Info);
+        }
     }
 
     if (Module.Plugin.NeedsInit)
     {
         UE_LOG(LogTemp, Warning, TEXT("REINIT"));
-        if (Module.Plugin.BeginPlay() == ResultCode::Panic)
+        if (Module.Plugin.Rust.begin_play() == ResultCode::Panic)
         {
             Module.Exit();
         }
@@ -66,7 +69,7 @@ void ARustGameModeBase::Tick(float Dt)
             Module.Plugin.NeedsInit = false;
         }
     }
-    if (Module.Plugin.Tick(Dt) == ResultCode::Panic)
+    if (Module.Plugin.Rust.tick(Dt) == ResultCode::Panic)
     {
         Module.Exit();
     }
@@ -82,7 +85,7 @@ void ARustGameModeBase::StartPlay()
     }
 
     FRustPluginModule &Module = FModuleManager::LoadModuleChecked<FRustPluginModule>(TEXT("RustPlugin"));
-    if (Module.Plugin.BeginPlay() == ResultCode::Panic)
+    if (Module.Plugin.Rust.begin_play() == ResultCode::Panic)
     {
         Module.Exit();
     }
