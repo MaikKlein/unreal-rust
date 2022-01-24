@@ -10,6 +10,11 @@
 #include "GameFramework/PlayerInput.h"
 #include "EntityComponent.h"
 #include "Camera/CameraActor.h"
+#include "UObject/UObjectIterator.h"
+#include "VisualLogger/VisualLogger.h"
+#include "VisualLogger/VisualLoggerTypes.h"
+
+DEFINE_LOG_CATEGORY(RustVisualLog);
 
 void SetSpatialData(AActorOpaque *actor,
                     const Vector3 position,
@@ -97,6 +102,18 @@ AActorOpaque *SpawnActor(ActorClass class_,
                          Quaternion rotation,
                          Vector3 scale)
 {
+    for (TObjectIterator<UClass> It; It; ++It)
+    {
+
+        UClass *Class = *It;
+
+        FName Name = Class->ClassConfigName;
+        if (Cast<ARustActor>(Class->GetDefaultObject(false)) != nullptr)
+        {
+            UE_LOG(LogTemp, Warning, TEXT("Class %s"), *Class->GetDesc());
+        }
+    }
+
     UClass *Class;
     switch (class_)
     {
@@ -119,7 +136,80 @@ void SetViewTarget(const AActorOpaque *actor)
     APlayerController *PC = UGameplayStatics::GetPlayerController(GetModule().GameMode, 0);
     PC->SetViewTarget(ToAActor(actor), FViewTargetTransitionParams());
 }
-void GetMouseDelta(float *x, float *y) {
+void GetMouseDelta(float *x, float *y)
+{
     APlayerController *PC = UGameplayStatics::GetPlayerController(GetModule().GameMode, 0);
     PC->GetInputMouseDelta(*x, *y);
+}
+void GetActorComponents(const AActorOpaque *actor, ActorComponentPtr *data, uintptr_t *len)
+{
+    TSet<UActorComponent *> Components = ToAActor(actor)->GetComponents();
+    if (data == nullptr)
+    {
+        *len = Components.Num();
+    }
+    else
+    {
+        uintptr_t MaxComponentNum = *len;
+        uintptr_t i = 0;
+        for (auto &Component : Components)
+        {
+            if (i == MaxComponentNum)
+            {
+                break;
+            }
+            if (Cast<UPrimitiveComponent>(Component) != nullptr)
+            {
+                data[i] =
+                    ActorComponentPtr{
+                        ActorComponentType::Primitive,
+                        (void *)Component};
+
+                i += 1;
+            }
+        }
+        *len = i;
+    }
+}
+void AddForce(UPrimtiveOpaque *actor, Vector3 force)
+{
+    ((UPrimitiveComponent *)actor)->AddForce(ToFVector(force), FName{}, false);
+}
+
+void AddImpulse(UPrimtiveOpaque *actor, Vector3 force)
+{
+    ((UPrimitiveComponent *)actor)->AddImpulse(ToFVector(force), FName{}, false);
+}
+uint32_t IsSimulating(const UPrimtiveOpaque *primitive)
+{
+    return ((UPrimitiveComponent *)primitive)->IsSimulatingPhysics(FName{});
+}
+Vector3 GetVelocity(const UPrimtiveOpaque *primitive)
+{
+    return ToVector3(((UPrimitiveComponent *)primitive)->GetComponentVelocity());
+}
+void SetVelocity(UPrimtiveOpaque *primitive, Vector3 velocity)
+{
+    ((UPrimitiveComponent *)primitive)->SetPhysicsLinearVelocity(ToFVector(velocity), false, FName{});
+}
+uint32_t LineTrace(Vector3 start, Vector3 end, HitResult *result)
+{
+
+    FHitResult Out;
+    bool IsHit = GetModule().GameMode->GetWorld()->LineTraceSingleByChannel(Out, ToFVector(start), ToFVector(end), ECollisionChannel::ECC_MAX, FCollisionQueryParams{}, FCollisionResponseParams{});
+    if (IsHit)
+    {
+        result->actor = (AActorOpaque *)Out.GetActor();
+        result->distance = Out.Distance;
+        result->location = ToVector3(Out.Location);
+        result->normal = ToVector3(Out.Normal);
+        result->impact_location = ToVector3(Out.ImpactPoint);
+        result->pentration_depth = Out.PenetrationDepth;
+    }
+
+    return IsHit;
+}
+void VisualLogSegment(const AActorOpaque *actor, Vector3 start, Vector3 end, Color color)
+{
+    UE_VLOG_SEGMENT(ToAActor(actor), RustVisualLog, Log, ToFVector(start), ToFVector(end), ToFColor(color), TEXT(""));
 }

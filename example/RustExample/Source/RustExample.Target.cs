@@ -3,13 +3,15 @@
 using UnrealBuildTool;
 using System.Collections.Generic;
 
-public class UnrealLearningKitGamesTarget : TargetRules
+public class RustExampleTarget : TargetRules
 {
-	public UnrealLearningKitGamesTarget(TargetInfo Target) : base(Target)
+	public RustExampleTarget(TargetInfo Target) : base(Target)
 	{
 		Type = TargetType.Game;
 		DefaultBuildSettings = BuildSettingsVersion.V2;
+		bUseUnityBuild = false;
+		bUsePCHFiles = false;
 
-		ExtraModuleNames.AddRange( new string[] { "UnrealLearningKitGames" } );
+		ExtraModuleNames.AddRange( new string[] { "RustExample" } );
 	}
 }

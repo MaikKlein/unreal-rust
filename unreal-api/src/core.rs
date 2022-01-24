@@ -1,5 +1,6 @@
 use bevy_ecs::prelude::*;
-use std::collections::HashMap;
+use ffi::{ActorComponentPtr, ActorComponentType};
+use std::{collections::HashMap, ffi::c_void};
 
 use crate::{
     ffi::{self, AActorOpaque},
@@ -161,6 +162,17 @@ pub struct ActorComponent {
     pub ptr: ActorPtr,
 }
 impl_component!(ActorComponent);
+#[derive(Default, Debug, TypeUuid)]
+#[uuid = "0eb9de40-a3f2-4ee5-b781-645bab81200f"]
+pub struct CapsuleComponent {
+    pub ptr: UnrealPtr<Capsule>,
+}
+impl_component!(CapsuleComponent);
+impl CapsuleComponent {
+    pub fn apply_force(&mut self, force: Vec3) {
+        //(bindings().add_force)(self.ptr.ptr, force.into());
+    }
+}
 
 #[derive(Default, Debug, TypeUuid, Clone)]
 #[uuid = "b8738d9e-ab21-47db-8587-4019b38e35a6"]
@@ -223,6 +235,42 @@ impl Default for ActorPtr {
         Self(std::ptr::null_mut())
     }
 }
+#[derive(Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+pub struct UnrealPtr<T> {
+    pub ptr: *mut c_void,
+    _m: std::marker::PhantomData<T>,
+}
+impl<T> UnrealPtr<T> {
+    pub fn from_raw(ptr: *mut c_void) -> Self {
+        Self {
+            ptr,
+            ..Default::default()
+        }
+    }
+}
+unsafe impl<T> Send for UnrealPtr<T> {}
+unsafe impl<T> Sync for UnrealPtr<T> {}
+impl<T> Default for UnrealPtr<T> {
+    fn default() -> Self {
+        Self {
+            ptr: std::ptr::null_mut(),
+            _m: Default::default(),
+        }
+    }
+}
+impl<T> Clone for UnrealPtr<T> {
+    fn clone(&self) -> Self {
+        Self {
+            ptr: self.ptr.clone(),
+            _m: self._m.clone(),
+        }
+    }
+}
+
+impl<T> Copy for UnrealPtr<T> {}
+
+#[derive(Debug)]
+pub enum Capsule {}
 
 fn download_spatial_from_unreal(mut query: Query<(&ActorComponent, &mut SpatialComponent)>) {
     for (actor, mut spatial) in query.iter_mut() {
@@ -261,6 +309,26 @@ fn register_actors(mut actor_register: ResMut<ActorRegistration>, mut commands: 
                 PlayerInputComponent::default(),
             ))
             .id();
+
+        //let mut len: usize = 0;
+        //(bindings().get_actor_components)(actor, std::ptr::null_mut(), &mut len);
+        //let mut components: Vec<ActorComponentPtr> = Vec::with_capacity(len);
+        //(bindings().get_actor_components)(actor, components.as_mut_ptr(), &mut len);
+        //unsafe {
+        //    components.set_len(len);
+        //}
+        //for component in components {
+        //    match component.ty {
+        //        ActorComponentType::Capsule => {
+        //            let mut capsule = CapsuleComponent{
+        //                ptr: UnrealPtr::from_raw(component.ptr)
+        //            };
+
+        //            capsule.apply_force(Vec3::Z * 10000000.0);
+        //        }
+        //    }
+        //}
+        //commands.entity(entity).insert(component)
 
         actor_register
             .actor_to_entity

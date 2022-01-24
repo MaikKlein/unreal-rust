@@ -29,6 +29,17 @@ fn update_player_input(mut query: Query<(&ActorComponent, &mut PlayerInputCompon
     }
 }
 
+fn debug_velocity(mut query: Query<(&SpatialComponent, &ActorComponent, &MovementComponent)>) {
+    for (spatial, actor, movement) in query.iter() {
+        let end = spatial.position + movement.velocity;
+        (bindings().visual_log_segment)(
+            actor.ptr.0,
+            spatial.position.into(),
+            end.into(),
+            ffi::Color::RED,
+        );
+    }
+}
 fn compute_movement_velocity(mut query: Query<(&PlayerInputComponent, &mut MovementComponent)>) {
     for (input, mut movement) in query.iter_mut() {
         let mut dir = movement.view * input.direction;
@@ -66,6 +77,7 @@ fn update_parent_view(
         }
     }
 }
+
 fn rotate_camera(mut query: Query<(&mut SpatialComponent, &mut CameraComponent)>) {
     fn lerp(start: f32, end: f32, t: f32) -> f32 {
         start * (1.0 - t) + end * t
@@ -88,6 +100,7 @@ fn rotate_camera(mut query: Query<(&mut SpatialComponent, &mut CameraComponent)>
             Quat::from_rotation_z(cam.current_x) * Quat::from_rotation_y(-cam.current_y);
     }
 }
+
 fn spawn_camera(
     mut commands: Commands,
     mut query: Query<(Entity, &ActorComponent, Added<PlayerInputComponent>)>,
@@ -118,6 +131,7 @@ fn spawn_camera(
         ));
     }
 }
+
 fn update_camera(
     mut query: Query<(Entity, &ParentComponent, &CameraComponent)>,
     mut spatial_query: Query<&mut SpatialComponent>,
@@ -152,6 +166,7 @@ impl UserModule for MyModule {
         update.add_system_to_stage(CoreStage::Update, update_player_input.system());
         update.add_system_to_stage(CoreStage::Update, compute_movement_velocity.system());
         update.add_system_to_stage(CoreStage::Update, perform_movement.system());
+        update.add_system_to_stage(CoreStage::Update, debug_velocity.system());
         update.add_system_to_stage(CoreStage::Update, rotate_camera.system());
         update.add_system_to_stage(CoreStage::Update, update_parent_view.system());
         update.add_system_to_stage(CoreStage::Update, update_camera.system());

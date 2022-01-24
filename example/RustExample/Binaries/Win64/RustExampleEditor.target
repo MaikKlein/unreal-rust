@@ -1,10 +1,10 @@
 {
-	"TargetName": "UnrealLearningKitGamesEditor",
+	"TargetName": "RustExampleEditor",
 	"Platform": "Win64",
 	"Configuration": "Development",
 	"TargetType": "Editor",
 	"Architecture": "",
-	"Project": "../../UnrealLearningKitGames.uproject",
+	"Project": "../../RustExample.uproject",
 	"Launch": "$(EngineDir)/Binaries/Win64/UnrealEditor.exe",
 	"Version": 
 	{
@@ -816,11 +816,11 @@
 			"Type": "DynamicLibrary"
 		},
 		{
-			"Path": "$(ProjectDir)/Binaries/Win64/UnrealEditor-UnrealLearningKitGames.dll",
+			"Path": "$(ProjectDir)/Binaries/Win64/UnrealEditor-RustExample.dll",
 			"Type": "DynamicLibrary"
 		},
 		{
-			"Path": "$(ProjectDir)/Binaries/Win64/UnrealEditor-UnrealLearningKitGames.pdb",
+			"Path": "$(ProjectDir)/Binaries/Win64/UnrealEditor-RustExample.pdb",
 			"Type": "SymbolFile"
 		},
 		{
@@ -2778,7 +2778,7 @@
 	],
 	"RuntimeDependencies": [
 		{
-			"Path": "$(ProjectDir)/UnrealLearningKitGames.uproject",
+			"Path": "$(ProjectDir)/RustExample.uproject",
 			"Type": "UFS"
 		},
 		{

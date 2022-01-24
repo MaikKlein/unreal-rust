@@ -2,9 +2,9 @@
 
 using UnrealBuildTool;
 
-public class UnrealLearningKitGames : ModuleRules
+public class RustExample : ModuleRules
 {
-	public UnrealLearningKitGames(ReadOnlyTargetRules Target) : base(Target)
+	public RustExample(ReadOnlyTargetRules Target) : base(Target)
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 	

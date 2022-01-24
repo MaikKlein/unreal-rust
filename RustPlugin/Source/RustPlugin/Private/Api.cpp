@@ -3,8 +3,17 @@
 #include "RustPlugin.h"
 #include "EngineUtils.h"
 
-UnrealBindings CreateBindings() {
-    UnrealBindings b;
+UnrealBindings CreateBindings()
+{
+    UnrealPhysicsBindings physics_bindings = {};
+    physics_bindings.add_force = &AddForce;
+    physics_bindings.add_impulse = &AddImpulse;
+    physics_bindings.set_velocity = &SetVelocity;
+    physics_bindings.get_velocity = &GetVelocity;
+    physics_bindings.is_simulating = &IsSimulating;
+    physics_bindings.line_trace = &LineTrace;
+
+    UnrealBindings b = {};
     b.get_spatial_data = &GetSpatialData;
     b.set_spatial_data = &SetSpatialData;
     b.log = &Log;
@@ -15,6 +24,9 @@ UnrealBindings CreateBindings() {
     b.spawn_actor = &SpawnActor;
     b.set_view_target = &SetViewTarget;
     b.get_mouse_delta = &GetMouseDelta;
+    b.get_actor_components = &GetActorComponents;
+    b.visual_log_segment = &VisualLogSegment;
+    b.physics_bindings = physics_bindings;
     return b;
 }
 
@@ -56,6 +68,11 @@ AActor *ToAActor(AActorOpaque *actor)
     return (AActor *)actor;
 }
 
-FRustPluginModule& GetModule() {
+FRustPluginModule &GetModule()
+{
     return FModuleManager::LoadModuleChecked<FRustPluginModule>(TEXT("RustPlugin"));
+}
+FColor ToFColor(Color c)
+{
+    return FColor(c.r, c.g, c.b, c.a);
 }

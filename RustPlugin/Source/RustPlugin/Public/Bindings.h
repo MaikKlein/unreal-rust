@@ -18,6 +18,10 @@ enum class ActorClass : uint32_t {
   CameraActor = 1,
 };
 
+enum class ActorComponentType : uint32_t {
+  Primitive,
+};
+
 enum class ResultCode : uint8_t {
   Success = 0,
   Panic = 1,
@@ -42,6 +46,30 @@ struct Entity {
   uint64_t id;
 };
 
+struct ActorComponentPtr {
+  ActorComponentType ty;
+  void *ptr;
+};
+
+struct Color {
+  uint8_t r;
+  uint8_t g;
+  uint8_t b;
+  uint8_t a;
+};
+static const Color Color_RED = Color{ /* .r = */ 255, /* .g = */ 0, /* .b = */ 0, /* .a = */ 255 };
+
+using UPrimtiveOpaque = void;
+
+struct HitResult {
+  AActorOpaque *actor;
+  float distance;
+  Vector3 normal;
+  Vector3 location;
+  Vector3 impact_location;
+  float pentration_depth;
+};
+
 using GetSpatialDataFn = void(*)(const AActorOpaque *actor, Vector3 *position, Quaternion *rotation, Vector3 *scale);
 
 using SetSpatialDataFn = void(*)(AActorOpaque *actor, Vector3 position, Quaternion rotation, Vector3 scale);
@@ -62,6 +90,31 @@ using SetViewTargetFn = void(*)(const AActorOpaque *actor);
 
 using GetMouseDeltaFn = void(*)(float *x, float *y);
 
+using GetActorComponentsFn = void(*)(const AActorOpaque *actor, ActorComponentPtr *data, uintptr_t *len);
+
+using VisualLogSegmentFn = void(*)(const AActorOpaque *owner, Vector3 start, Vector3 end, Color color);
+
+using GetVelocityFn = Vector3(*)(const UPrimtiveOpaque *primitive);
+
+using SetVelocityFn = void(*)(UPrimtiveOpaque *primitive, Vector3 velocity);
+
+using IsSimulatingFn = uint32_t(*)(const UPrimtiveOpaque *primitive);
+
+using AddForceFn = void(*)(UPrimtiveOpaque *actor, Vector3 force);
+
+using AddImpulseFn = void(*)(UPrimtiveOpaque *actor, Vector3 force);
+
+using LineTraceFn = uint32_t(*)(Vector3 start, Vector3 end, HitResult *result);
+
+struct UnrealPhysicsBindings {
+  GetVelocityFn get_velocity;
+  SetVelocityFn set_velocity;
+  IsSimulatingFn is_simulating;
+  AddForceFn add_force;
+  AddImpulseFn add_impulse;
+  LineTraceFn line_trace;
+};
+
 struct UnrealBindings {
   GetSpatialDataFn get_spatial_data;
   SetSpatialDataFn set_spatial_data;
@@ -73,6 +126,9 @@ struct UnrealBindings {
   SpawnActorFn spawn_actor;
   SetViewTargetFn set_view_target;
   GetMouseDeltaFn get_mouse_delta;
+  GetActorComponentsFn get_actor_components;
+  VisualLogSegmentFn visual_log_segment;
+  UnrealPhysicsBindings physics_bindings;
 };
 
 struct Uuid {
@@ -81,7 +137,7 @@ struct Uuid {
 
 using RetrieveUuids = void(*)(Uuid *ptr, uintptr_t *len);
 
-using GetVelocityFn = void(*)(const AActorOpaque *actor, Vector3 *velocity);
+using GetVelocityRustFn = void(*)(const AActorOpaque *actor, Vector3 *velocity);
 
 using TickFn = ResultCode(*)(float dt);
 
@@ -89,7 +145,7 @@ using BeginPlayFn = ResultCode(*)();
 
 struct RustBindings {
   RetrieveUuids retrieve_uuids;
-  GetVelocityFn get_velocity;
+  GetVelocityRustFn get_velocity;
   TickFn tick;
   BeginPlayFn begin_play;
 };
@@ -128,5 +184,21 @@ extern AActorOpaque *SpawnActor(ActorClass actor_class,
 extern void SetViewTarget(const AActorOpaque *actor);
 
 extern void GetMouseDelta(float *x, float *y);
+
+extern void GetActorComponents(const AActorOpaque *actor, ActorComponentPtr *data, uintptr_t *len);
+
+extern void VisualLogSegment(const AActorOpaque *owner, Vector3 start, Vector3 end, Color color);
+
+extern Vector3 GetVelocity(const UPrimtiveOpaque *primitive);
+
+extern void SetVelocity(UPrimtiveOpaque *primitive, Vector3 velocity);
+
+extern uint32_t IsSimulating(const UPrimtiveOpaque *primitive);
+
+extern void AddForce(UPrimtiveOpaque *actor, Vector3 force);
+
+extern void AddImpulse(UPrimtiveOpaque *actor, Vector3 force);
+
+extern uint32_t LineTrace(Vector3 start, Vector3 end, HitResult *result);
 
 } // extern "C"

@@ -1,11 +1,11 @@
 {
-	"TargetName": "UnrealLearningKitGames",
+	"TargetName": "RustExample",
 	"Platform": "Win64",
 	"Configuration": "Development",
 	"TargetType": "Game",
 	"Architecture": "",
-	"Project": "../../UnrealLearningKitGames.uproject",
-	"Launch": "$(ProjectDir)/Binaries/Win64/UnrealLearningKitGames.exe",
+	"Project": "../../RustExample.uproject",
+	"Launch": "$(ProjectDir)/Binaries/Win64/RustExample.exe",
 	"Version": 
 	{
 		"MajorVersion": 5,
@@ -20,11 +20,11 @@
 	},
 	"BuildProducts": [
 		{
-			"Path": "$(ProjectDir)/Binaries/Win64/UnrealLearningKitGames.exe",
+			"Path": "$(ProjectDir)/Binaries/Win64/RustExample.exe",
 			"Type": "Executable"
 		},
 		{
-			"Path": "$(ProjectDir)/Binaries/Win64/UnrealLearningKitGames.pdb",
+			"Path": "$(ProjectDir)/Binaries/Win64/RustExample.pdb",
 			"Type": "SymbolFile"
 		},
 		{
@@ -34,7 +34,7 @@
 	],
 	"RuntimeDependencies": [
 		{
-			"Path": "$(ProjectDir)/UnrealLearningKitGames.uproject",
+			"Path": "$(ProjectDir)/RustExample.uproject",
 			"Type": "UFS"
 		},
 		{

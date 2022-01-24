@@ -118,9 +118,9 @@ void FRustPluginModule::StartupModule()
 
 	IDirectoryWatcher *watcher = FModuleManager::LoadModuleChecked<FDirectoryWatcherModule>(TEXT("DirectoryWatcher")).Get();
 	watcher->RegisterDirectoryChangedCallback_Handle(
-		"F:/unreal/unreal/example/UnrealLearningKitGames/rusttemp",
+		"F:/unreal/unreal/example/RustExample/rusttemp",
 		IDirectoryWatcher::FDirectoryChanged::CreateRaw(this, &FRustPluginModule::OnProjectDirectoryChanged), WatcherHandle, IDirectoryWatcher::WatchOptions::IgnoreChangesInSubtree);
-	FString P = FString(TEXT("F:/unreal/unreal/example/UnrealLearningKitGames/rusttemp/unreal_rust_example.dll"));
+	FString P = FString(TEXT("F:/unreal/unreal/example/RustExample/rusttemp/unreal_rust_example.dll"));
 	Plugin.TryLoad(P);
 }
 void FRustPluginModule::OnProjectDirectoryChanged(const TArray<FFileChangeData> &Data)
