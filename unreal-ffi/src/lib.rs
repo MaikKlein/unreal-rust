@@ -1,5 +1,5 @@
 use glam::{Quat, Vec3};
-use std::{ffi::c_void, os::raw::c_char};
+use std::{ffi::c_void, os::raw::c_char, primitive};
 
 #[repr(u8)]
 #[derive(Debug)]
@@ -36,10 +36,16 @@ impl Color {
         b: 0,
         a: 255,
     };
+    pub const GREEN: Self = Self {
+        r: 0,
+        g: 255,
+        b: 0,
+        a: 255,
+    };
 }
 
 #[repr(C)]
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Copy, Clone)]
 pub struct Vector3 {
     pub x: f32,
     pub y: f32,
@@ -76,6 +82,12 @@ impl From<Vec3> for Vector3 {
             z: v.z,
         }
     }
+}
+
+#[repr(C)]
+pub struct LineTraceParams {
+    pub ignored_actors: *const *mut AActorOpaque,
+    pub ignored_actors_len: usize,
 }
 
 // TODO: Is there a more typesafe way of defining an opaque type that
@@ -115,6 +127,16 @@ pub type GetActorComponentsFn =
     extern "C" fn(actor: *const AActorOpaque, data: *mut ActorComponentPtr, len: &mut usize);
 pub type VisualLogSegmentFn =
     extern "C" fn(owner: *const AActorOpaque, start: Vector3, end: Vector3, color: Color);
+pub type GetRootComponentFn =
+    extern "C" fn(actor: *const AActorOpaque, data: *mut ActorComponentPtr);
+pub type VisualLogCapsuleFn = extern "C" fn(
+    owner: *const AActorOpaque,
+    position: Vector3,
+    rotation: Quaternion,
+    half_height: f32,
+    radius: f32,
+    color: Color,
+);
 
 extern "C" {
     pub fn SetSpatialData(
@@ -149,7 +171,17 @@ extern "C" {
         data: *mut ActorComponentPtr,
         len: &mut usize,
     );
+    pub fn GetRootComponent(actor: *const AActorOpaque, data: *mut ActorComponentPtr);
+
     pub fn VisualLogSegment(owner: *const AActorOpaque, start: Vector3, end: Vector3, color: Color);
+    pub fn VisualLogCapsule(
+        owner: *const AActorOpaque,
+        position: Vector3,
+        rotation: Quaternion,
+        half_height: f32,
+        radius: f32,
+        color: Color,
+    );
 }
 
 #[repr(C)]
@@ -166,7 +198,9 @@ pub struct UnrealBindings {
     pub get_mouse_delta: GetMouseDeltaFn,
     pub get_actor_components: GetActorComponentsFn,
     pub visual_log_segment: VisualLogSegmentFn,
+    pub visual_log_capsule: VisualLogCapsuleFn,
     pub physics_bindings: UnrealPhysicsBindings,
+    pub get_root_component: GetRootComponentFn,
 }
 unsafe impl Sync for UnrealBindings {}
 unsafe impl Send for UnrealBindings {}
@@ -186,7 +220,7 @@ pub enum ActorClass {
     CameraActor = 1,
 }
 #[repr(u32)]
-#[derive(Debug)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ActorComponentType {
     Primitive,
 }
@@ -196,6 +230,14 @@ pub enum ActorComponentType {
 pub struct ActorComponentPtr {
     pub ty: ActorComponentType,
     pub ptr: *mut c_void,
+}
+impl Default for ActorComponentPtr {
+    fn default() -> Self {
+        Self {
+            ty: ActorComponentType::Primitive,
+            ptr: std::ptr::null_mut(),
+        }
+    }
 }
 
 #[repr(C)]
@@ -223,7 +265,21 @@ pub type SetVelocityFn = extern "C" fn(primitive: *mut UPrimtiveOpaque, velocity
 pub type IsSimulatingFn = extern "C" fn(primitive: *const UPrimtiveOpaque) -> u32;
 pub type AddForceFn = extern "C" fn(actor: *mut UPrimtiveOpaque, force: Vector3);
 pub type AddImpulseFn = extern "C" fn(actor: *mut UPrimtiveOpaque, force: Vector3);
-pub type LineTraceFn = extern "C" fn(start: Vector3, end: Vector3, result: &mut HitResult) -> u32;
+pub type LineTraceFn = extern "C" fn(
+    start: Vector3,
+    end: Vector3,
+    params: LineTraceParams,
+    result: &mut HitResult,
+) -> u32;
+pub type GetBoundingBoxExtentFn = extern "C" fn(primitive: *const UPrimtiveOpaque) -> Vector3;
+pub type SweepFn = extern "C" fn(
+    start: Vector3,
+    end: Vector3,
+    rotation: Quaternion,
+    params: LineTraceParams,
+    primitive: *const UPrimtiveOpaque,
+    result: &mut HitResult,
+) -> u32;
 #[repr(C)]
 pub struct UnrealPhysicsBindings {
     pub get_velocity: GetVelocityFn,
@@ -232,8 +288,11 @@ pub struct UnrealPhysicsBindings {
     pub add_force: AddForceFn,
     pub add_impulse: AddImpulseFn,
     pub line_trace: LineTraceFn,
+    pub get_bounding_box_extent: GetBoundingBoxExtentFn,
+    pub sweep: SweepFn,
 }
 #[repr(C)]
+#[derive(Debug)]
 pub struct HitResult {
     pub actor: *mut AActorOpaque,
     pub distance: f32,
@@ -242,6 +301,18 @@ pub struct HitResult {
     pub impact_location: Vector3,
     pub pentration_depth: f32,
 }
+impl Default for HitResult {
+    fn default() -> Self {
+        Self {
+            actor: std::ptr::null_mut(),
+            distance: Default::default(),
+            normal: Default::default(),
+            location: Default::default(),
+            impact_location: Default::default(),
+            pentration_depth: Default::default(),
+        }
+    }
+}
 
 extern "C" {
     pub fn GetVelocity(primitive: *const UPrimtiveOpaque) -> Vector3;
@@ -249,5 +320,19 @@ extern "C" {
     pub fn IsSimulating(primitive: *const UPrimtiveOpaque) -> u32;
     pub fn AddForce(actor: *mut UPrimtiveOpaque, force: Vector3);
     pub fn AddImpulse(actor: *mut UPrimtiveOpaque, force: Vector3);
-    pub fn LineTrace(start: Vector3, end: Vector3, result: &mut HitResult) -> u32;
+    pub fn LineTrace(
+        start: Vector3,
+        end: Vector3,
+        params: LineTraceParams,
+        result: &mut HitResult,
+    ) -> u32;
+    pub fn GetBoundingBoxExtent(primitive: *const UPrimtiveOpaque) -> Vector3;
+    pub fn Sweep(
+        start: Vector3,
+        end: Vector3,
+        rotation: Quaternion,
+        params: LineTraceParams,
+        primitive: *const UPrimtiveOpaque,
+        result: &mut HitResult,
+    ) -> u32;
 }

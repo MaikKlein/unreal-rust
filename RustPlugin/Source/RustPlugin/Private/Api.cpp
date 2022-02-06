@@ -12,8 +12,11 @@ UnrealBindings CreateBindings()
     physics_bindings.get_velocity = &GetVelocity;
     physics_bindings.is_simulating = &IsSimulating;
     physics_bindings.line_trace = &LineTrace;
+    physics_bindings.get_bounding_box_extent = &GetBoundingBoxExtent;
+    physics_bindings.sweep = &Sweep;
 
     UnrealBindings b = {};
+    b.physics_bindings = physics_bindings;
     b.get_spatial_data = &GetSpatialData;
     b.set_spatial_data = &SetSpatialData;
     b.log = &Log;
@@ -26,7 +29,8 @@ UnrealBindings CreateBindings()
     b.get_mouse_delta = &GetMouseDelta;
     b.get_actor_components = &GetActorComponents;
     b.visual_log_segment = &VisualLogSegment;
-    b.physics_bindings = physics_bindings;
+    b.visual_log_capsule = &VisualLogCapsule;
+    b.get_root_component = &GetRootComponent;
     return b;
 }
 

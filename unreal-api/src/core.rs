@@ -6,7 +6,7 @@ use crate::{
     ffi::{self, AActorOpaque},
     iterate_actors,
     math::{Quat, Vec3},
-    module::{bindings, UserModule},
+    module::{bindings, UserModule}, input::Input,
 };
 pub struct UnrealCore {
     world: World,
@@ -27,8 +27,8 @@ impl UnrealCore {
             .add_stage(CoreStage::Update, SystemStage::single_threaded())
             .add_stage(CoreStage::PostUpdate, SystemStage::single_threaded());
 
-        schedule.add_system_to_stage(CoreStage::PreUpdate, download_spatial_from_unreal.system());
-        schedule.add_system_to_stage(CoreStage::PostUpdate, upload_spatial_to_unreal.system());
+        schedule.add_system_to_stage(CoreStage::PreUpdate, download_transform_from_unreal.system());
+        schedule.add_system_to_stage(CoreStage::PostUpdate, upload_transform_to_unreal.system());
 
         let mut reflection_registry = ReflectionRegistry::default();
         register_core_components(&mut reflection_registry);
@@ -56,12 +56,24 @@ impl UnrealCore {
         *self = Self::new(module);
         log::info!("BeginPlay Rust");
         self.world.insert_resource(Frame::default());
+        self.world.insert_resource(Input::default());
         self.world.insert_resource(ActorRegistration::default());
         let mut startup = Schedule::default();
         startup.add_stage(CoreStage::Startup, SystemStage::single_threaded());
         startup.add_system_to_stage(CoreStage::Startup, register_actors.system());
         startup.run_once(&mut self.world);
         self.startup.run_once(&mut self.world);
+        let mut schedule = Schedule::default();
+        schedule
+            .add_stage(CoreStage::PreUpdate, SystemStage::single_threaded())
+            .add_stage(CoreStage::Update, SystemStage::single_threaded())
+            .add_stage(CoreStage::PostUpdate, SystemStage::single_threaded());
+        schedule.add_system_to_stage(CoreStage::PreUpdate, update_input.system());
+        schedule.add_system_to_stage(CoreStage::PreUpdate, download_transform_from_unreal.system());
+        schedule.add_system_to_stage(CoreStage::PostUpdate, upload_transform_to_unreal.system());
+        module.systems(&mut startup, &mut schedule);
+        self.schedule = schedule;
+        
     }
     pub fn tick(&mut self, dt: f32) {
         if let Some(mut frame) = self.world.get_resource_mut::<Frame>() {
@@ -135,12 +147,13 @@ pub extern "C" fn begin_play() -> ffi::ResultCode {
     }
 }
 pub fn register_core_components(registry: &mut ReflectionRegistry) {
-    registry.register::<SpatialComponent>();
+    registry.register::<TransformComponent>();
     registry.register::<ActorComponent>();
     registry.register::<PlayerInputComponent>();
     registry.register::<MovementComponent>();
     registry.register::<CameraComponent>();
     registry.register::<ParentComponent>();
+    registry.register::<PhysicsComponent>();
 }
 
 use unreal_reflect::{impl_component, registry::ReflectionRegistry, TypeUuid};
@@ -163,25 +176,65 @@ pub struct ActorComponent {
 }
 impl_component!(ActorComponent);
 #[derive(Default, Debug, TypeUuid)]
-#[uuid = "0eb9de40-a3f2-4ee5-b781-645bab81200f"]
-pub struct CapsuleComponent {
-    pub ptr: UnrealPtr<Capsule>,
+#[uuid = "ffc10b5c-635c-43ce-8288-e3c6f6d67e36"]
+pub struct PhysicsComponent {
+    pub ptr: UnrealPtr<Primitive>,
+    pub is_simulating: bool,
+    pub velocity: Vec3,
 }
-impl_component!(CapsuleComponent);
-impl CapsuleComponent {
-    pub fn apply_force(&mut self, force: Vec3) {
-        //(bindings().add_force)(self.ptr.ptr, force.into());
+
+impl PhysicsComponent {
+    pub fn new(ptr: UnrealPtr<Primitive>) -> Self {
+        let mut p = Self {
+            ptr,
+            ..Default::default()
+        };
+        p.download_state();
+        p
+    }
+    pub fn download_state(&mut self) {
+        self.is_simulating = (bindings().physics_bindings.is_simulating)(self.ptr.ptr) == 1;
+        self.velocity = (bindings().physics_bindings.get_velocity)(self.ptr.ptr).into();
+    }
+
+    pub fn upload_state(&mut self) {
+        (bindings().physics_bindings.set_velocity)(self.ptr.ptr, self.velocity.into());
+    }
+
+    pub fn add_impulse(&mut self, impulse: Vec3) {
+        (bindings().physics_bindings.add_impulse)(self.ptr.ptr, impulse.into());
+    }
+
+    pub fn add_force(&mut self, force: Vec3) {
+        (bindings().physics_bindings.add_force)(self.ptr.ptr, force.into());
     }
 }
 
+impl_component!(PhysicsComponent);
+
 #[derive(Default, Debug, TypeUuid, Clone)]
 #[uuid = "b8738d9e-ab21-47db-8587-4019b38e35a6"]
-pub struct SpatialComponent {
+pub struct TransformComponent {
     pub position: Vec3,
     pub rotation: Quat,
     pub scale: Vec3,
 }
-impl_component!(SpatialComponent);
+impl TransformComponent {
+    pub fn right(&self) -> Vec3 {
+        self.rotation * Vec3::Y
+    }
+    pub fn forward(&self) -> Vec3 {
+        self.rotation * Vec3::X
+    }
+    pub fn up(&self) -> Vec3 {
+        self.rotation * Vec3::Z
+    }
+    pub fn is_nan(&self) -> bool {
+        self.position.is_nan() || self.rotation.is_nan() || self.scale.is_nan()
+    }
+}
+
+impl_component!(TransformComponent);
 #[derive(Default, Debug, TypeUuid)]
 #[uuid = "8d2df877-499b-46f3-9660-bd2e1867af0d"]
 pub struct CameraComponent {
@@ -197,6 +250,7 @@ impl_component!(CameraComponent);
 pub struct MovementComponent {
     pub velocity: Vec3,
     pub view: Quat,
+    pub is_falling: bool,
 }
 impl_component!(MovementComponent);
 
@@ -226,7 +280,7 @@ pub struct ActorRegistration {
     pub actor_to_entity: HashMap<ActorPtr, Entity>,
 }
 
-#[derive(Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub struct ActorPtr(pub *mut AActorOpaque);
 unsafe impl Send for ActorPtr {}
 unsafe impl Sync for ActorPtr {}
@@ -271,29 +325,37 @@ impl<T> Copy for UnrealPtr<T> {}
 
 #[derive(Debug)]
 pub enum Capsule {}
+#[derive(Debug)]
+pub enum Primitive {}
 
-fn download_spatial_from_unreal(mut query: Query<(&ActorComponent, &mut SpatialComponent)>) {
-    for (actor, mut spatial) in query.iter_mut() {
+fn download_transform_from_unreal(mut query: Query<(&ActorComponent, &mut TransformComponent)>) {
+    for (actor, mut transform) in query.iter_mut() {
         let mut position = ffi::Vector3::default();
         let mut rotation = ffi::Quaternion::default();
         let mut scale = ffi::Vector3::default();
 
         (bindings().get_spatial_data)(actor.ptr.0, &mut position, &mut rotation, &mut scale);
 
-        spatial.position = position.into();
-        spatial.rotation = rotation.into();
-        spatial.scale = scale.into();
+        transform.position = position.into();
+        transform.rotation = rotation.into();
+        transform.scale = scale.into();
+        assert!(!transform.is_nan());
     }
 }
-fn upload_spatial_to_unreal(query: Query<(&ActorComponent, &SpatialComponent)>) {
-    for (actor, spatial) in query.iter() {
+fn upload_transform_to_unreal(query: Query<(&ActorComponent, &TransformComponent)>) {
+    for (actor, transform) in query.iter() {
+        assert!(!transform.is_nan());
         (bindings().set_spatial_data)(
             actor.ptr.0,
-            spatial.position.into(),
-            spatial.rotation.into(),
-            spatial.scale.into(),
+            transform.position.into(),
+            transform.rotation.into(),
+            transform.scale.into(),
         );
     }
+}
+
+fn update_input(mut input: ResMut<Input>) {
+    input.update();
 }
 
 fn register_actors(mut actor_register: ResMut<ActorRegistration>, mut commands: Commands) {
@@ -304,7 +366,7 @@ fn register_actors(mut actor_register: ResMut<ActorRegistration>, mut commands: 
                 ActorComponent {
                     ptr: ActorPtr(actor),
                 },
-                SpatialComponent::default(),
+                TransformComponent::default(),
                 MovementComponent::default(),
                 PlayerInputComponent::default(),
             ))
@@ -328,7 +390,13 @@ fn register_actors(mut actor_register: ResMut<ActorRegistration>, mut commands: 
         //        }
         //    }
         //}
-        //commands.entity(entity).insert(component)
+        let mut root_component = ActorComponentPtr::default();
+        (bindings().get_root_component)(actor, &mut root_component);
+        if root_component.ty == ActorComponentType::Primitive && root_component.ptr != std::ptr::null_mut() {
+            let physics_component = PhysicsComponent::new(UnrealPtr::from_raw(root_component.ptr));
+            commands.entity(entity).insert(physics_component);
+
+        }
 
         actor_register
             .actor_to_entity

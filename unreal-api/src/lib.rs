@@ -2,6 +2,8 @@ pub use unreal_ffi as ffi;
 pub mod log;
 pub mod core;
 pub mod module;
+pub mod physics;
+pub mod input;
 
 pub use bevy_ecs as ecs;
 pub use glam as math;

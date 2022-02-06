@@ -58,8 +58,14 @@ struct Color {
   uint8_t a;
 };
 static const Color Color_RED = Color{ /* .r = */ 255, /* .g = */ 0, /* .b = */ 0, /* .a = */ 255 };
+static const Color Color_GREEN = Color{ /* .r = */ 0, /* .g = */ 255, /* .b = */ 0, /* .a = */ 255 };
 
 using UPrimtiveOpaque = void;
+
+struct LineTraceParams {
+  AActorOpaque *const *ignored_actors;
+  uintptr_t ignored_actors_len;
+};
 
 struct HitResult {
   AActorOpaque *actor;
@@ -94,6 +100,8 @@ using GetActorComponentsFn = void(*)(const AActorOpaque *actor, ActorComponentPt
 
 using VisualLogSegmentFn = void(*)(const AActorOpaque *owner, Vector3 start, Vector3 end, Color color);
 
+using VisualLogCapsuleFn = void(*)(const AActorOpaque *owner, Vector3 position, Quaternion rotation, float half_height, float radius, Color color);
+
 using GetVelocityFn = Vector3(*)(const UPrimtiveOpaque *primitive);
 
 using SetVelocityFn = void(*)(UPrimtiveOpaque *primitive, Vector3 velocity);
@@ -104,7 +112,11 @@ using AddForceFn = void(*)(UPrimtiveOpaque *actor, Vector3 force);
 
 using AddImpulseFn = void(*)(UPrimtiveOpaque *actor, Vector3 force);
 
-using LineTraceFn = uint32_t(*)(Vector3 start, Vector3 end, HitResult *result);
+using LineTraceFn = uint32_t(*)(Vector3 start, Vector3 end, LineTraceParams params, HitResult *result);
+
+using GetBoundingBoxExtentFn = Vector3(*)(const UPrimtiveOpaque *primitive);
+
+using SweepFn = uint32_t(*)(Vector3 start, Vector3 end, Quaternion rotation, LineTraceParams params, const UPrimtiveOpaque *primitive, HitResult *result);
 
 struct UnrealPhysicsBindings {
   GetVelocityFn get_velocity;
@@ -113,7 +125,11 @@ struct UnrealPhysicsBindings {
   AddForceFn add_force;
   AddImpulseFn add_impulse;
   LineTraceFn line_trace;
+  GetBoundingBoxExtentFn get_bounding_box_extent;
+  SweepFn sweep;
 };
+
+using GetRootComponentFn = void(*)(const AActorOpaque *actor, ActorComponentPtr *data);
 
 struct UnrealBindings {
   GetSpatialDataFn get_spatial_data;
@@ -128,7 +144,9 @@ struct UnrealBindings {
   GetMouseDeltaFn get_mouse_delta;
   GetActorComponentsFn get_actor_components;
   VisualLogSegmentFn visual_log_segment;
+  VisualLogCapsuleFn visual_log_capsule;
   UnrealPhysicsBindings physics_bindings;
+  GetRootComponentFn get_root_component;
 };
 
 struct Uuid {
@@ -187,7 +205,16 @@ extern void GetMouseDelta(float *x, float *y);
 
 extern void GetActorComponents(const AActorOpaque *actor, ActorComponentPtr *data, uintptr_t *len);
 
+extern void GetRootComponent(const AActorOpaque *actor, ActorComponentPtr *data);
+
 extern void VisualLogSegment(const AActorOpaque *owner, Vector3 start, Vector3 end, Color color);
+
+extern void VisualLogCapsule(const AActorOpaque *owner,
+                             Vector3 position,
+                             Quaternion rotation,
+                             float half_height,
+                             float radius,
+                             Color color);
 
 extern Vector3 GetVelocity(const UPrimtiveOpaque *primitive);
 
@@ -199,6 +226,15 @@ extern void AddForce(UPrimtiveOpaque *actor, Vector3 force);
 
 extern void AddImpulse(UPrimtiveOpaque *actor, Vector3 force);
 
-extern uint32_t LineTrace(Vector3 start, Vector3 end, HitResult *result);
+extern uint32_t LineTrace(Vector3 start, Vector3 end, LineTraceParams params, HitResult *result);
+
+extern Vector3 GetBoundingBoxExtent(const UPrimtiveOpaque *primitive);
+
+extern uint32_t Sweep(Vector3 start,
+                      Vector3 end,
+                      Quaternion rotation,
+                      LineTraceParams params,
+                      const UPrimtiveOpaque *primitive,
+                      HitResult *result);
 
 } // extern "C"

@@ -13,6 +13,7 @@
 #include "UObject/UObjectIterator.h"
 #include "VisualLogger/VisualLogger.h"
 #include "VisualLogger/VisualLoggerTypes.h"
+#include "DrawDebugHelpers.h"
 
 DEFINE_LOG_CATEGORY(RustVisualLog);
 
@@ -192,11 +193,16 @@ void SetVelocity(UPrimtiveOpaque *primitive, Vector3 velocity)
 {
     ((UPrimitiveComponent *)primitive)->SetPhysicsLinearVelocity(ToFVector(velocity), false, FName{});
 }
-uint32_t LineTrace(Vector3 start, Vector3 end, HitResult *result)
+uint32_t LineTrace(Vector3 start, Vector3 end, LineTraceParams Params, HitResult *result)
 {
 
     FHitResult Out;
-    bool IsHit = GetModule().GameMode->GetWorld()->LineTraceSingleByChannel(Out, ToFVector(start), ToFVector(end), ECollisionChannel::ECC_MAX, FCollisionQueryParams{}, FCollisionResponseParams{});
+    auto CollisionParams = FCollisionQueryParams();
+    for (uintptr_t i = 0; i < Params.ignored_actors_len; ++i)
+    {
+        CollisionParams.AddIgnoredActor((AActor *)Params.ignored_actors[i]);
+    }
+    bool IsHit = GetModule().GameMode->GetWorld()->LineTraceSingleByChannel(Out, ToFVector(start), ToFVector(end), ECollisionChannel::ECC_MAX, CollisionParams, FCollisionResponseParams{});
     if (IsHit)
     {
         result->actor = (AActorOpaque *)Out.GetActor();
@@ -212,4 +218,74 @@ uint32_t LineTrace(Vector3 start, Vector3 end, HitResult *result)
 void VisualLogSegment(const AActorOpaque *actor, Vector3 start, Vector3 end, Color color)
 {
     UE_VLOG_SEGMENT(ToAActor(actor), RustVisualLog, Log, ToFVector(start), ToFVector(end), ToFColor(color), TEXT(""));
+}
+void VisualLogCapsule(const AActorOpaque *owner,
+                      Vector3 position,
+                      Quaternion rotation,
+                      float half_height,
+                      float radius,
+                      Color color)
+{
+
+    DrawDebugCapsule(
+        GetModule().GameMode->GetWorld(),
+        ToFVector(position),
+        half_height,
+        radius,
+        ToFQuat(rotation),
+        ToFColor(color),
+        false,
+        0.0,
+        1,
+        1.0);
+    UE_VLOG_CAPSULE(ToAActor(owner), RustVisualLog, Log, ToFVector(position), half_height, radius, ToFQuat(rotation), ToFColor(color), TEXT(""));
+}
+void GetRootComponent(const AActorOpaque *actor, ActorComponentPtr *data)
+{
+    USceneComponent *Root = ToAActor(actor)->GetRootComponent();
+
+    if (Cast<UPrimitiveComponent>(Root) != nullptr)
+    {
+        *data = ActorComponentPtr{ActorComponentType::Primitive, (void *)Root};
+        return;
+    }
+}
+Vector3 GetBoundingBoxExtent(const UPrimtiveOpaque *primitive)
+{
+    return ToVector3(((UPrimitiveComponent *)primitive)->Bounds.BoxExtent);
+}
+uint32_t Sweep(Vector3 start,
+               Vector3 end,
+               Quaternion rotation,
+               LineTraceParams params,
+               const UPrimtiveOpaque *primitive,
+               HitResult *result)
+{
+    FHitResult Out;
+    auto CollisionParams = FCollisionQueryParams();
+    for (uintptr_t i = 0; i < params.ignored_actors_len; ++i)
+    {
+        CollisionParams.AddIgnoredActor((AActor *)params.ignored_actors[i]);
+        CollisionParams.bFindInitialOverlaps = true;
+        CollisionParams.bDebugQuery = true;
+    }
+    bool IsHit = GetModule().GameMode->GetWorld()->SweepSingleByChannel(
+        Out,
+        ToFVector(start),
+        ToFVector(end),
+        ToFQuat(rotation),
+        ECollisionChannel::ECC_MAX,
+        ((UPrimitiveComponent *)primitive)->GetCollisionShape(),
+        CollisionParams, FCollisionResponseParams{});
+    if (IsHit)
+    {
+        result->actor = (AActorOpaque *)Out.GetActor();
+        result->distance = Out.Distance;
+        result->location = ToVector3(Out.Location);
+        result->normal = ToVector3(Out.Normal);
+        result->impact_location = ToVector3(Out.ImpactPoint);
+        result->pentration_depth = Out.PenetrationDepth;
+    }
+
+    return IsHit;
 }
