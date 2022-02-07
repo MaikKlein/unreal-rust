@@ -367,29 +367,11 @@ fn register_actors(mut actor_register: ResMut<ActorRegistration>, mut commands: 
                     ptr: ActorPtr(actor),
                 },
                 TransformComponent::default(),
-                MovementComponent::default(),
-                PlayerInputComponent::default(),
+                //MovementComponent::default(),
+                //PlayerInputComponent::default(),
             ))
             .id();
 
-        //let mut len: usize = 0;
-        //(bindings().get_actor_components)(actor, std::ptr::null_mut(), &mut len);
-        //let mut components: Vec<ActorComponentPtr> = Vec::with_capacity(len);
-        //(bindings().get_actor_components)(actor, components.as_mut_ptr(), &mut len);
-        //unsafe {
-        //    components.set_len(len);
-        //}
-        //for component in components {
-        //    match component.ty {
-        //        ActorComponentType::Capsule => {
-        //            let mut capsule = CapsuleComponent{
-        //                ptr: UnrealPtr::from_raw(component.ptr)
-        //            };
-
-        //            capsule.apply_force(Vec3::Z * 10000000.0);
-        //        }
-        //    }
-        //}
         let mut root_component = ActorComponentPtr::default();
         (bindings().get_root_component)(actor, &mut root_component);
         if root_component.ty == ActorComponentType::Primitive && root_component.ptr != std::ptr::null_mut() {
