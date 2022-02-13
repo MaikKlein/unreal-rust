@@ -22,6 +22,10 @@ enum class ActorComponentType : uint32_t {
   Primitive,
 };
 
+enum class EventType : uint32_t {
+  ActorSpawned,
+};
+
 enum class ResultCode : uint8_t {
   Success = 0,
   Panic = 1,
@@ -161,14 +165,21 @@ using TickFn = ResultCode(*)(float dt);
 
 using BeginPlayFn = ResultCode(*)();
 
+using UnrealEventFn = void(*)(const EventType *ty, const void *data);
+
 struct RustBindings {
   RetrieveUuids retrieve_uuids;
   GetVelocityRustFn get_velocity;
   TickFn tick;
   BeginPlayFn begin_play;
+  UnrealEventFn unreal_event;
 };
 
 using EntryUnrealBindingsFn = RustBindings(*)(UnrealBindings bindings);
+
+struct ActorSpawnedEvent {
+  AActorOpaque *actor;
+};
 
 extern "C" {
 

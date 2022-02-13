@@ -2,13 +2,13 @@ use bevy_ecs::prelude::*;
 use unreal_api::{
     core::{
         ActorComponent, ActorPtr, CameraComponent, CoreStage, Frame, MovementComponent,
-        ParentComponent, PhysicsComponent, PlayerInputComponent, TransformComponent,
+        ParentComponent, PhysicsComponent, TransformComponent,
     },
-    ffi::{self, HitResult},
+    ffi::{self},
     input::Input,
     math::{Quat, Vec3},
     module::{bindings, InitUserModule, UserModule},
-    physics::{self, sweep, SweepParams, line_trace},
+    physics::{line_trace, sweep, SweepParams},
 };
 use unreal_reflect::{impl_component, registry::ReflectionRegistry, TypeUuid};
 
@@ -80,7 +80,7 @@ pub struct FloorHit {
 pub fn find_floor(
     actor: &ActorComponent,
     transform: &TransformComponent,
-    physics: &PhysicsComponent,
+    _physics: &PhysicsComponent,
     config: &CharacterConfigComponent,
 ) -> Option<FloorHit> {
     let mut params = SweepParams::default();
@@ -92,10 +92,7 @@ pub fn find_floor(
         params,
     ) {
         let distance = Vec3::distance(transform.position, hit.impact_location) - 110.0;
-        if Vec3::dot(hit.normal, Vec3::Z) > 0.9
-            && 
-                distance <= config.max_height_until_fall
-        {
+        if Vec3::dot(hit.normal, Vec3::Z) > 0.9 && distance <= config.max_height_until_fall {
             return Some(FloorHit {
                 position: hit.impact_location,
             });
@@ -108,7 +105,7 @@ pub fn movement_hit(
     actor: &ActorComponent,
     transform: &TransformComponent,
     physics: &PhysicsComponent,
-    config: &CharacterConfigComponent,
+    _config: &CharacterConfigComponent,
     controller: &CharacterControllerComponent,
     dt: f32,
 ) -> Option<MovementHit> {
@@ -180,7 +177,7 @@ fn character_control_system(
         input_dir.z = controller.velocity.z;
         controller.velocity = input_dir;
 
-        if let Some(hit) = find_floor(actor, &transform, physics, config) {
+        if let Some(_hit) = find_floor(actor, &transform, physics, config) {
             //transform.position = hit.position;
             controller.velocity.z = 0.0;
         } else {
@@ -189,12 +186,9 @@ fn character_control_system(
         if let Some(hit) = movement_hit(actor, &transform, physics, config, &controller, frame.dt) {
             match hit {
                 MovementHit::Slope { normal } => {
-                    if Vec3::dot(normal, controller.velocity) <= 0.0 {
                     controller.velocity = project_onto_plane(controller.velocity, normal)
                         .normalize_or_zero()
                         * config.max_movement_speed
-
-                    }
                 }
                 MovementHit::Wall { normal } => {
                     controller.velocity = project_onto_plane(controller.velocity, normal)
@@ -211,15 +205,13 @@ fn character_control_system(
     }
 }
 
-
 fn update_controller_view(
     mut movement: Query<&mut CharacterControllerComponent>,
     camera: Query<(&ParentComponent, &TransformComponent, &CameraComponent)>,
 ) {
     for (parent, spatial, _) in camera.iter() {
-        if let Some(mut movement) = movement
-            .get_component_mut::<CharacterControllerComponent>(parent.parent)
-            .ok()
+        if let Ok(mut movement) =
+            movement.get_component_mut::<CharacterControllerComponent>(parent.parent)
         {
             movement.camera_view = spatial.rotation;
         }
@@ -234,7 +226,9 @@ fn rotate_camera(mut query: Query<(&mut TransformComponent, &mut CameraComponent
     let mut y = 0.0;
 
     let max_angle = 85.0f32.to_radians();
-    (bindings().get_mouse_delta)(&mut x, &mut y);
+    unsafe {
+        (bindings().get_mouse_delta)(&mut x, &mut y);
+    }
     for (mut spatial, mut cam) in query.iter_mut() {
         let speed = 0.05;
         cam.x += x * speed;
@@ -258,25 +252,26 @@ fn spawn_camera(
             continue;
         }
         let pos = Vec3::new(-2587.0, -1800.0, 150.0);
-        let actor = (bindings().spawn_actor)(
-            ffi::ActorClass::CameraActor,
-            pos.into(),
-            Quat::from_rotation_x(0.0).into(),
-            Vec3::ONE.into(),
-        );
-        (bindings().set_view_target)(actor);
-
-        commands.spawn().insert_bundle((
-            TransformComponent {
-                position: pos,
-                ..Default::default()
-            },
-            ActorComponent {
-                ptr: ActorPtr(actor),
-            },
-            CameraComponent::default(),
-            ParentComponent { parent: entity },
-        ));
+        unsafe {
+            let actor = (bindings().spawn_actor)(
+                ffi::ActorClass::CameraActor,
+                pos.into(),
+                Quat::from_rotation_x(0.0).into(),
+                Vec3::ONE.into(),
+            );
+            (bindings().set_view_target)(actor);
+            commands.spawn().insert_bundle((
+                TransformComponent {
+                    position: pos,
+                    ..Default::default()
+                },
+                ActorComponent {
+                    ptr: ActorPtr(actor),
+                },
+                CameraComponent::default(),
+                ParentComponent { parent: entity },
+            ));
+        }
     }
 }
 
@@ -320,4 +315,5 @@ impl UserModule for MyModule {
         update.add_system_to_stage(CoreStage::Update, update_camera.system());
     }
 }
+
 unreal_api::implement_unreal_module!(MyModule);

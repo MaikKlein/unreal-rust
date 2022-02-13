@@ -1,5 +1,5 @@
 use glam::{Quat, Vec3};
-use std::{ffi::c_void, os::raw::c_char, primitive};
+use std::{ffi::c_void, os::raw::c_char};
 
 #[repr(u8)]
 #[derive(Debug)]
@@ -62,15 +62,15 @@ impl From<Quat> for Quaternion {
         }
     }
 }
-impl Into<Quat> for Quaternion {
-    fn into(self) -> Quat {
-        Quat::from_xyzw(self.x, self.y, self.z, self.w)
+impl From<Quaternion> for Quat {
+    fn from(val: Quaternion) -> Self {
+        Quat::from_xyzw(val.x, val.y, val.z, val.w)
     }
 }
 
-impl Into<Vec3> for Vector3 {
-    fn into(self) -> Vec3 {
-        Vec3::new(self.x, self.y, self.z)
+impl From<Vector3> for Vec3 {
+    fn from(val: Vector3) -> Self {
+        Vec3::new(val.x, val.y, val.z)
     }
 }
 
@@ -111,25 +111,25 @@ pub type SetSpatialDataFn = extern "C" fn(
     rotation: Quaternion,
     scale: Vector3,
 );
-pub type IterateActorsFn = extern "C" fn(array: *mut *mut AActorOpaque, len: *mut u64);
-pub type GetActionStateFn = extern "C" fn(name: *const c_char, state: &mut ActionState);
-pub type GetAxisValueFn = extern "C" fn(name: *const c_char, len: usize, value: &mut f32);
-pub type SetEntityForActorFn = extern "C" fn(name: *mut AActorOpaque, entity: Entity);
-pub type SpawnActorFn = extern "C" fn(
+pub type IterateActorsFn = unsafe extern "C" fn(array: *mut *mut AActorOpaque, len: *mut u64);
+pub type GetActionStateFn = unsafe extern "C" fn(name: *const c_char, state: &mut ActionState);
+pub type GetAxisValueFn = unsafe extern "C" fn(name: *const c_char, len: usize, value: &mut f32);
+pub type SetEntityForActorFn = unsafe extern "C" fn(name: *mut AActorOpaque, entity: Entity);
+pub type SpawnActorFn = unsafe extern "C" fn(
     actor_class: ActorClass,
     position: Vector3,
     rotation: Quaternion,
     scale: Vector3,
 ) -> *mut AActorOpaque;
-pub type SetViewTargetFn = extern "C" fn(actor: *const AActorOpaque);
-pub type GetMouseDeltaFn = extern "C" fn(x: &mut f32, y: &mut f32);
+pub type SetViewTargetFn = unsafe extern "C" fn(actor: *const AActorOpaque);
+pub type GetMouseDeltaFn = unsafe extern "C" fn(x: &mut f32, y: &mut f32);
 pub type GetActorComponentsFn =
-    extern "C" fn(actor: *const AActorOpaque, data: *mut ActorComponentPtr, len: &mut usize);
+    unsafe extern "C" fn(actor: *const AActorOpaque, data: *mut ActorComponentPtr, len: &mut usize);
 pub type VisualLogSegmentFn =
-    extern "C" fn(owner: *const AActorOpaque, start: Vector3, end: Vector3, color: Color);
+    unsafe extern "C" fn(owner: *const AActorOpaque, start: Vector3, end: Vector3, color: Color);
 pub type GetRootComponentFn =
-    extern "C" fn(actor: *const AActorOpaque, data: *mut ActorComponentPtr);
-pub type VisualLogCapsuleFn = extern "C" fn(
+    unsafe extern "C" fn(actor: *const AActorOpaque, data: *mut ActorComponentPtr);
+pub type VisualLogCapsuleFn = unsafe extern "C" fn(
     owner: *const AActorOpaque,
     position: Vector3,
     rotation: Quaternion,
@@ -245,34 +245,48 @@ pub struct Uuid {
     pub bytes: [u8; 16],
 }
 
-pub type EntryUnrealBindingsFn = extern "C" fn(bindings: UnrealBindings) -> RustBindings;
-pub type BeginPlayFn = extern "C" fn() -> ResultCode;
-pub type TickFn = extern "C" fn(dt: f32) -> ResultCode;
+pub type EntryUnrealBindingsFn = unsafe extern "C" fn(bindings: UnrealBindings) -> RustBindings;
+pub type BeginPlayFn = unsafe extern "C" fn() -> ResultCode;
+pub type TickFn = unsafe extern "C" fn(dt: f32) -> ResultCode;
 pub type RetrieveUuids = unsafe extern "C" fn(ptr: *mut Uuid, len: *mut usize);
 pub type GetVelocityRustFn =
     unsafe extern "C" fn(actor: *const AActorOpaque, velocity: &mut Vector3);
 
 pub type CollisionShape = c_void;
+
+#[repr(u32)]
+pub enum EventType {
+    ActorSpawned,
+}
+
+#[repr(C)]
+pub struct ActorSpawnedEvent {
+    pub actor: *mut AActorOpaque,
+}
+
 #[repr(C)]
 pub struct RustBindings {
     pub retrieve_uuids: RetrieveUuids,
     pub get_velocity: GetVelocityRustFn,
     pub tick: TickFn,
     pub begin_play: BeginPlayFn,
+    pub unreal_event: UnrealEventFn,
 }
-pub type GetVelocityFn = extern "C" fn(primitive: *const UPrimtiveOpaque) -> Vector3;
-pub type SetVelocityFn = extern "C" fn(primitive: *mut UPrimtiveOpaque, velocity: Vector3);
-pub type IsSimulatingFn = extern "C" fn(primitive: *const UPrimtiveOpaque) -> u32;
-pub type AddForceFn = extern "C" fn(actor: *mut UPrimtiveOpaque, force: Vector3);
-pub type AddImpulseFn = extern "C" fn(actor: *mut UPrimtiveOpaque, force: Vector3);
-pub type LineTraceFn = extern "C" fn(
+pub type UnrealEventFn = unsafe extern "C" fn(ty: *const EventType, data: *const c_void);
+pub type GetVelocityFn = unsafe extern "C" fn(primitive: *const UPrimtiveOpaque) -> Vector3;
+pub type SetVelocityFn = unsafe extern "C" fn(primitive: *mut UPrimtiveOpaque, velocity: Vector3);
+pub type IsSimulatingFn = unsafe extern "C" fn(primitive: *const UPrimtiveOpaque) -> u32;
+pub type AddForceFn = unsafe extern "C" fn(actor: *mut UPrimtiveOpaque, force: Vector3);
+pub type AddImpulseFn = unsafe extern "C" fn(actor: *mut UPrimtiveOpaque, force: Vector3);
+pub type LineTraceFn = unsafe extern "C" fn(
     start: Vector3,
     end: Vector3,
     params: LineTraceParams,
     result: &mut HitResult,
 ) -> u32;
-pub type GetBoundingBoxExtentFn = extern "C" fn(primitive: *const UPrimtiveOpaque) -> Vector3;
-pub type SweepFn = extern "C" fn(
+pub type GetBoundingBoxExtentFn =
+    unsafe extern "C" fn(primitive: *const UPrimtiveOpaque) -> Vector3;
+pub type SweepFn = unsafe extern "C" fn(
     start: Vector3,
     end: Vector3,
     rotation: Quaternion,

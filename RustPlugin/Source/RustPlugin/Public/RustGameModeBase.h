@@ -28,5 +28,6 @@ class RUSTPLUGIN_API ARustGameModeBase : public AGameModeBase
 	UPlayerInput* PlayerInput;
 	int32 Handle;
 	virtual void PostLogin(APlayerController* NewPlayer);
+	void OnActorSpawnedHandler(AActor* actor);
 };
 

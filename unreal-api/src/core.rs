@@ -1,12 +1,13 @@
 use bevy_ecs::prelude::*;
-use ffi::{ActorComponentPtr, ActorComponentType};
+use ffi::{ActorComponentPtr, ActorComponentType, EventType};
 use std::{collections::HashMap, ffi::c_void};
 
 use crate::{
     ffi::{self, AActorOpaque},
+    input::Input,
     iterate_actors,
     math::{Quat, Vec3},
-    module::{bindings, UserModule}, input::Input,
+    module::{bindings, UserModule},
 };
 pub struct UnrealCore {
     world: World,
@@ -27,7 +28,10 @@ impl UnrealCore {
             .add_stage(CoreStage::Update, SystemStage::single_threaded())
             .add_stage(CoreStage::PostUpdate, SystemStage::single_threaded());
 
-        schedule.add_system_to_stage(CoreStage::PreUpdate, download_transform_from_unreal.system());
+        schedule.add_system_to_stage(
+            CoreStage::PreUpdate,
+            download_transform_from_unreal.system(),
+        );
         schedule.add_system_to_stage(CoreStage::PostUpdate, upload_transform_to_unreal.system());
 
         let mut reflection_registry = ReflectionRegistry::default();
@@ -69,11 +73,13 @@ impl UnrealCore {
             .add_stage(CoreStage::Update, SystemStage::single_threaded())
             .add_stage(CoreStage::PostUpdate, SystemStage::single_threaded());
         schedule.add_system_to_stage(CoreStage::PreUpdate, update_input.system());
-        schedule.add_system_to_stage(CoreStage::PreUpdate, download_transform_from_unreal.system());
+        schedule.add_system_to_stage(
+            CoreStage::PreUpdate,
+            download_transform_from_unreal.system(),
+        );
         schedule.add_system_to_stage(CoreStage::PostUpdate, upload_transform_to_unreal.system());
         module.systems(&mut startup, &mut schedule);
         self.schedule = schedule;
-        
     }
     pub fn tick(&mut self, dt: f32) {
         if let Some(mut frame) = self.world.get_resource_mut::<Frame>() {
@@ -86,7 +92,7 @@ impl UnrealCore {
 
 pub unsafe extern "C" fn retrieve_uuids(ptr: *mut ffi::Uuid, len: *mut usize) {
     if let Some(global) = crate::module::MODULE.as_mut() {
-        if ptr == std::ptr::null_mut() {
+        if ptr.is_null() {
             *len = global.core.reflection_registry.uuid_set.len();
         } else {
             let slice = std::ptr::slice_from_raw_parts_mut(ptr, *len);
@@ -106,6 +112,9 @@ pub unsafe extern "C" fn retrieve_uuids(ptr: *mut ffi::Uuid, len: *mut usize) {
     }
 }
 
+pub unsafe extern "C" fn unreal_event(_ty: *const EventType, _data: *const c_void) {
+    log::info!("Actor Added");
+}
 pub unsafe extern "C" fn get_velocity(actor: *const AActorOpaque, velocity: &mut ffi::Vector3) {
     if let Some(global) = crate::module::MODULE.as_mut() {
         if let Some(entity) = global
@@ -193,20 +202,28 @@ impl PhysicsComponent {
         p
     }
     pub fn download_state(&mut self) {
-        self.is_simulating = (bindings().physics_bindings.is_simulating)(self.ptr.ptr) == 1;
-        self.velocity = (bindings().physics_bindings.get_velocity)(self.ptr.ptr).into();
+        unsafe {
+            self.is_simulating = (bindings().physics_bindings.is_simulating)(self.ptr.ptr) == 1;
+            self.velocity = (bindings().physics_bindings.get_velocity)(self.ptr.ptr).into();
+        }
     }
 
     pub fn upload_state(&mut self) {
-        (bindings().physics_bindings.set_velocity)(self.ptr.ptr, self.velocity.into());
+        unsafe {
+            (bindings().physics_bindings.set_velocity)(self.ptr.ptr, self.velocity.into());
+        }
     }
 
     pub fn add_impulse(&mut self, impulse: Vec3) {
-        (bindings().physics_bindings.add_impulse)(self.ptr.ptr, impulse.into());
+        unsafe {
+            (bindings().physics_bindings.add_impulse)(self.ptr.ptr, impulse.into());
+        }
     }
 
     pub fn add_force(&mut self, force: Vec3) {
-        (bindings().physics_bindings.add_force)(self.ptr.ptr, force.into());
+        unsafe {
+            (bindings().physics_bindings.add_force)(self.ptr.ptr, force.into());
+        }
     }
 }
 
@@ -315,8 +332,8 @@ impl<T> Default for UnrealPtr<T> {
 impl<T> Clone for UnrealPtr<T> {
     fn clone(&self) -> Self {
         Self {
-            ptr: self.ptr.clone(),
-            _m: self._m.clone(),
+            ptr: self.ptr,
+            _m: self._m,
         }
     }
 }
@@ -373,11 +390,12 @@ fn register_actors(mut actor_register: ResMut<ActorRegistration>, mut commands: 
             .id();
 
         let mut root_component = ActorComponentPtr::default();
-        (bindings().get_root_component)(actor, &mut root_component);
-        if root_component.ty == ActorComponentType::Primitive && root_component.ptr != std::ptr::null_mut() {
+        unsafe {
+            (bindings().get_root_component)(actor, &mut root_component);
+        }
+        if root_component.ty == ActorComponentType::Primitive && !root_component.ptr.is_null() {
             let physics_component = PhysicsComponent::new(UnrealPtr::from_raw(root_component.ptr));
             commands.entity(entity).insert(physics_component);
-
         }
 
         actor_register

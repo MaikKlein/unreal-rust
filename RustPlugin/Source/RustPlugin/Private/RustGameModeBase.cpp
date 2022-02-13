@@ -38,6 +38,14 @@ ARustGameModeBase::ARustGameModeBase()
 
     // PlayerInput = CreateDefaultSubobject<UPlayerInput>(TEXT("Input"));
 }
+void ARustGameModeBase::OnActorSpawnedHandler(AActor* actor){
+    UE_LOG(LogTemp, Warning, TEXT("%s"), *actor->GetActorLabel());
+    EventType Type = EventType::ActorSpawned;
+    ActorSpawnedEvent Event;
+    Event.actor = (AActorOpaque*) actor;
+    GetModule().Plugin.Rust.unreal_event(&Type, (void*)&Event);
+
+}
 void ARustGameModeBase::PostLogin(APlayerController *NewPlayer)
 {
 }
@@ -77,6 +85,11 @@ void ARustGameModeBase::Tick(float Dt)
 void ARustGameModeBase::StartPlay()
 {
     Super::StartPlay();
+    GetWorld()->AddOnActorSpawnedHandler(FOnActorSpawned::FDelegate::CreateUObject(this, &ARustGameModeBase::OnActorSpawnedHandler));
+    for (TActorIterator<AActor> ActorItr(GetWorld()); ActorItr; ++ActorItr) {
+        OnActorSpawnedHandler(*ActorItr);
+    }
+    
     APlayerController *PC = UGameplayStatics::GetPlayerController(this, 0);
     InputComponent->AxisBindings.Empty();
     for (auto Mapping : PC->PlayerInput->AxisMappings)

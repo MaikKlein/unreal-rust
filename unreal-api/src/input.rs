@@ -1,12 +1,7 @@
-use std::{collections::HashMap};
-use glam::Vec3;
-use unreal_ffi::ActionState;
-
+use std::collections::HashMap;
 use crate::module::bindings;
 
-pub enum Action {
-
-}
+pub enum Action {}
 
 pub type Binding = &'static str;
 #[derive(Default)]
@@ -35,7 +30,13 @@ impl Input {
         //}
         for binding in &self.axis_bindings {
             let mut value: f32 = 0.0;
-            (bindings().get_axis_value)(binding.as_ptr() as *const i8, binding.len(), &mut value);
+            unsafe {
+                (bindings().get_axis_value)(
+                    binding.as_ptr() as *const i8,
+                    binding.len(),
+                    &mut value,
+                );
+            }
             self.axis.insert(binding, value);
         }
     }

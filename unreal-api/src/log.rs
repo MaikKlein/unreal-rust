@@ -33,12 +33,14 @@ pub fn visual_log_capsule(
     radius: f32,
     color: Color,
 ) {
-    (bindings().visual_log_capsule)(
-        actor.0,
-        position.into(),
-        rotation.into(),
-        half_height,
-        radius,
-        color,
-    );
+    unsafe {
+        (bindings().visual_log_capsule)(
+            actor.0,
+            position.into(),
+            rotation.into(),
+            half_height,
+            radius,
+            color,
+        );
+    }
 }

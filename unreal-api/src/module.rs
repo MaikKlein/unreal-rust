@@ -38,6 +38,7 @@ macro_rules! implement_unreal_module {
                 get_velocity: $crate::core::get_velocity,
                 tick: $crate::core::tick,
                 begin_play: $crate::core::begin_play,
+                unreal_event: $crate::core::unreal_event,
             }
         }
     };

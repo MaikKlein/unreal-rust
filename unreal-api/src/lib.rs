@@ -1,3 +1,4 @@
+#![allow(clippy::missing_safety_doc)]
 pub use unreal_ffi as ffi;
 pub mod log;
 pub mod core;
