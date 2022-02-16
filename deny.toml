@@ -73,6 +73,8 @@ allow = [
     "MIT",
     "Apache-2.0",
     "Apache-2.0 WITH LLVM-exception",
+    "MPL-2.0",
+    "BSD-3-Clause"
 ]
 # List of explicitly disallowed licenses
 # See https://spdx.org/licenses/ for list of possible licenses
@@ -197,9 +199,9 @@ allow-registry = ["https://github.com/rust-lang/crates.io-index"]
 allow-git = []
 
 [sources.allow-org]
-# 1 or more github.com organizations to allow git sources for
-github = [""]
-# 1 or more gitlab.com organizations to allow git sources for
-gitlab = [""]
-# 1 or more bitbucket.org organizations to allow git sources for
-bitbucket = [""]
+## 1 or more github.com organizations to allow git sources for
+#github = [""]
+## 1 or more gitlab.com organizations to allow git sources for
+#gitlab = [""]
+## 1 or more bitbucket.org organizations to allow git sources for
+#bitbucket = [""]
