@@ -64,6 +64,8 @@ struct Color {
 static const Color Color_RED = Color{ /* .r = */ 255, /* .g = */ 0, /* .b = */ 0, /* .a = */ 255 };
 static const Color Color_GREEN = Color{ /* .r = */ 0, /* .g = */ 255, /* .b = */ 0, /* .a = */ 255 };
 
+using UClassOpague = void;
+
 using UPrimtiveOpaque = void;
 
 struct LineTraceParams {
@@ -135,6 +137,8 @@ struct UnrealPhysicsBindings {
 
 using GetRootComponentFn = void(*)(const AActorOpaque *actor, ActorComponentPtr *data);
 
+using GetRegisteredClassesFn = void(*)(UClassOpague **classes, uintptr_t *len);
+
 struct UnrealBindings {
   GetSpatialDataFn get_spatial_data;
   SetSpatialDataFn set_spatial_data;
@@ -151,6 +155,7 @@ struct UnrealBindings {
   VisualLogCapsuleFn visual_log_capsule;
   UnrealPhysicsBindings physics_bindings;
   GetRootComponentFn get_root_component;
+  GetRegisteredClassesFn get_registered_classes;
 };
 
 struct Uuid {
@@ -226,6 +231,8 @@ extern void VisualLogCapsule(const AActorOpaque *owner,
                              float half_height,
                              float radius,
                              Color color);
+
+extern void GetRegisteredClasses(UClassOpague **classes, uintptr_t *len);
 
 extern Vector3 GetVelocity(const UPrimtiveOpaque *primitive);
 

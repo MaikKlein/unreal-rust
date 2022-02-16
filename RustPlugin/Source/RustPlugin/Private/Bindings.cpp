@@ -289,3 +289,18 @@ uint32_t Sweep(Vector3 start,
 
     return IsHit;
 }
+
+void GetRegisteredClasses(UClassOpague **classes, uintptr_t *len)
+{
+    if (classes == nullptr)
+    {
+        *len = GetModule().GameMode->RegisteredClasses.Num();
+        return;
+    }
+    auto GameMode = GetModule().GameMode;
+    uintptr_t Count = *len;
+    for (uintptr_t Idx = 0; Idx < Count; ++Idx)
+    {
+        classes[Idx] = (UClassOpague*)GameMode->RegisteredClasses[Idx].Get();
+    }
+}

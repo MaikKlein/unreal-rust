@@ -1,5 +1,5 @@
-use std::collections::HashMap;
 use crate::module::bindings;
+use std::collections::HashMap;
 
 pub enum Action {}
 

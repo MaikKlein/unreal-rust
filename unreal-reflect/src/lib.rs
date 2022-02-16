@@ -1,7 +1,7 @@
+pub use bevy_ecs;
 pub use unreal_reflect_derive::TypeUuid;
 pub use uuid;
 pub use uuid::Uuid;
-pub use bevy_ecs;
 
 pub mod registry;
 

@@ -95,6 +95,7 @@ pub struct LineTraceParams {
 pub type AActorOpaque = c_void;
 pub type UPrimtiveOpaque = c_void;
 pub type UCapsuleOpaque = c_void;
+pub type UClassOpague = c_void;
 
 pub type GetSpatialDataFn = extern "C" fn(
     actor: *const AActorOpaque,
@@ -137,6 +138,8 @@ pub type VisualLogCapsuleFn = unsafe extern "C" fn(
     radius: f32,
     color: Color,
 );
+pub type GetRegisteredClassesFn =
+    unsafe extern "C" fn(classes: *mut *mut UClassOpague, len: *mut usize);
 
 extern "C" {
     pub fn SetSpatialData(
@@ -182,6 +185,7 @@ extern "C" {
         radius: f32,
         color: Color,
     );
+    pub fn GetRegisteredClasses(classes: *mut *mut UClassOpague, len: *mut usize);
 }
 
 #[repr(C)]
@@ -201,6 +205,7 @@ pub struct UnrealBindings {
     pub visual_log_capsule: VisualLogCapsuleFn,
     pub physics_bindings: UnrealPhysicsBindings,
     pub get_root_component: GetRootComponentFn,
+    pub get_registered_classes: GetRegisteredClassesFn,
 }
 unsafe impl Sync for UnrealBindings {}
 unsafe impl Send for UnrealBindings {}

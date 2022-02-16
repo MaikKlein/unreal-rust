@@ -1,8 +1,7 @@
 use bevy_ecs::schedule::Schedule;
 use unreal_reflect::registry::ReflectionRegistry;
 
-use crate::{ffi::UnrealBindings, core::UnrealCore};
-
+use crate::{core::UnrealCore, ffi::UnrealBindings};
 
 pub static mut MODULE: Option<Global> = None;
 pub struct Global {
@@ -23,16 +22,15 @@ pub static mut BINDINGS: Option<UnrealBindings> = None;
 macro_rules! implement_unreal_module {
     ($module: ty) => {
         #[no_mangle]
-        pub unsafe extern "C" fn register_unreal_bindings(bindings: $crate::ffi::UnrealBindings) -> $crate::ffi::RustBindings {
+        pub unsafe extern "C" fn register_unreal_bindings(
+            bindings: $crate::ffi::UnrealBindings,
+        ) -> $crate::ffi::RustBindings {
             $crate::module::BINDINGS = Some(bindings);
             let _ = $crate::log::init();
             let module = Box::new(<$module as $crate::module::InitUserModule>::initialize());
             let core = $crate::core::UnrealCore::new(module.as_ref());
 
-            $crate::module::MODULE = Some($crate::module::Global {
-                core,
-                module,
-            });
+            $crate::module::MODULE = Some($crate::module::Global { core, module });
             $crate::ffi::RustBindings {
                 retrieve_uuids: $crate::core::retrieve_uuids,
                 get_velocity: $crate::core::get_velocity,
