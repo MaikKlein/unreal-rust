@@ -32,6 +32,7 @@ UnrealBindings CreateBindings()
     b.visual_log_capsule = &VisualLogCapsule;
     b.get_root_component = &GetRootComponent;
     b.get_registered_classes = &GetRegisteredClasses;
+    b.get_class = &GetClass;
     return b;
 }
 

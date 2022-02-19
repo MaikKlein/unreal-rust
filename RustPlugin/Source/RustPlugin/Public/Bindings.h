@@ -23,7 +23,7 @@ enum class ActorComponentType : uint32_t {
 };
 
 enum class EventType : uint32_t {
-  ActorSpawned,
+  ActorSpawned = 0,
 };
 
 enum class ResultCode : uint8_t {
@@ -139,6 +139,8 @@ using GetRootComponentFn = void(*)(const AActorOpaque *actor, ActorComponentPtr 
 
 using GetRegisteredClassesFn = void(*)(UClassOpague **classes, uintptr_t *len);
 
+using GetClassFn = UClassOpague*(*)(const AActorOpaque *actor);
+
 struct UnrealBindings {
   GetSpatialDataFn get_spatial_data;
   SetSpatialDataFn set_spatial_data;
@@ -156,6 +158,7 @@ struct UnrealBindings {
   UnrealPhysicsBindings physics_bindings;
   GetRootComponentFn get_root_component;
   GetRegisteredClassesFn get_registered_classes;
+  GetClassFn get_class;
 };
 
 struct Uuid {
@@ -233,6 +236,8 @@ extern void VisualLogCapsule(const AActorOpaque *owner,
                              Color color);
 
 extern void GetRegisteredClasses(UClassOpague **classes, uintptr_t *len);
+
+extern UClassOpague *GetClass(const AActorOpaque *actor);
 
 extern Vector3 GetVelocity(const UPrimtiveOpaque *primitive);
 

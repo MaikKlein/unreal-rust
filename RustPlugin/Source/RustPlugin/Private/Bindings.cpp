@@ -304,3 +304,7 @@ void GetRegisteredClasses(UClassOpague **classes, uintptr_t *len)
         classes[Idx] = (UClassOpague*)GameMode->RegisteredClasses[Idx].Get();
     }
 }
+
+UClassOpague *GetClass(const AActorOpaque *actor) {
+    return (UClassOpague*)ToAActor(actor)->GetClass();
+}

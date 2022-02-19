@@ -25,9 +25,10 @@ struct FPlugin {
 
 	bool NeedsInit;
 	bool IsLoaded();
-	bool TryLoad(FString& Path);
+	bool TryLoad();
 	void CallEntryPoints();
 	void RetrieveUuids();
+	FString PluginPath();
 
 	TArray<Uuid> Uuids;
 	FPlugin();

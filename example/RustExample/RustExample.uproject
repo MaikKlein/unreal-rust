@@ -1,6 +1,6 @@
 {
 	"FileVersion": 3,
-	"EngineAssociation": "5.0",
+	"EngineAssociation": "{186B0445-9164-4A8A-A9BD-C03DC9A8DE84}",
 	"Category": "",
 	"Description": "",
 	"Modules": [
@@ -15,15 +15,6 @@
 	],
 	"Plugins": [
 		{
-			"Name": "MegascansPlugin",
-			"Enabled": false,
-			"SupportedTargetPlatforms": [
-				"Win64",
-				"Mac",
-				"Linux"
-			]
-		},
-		{
 			"Name": "EditorScriptingUtilities",
 			"Enabled": true
 		},
@@ -31,14 +22,5 @@
 			"Name": "ModelingToolsEditorMode",
 			"Enabled": true
 		},
-		{
-			"Name": "SteamVR",
-			"Enabled": false,
-			"SupportedTargetPlatforms": [
-				"Win32",
-				"Win64",
-				"Linux"
-			]
-		}
 	]
 }

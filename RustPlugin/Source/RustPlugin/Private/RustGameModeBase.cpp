@@ -53,15 +53,14 @@ void ARustGameModeBase::Tick(float Dt)
 {
     Super::Tick(Dt);
     FRustPluginModule &Module = FModuleManager::LoadModuleChecked<FRustPluginModule>(TEXT("RustPlugin"));
-    FString P = FString(TEXT("F:/unreal/unreal/example/RustExample/rusttemp/unreal_rust_example.dll"));
     if (Module.ShouldReloadPlugin)
     {
-        if (Module.Plugin.TryLoad(P))
+        if (Module.Plugin.TryLoad())
         {
-            Module.ShouldReloadPlugin = false;
-            FNotificationInfo Info(LOCTEXT("SpawnNotification_Notification", "Hotreload: Rust"));
-            Info.ExpireDuration = 2.0f;
-            FSlateNotificationManager::Get().AddNotification(Info);
+            //Module.ShouldReloadPlugin = false;
+            //FNotificationInfo Info(LOCTEXT("SpawnNotification_Notification", "Hotreload: Rust"));
+            //Info.ExpireDuration = 2.0f;
+            //FSlateNotificationManager::Get().AddNotification(Info);
         }
     }
 

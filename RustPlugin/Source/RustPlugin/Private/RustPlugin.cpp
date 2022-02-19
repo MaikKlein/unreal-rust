@@ -11,7 +11,6 @@
 #include "Containers/Ticker.h"
 #include "DirectoryWatcherModule.h"
 #include "IDirectoryWatcher.h"
-#include "HAL/PlatformFilemanager.h"
 #include "Misc/Paths.h"
 #include "Api.h"
 #include "Modules/ModuleManager.h"
@@ -23,183 +22,192 @@ static const FName RustPluginTabName("RustPlugin");
 
 #define LOCTEXT_NAMESPACE "FRustPluginModule"
 
-FPlugin::FPlugin() {
-
+FString FPlugin::PluginPath()
+{
+    return FPaths::Combine(*FPaths::ConvertRelativePathToFull(FPaths::ProjectDir()), TEXT("rusttemp"));
 }
-bool FPlugin::TryLoad(FString &Path)
+FPlugin::FPlugin()
+{
+}
+bool FPlugin::TryLoad()
 {
     UE_LOG(LogTemp, Warning, TEXT("TRY RELOAD"));
-	FString LocalTargetPath = FString::Printf(TEXT("%srusttemp/%s-%i"),
-											  *FPaths::ConvertRelativePathToFull(FPaths::ProjectDir()),
-											  TEXT("rustplugin.dll"), FDateTime::Now().ToUnixTimestamp());
-	if (this->IsLoaded())
-	{
-		FPlatformProcess::FreeDllHandle(this->Handle);
-		FPlatformFileManager::Get().GetPlatformFile().DeleteFile(*this->TargetPath);
-	}
+    FString Path = FPaths::Combine(*PluginPath(), TEXT("rustplugin.so"));
+    FString LocalTargetPath = FPaths::Combine(*PluginPath(), *FString::Printf(TEXT("%s-%i"), TEXT("rustplugin.so"), FDateTime::Now().ToUnixTimestamp()));
+    if (this->IsLoaded())
+    {
+        FPlatformProcess::FreeDllHandle(this->Handle);
+        FPlatformFileManager::Get().GetPlatformFile().DeleteFile(*this->TargetPath);
+    }
 
-	UE_LOG(LogTemp, Warning, TEXT("Copy From %s to %s"), *Path, *LocalTargetPath);
-	FPlatformFileManager::Get().GetPlatformFile().CopyFile(*LocalTargetPath, *Path);
-	void *LocalHandle = FPlatformProcess::GetDllHandle(*LocalTargetPath);
-	ensure(LocalHandle);
-	this->Handle = LocalHandle;
-	if (this->Handle == nullptr)
-		return false;
+    UE_LOG(LogTemp, Warning, TEXT("Copy From %s to %s"), *Path, *LocalTargetPath);
+    FPlatformFileManager::Get().GetPlatformFile().CopyFile(*LocalTargetPath, *Path);
+    void *LocalHandle = FPlatformProcess::GetDllHandle(*LocalTargetPath);
+    ensure(LocalHandle);
+    this->Handle = LocalHandle;
+    if (this->Handle == nullptr)
+        return false;
 
-	void *LocalBindings = FPlatformProcess::GetDllExport(LocalHandle, TEXT("register_unreal_bindings\0"));
-	ensure(LocalBindings);
+    void *LocalBindings = FPlatformProcess::GetDllExport(LocalHandle, TEXT("register_unreal_bindings\0"));
+    ensure(LocalBindings);
 
-	this->Bindings = (EntryUnrealBindingsFn)LocalBindings;
-	
-	this->TargetPath = LocalTargetPath;
-	NeedsInit = true;
-	CallEntryPoints();
-	return true;
+    this->Bindings = (EntryUnrealBindingsFn)LocalBindings;
+
+    this->TargetPath = LocalTargetPath;
+    NeedsInit = true;
+    CallEntryPoints();
+    return true;
 }
 
-void FRustPluginModule::Exit() {
-	if(GEditor) {
-    	GEditor->RequestEndPlayMap();
-	}
+void FRustPluginModule::Exit()
+{
+    if (GEditor)
+    {
+        GEditor->RequestEndPlayMap();
+    }
 }
 
 bool FPlugin::IsLoaded()
 {
-	return Handle != nullptr;
+    return Handle != nullptr;
 }
 void FPlugin::CallEntryPoints()
 {
-	if (!IsLoaded())
-		return;
+    if (!IsLoaded())
+        return;
 
-	Rust = Bindings(CreateBindings());
-	RetrieveUuids();
+    Rust = Bindings(CreateBindings());
+    RetrieveUuids();
 }
-void FPlugin::RetrieveUuids() {
-	uintptr_t len = 0;
-	Rust.retrieve_uuids(nullptr, &len);
-	TArray<Uuid> LocalUuids;
-	LocalUuids.Reserve(len);
-	Rust.retrieve_uuids(LocalUuids.GetData(), &len);
-	LocalUuids.SetNum(len);
-	Uuids = LocalUuids;
+void FPlugin::RetrieveUuids()
+{
+    uintptr_t len = 0;
+    Rust.retrieve_uuids(nullptr, &len);
+    TArray<Uuid> LocalUuids;
+    LocalUuids.Reserve(len);
+    Rust.retrieve_uuids(LocalUuids.GetData(), &len);
+    LocalUuids.SetNum(len);
+    Uuids = LocalUuids;
 }
 
 bool FRustPluginModule::Tick(float dt)
 {
-	if (!Plugin.IsLoaded())
-		return false;
+    if (!Plugin.IsLoaded())
+        return false;
 
-	return true;
+    return true;
 }
 
 void FRustPluginModule::StartupModule()
 {
-	// This code will execute after your module is loaded into memory; the exact timing is specified in the .uplugin file per-module
+    // This code will execute after your module is loaded into memory; the exact timing is specified in the .uplugin file per-module
 
-	FRustPluginStyle::Initialize();
-	FRustPluginStyle::ReloadTextures();
+    FRustPluginStyle::Initialize();
+    FRustPluginStyle::ReloadTextures();
 
-	FRustPluginCommands::Register();
+    FRustPluginCommands::Register();
 
-	PluginCommands = MakeShareable(new FUICommandList);
+    PluginCommands = MakeShareable(new FUICommandList);
 
-	PluginCommands->MapAction(
-		FRustPluginCommands::Get().OpenPluginWindow,
-		FExecuteAction::CreateRaw(this, &FRustPluginModule::PluginButtonClicked),
-		FCanExecuteAction());
+    PluginCommands->MapAction(
+        FRustPluginCommands::Get().OpenPluginWindow,
+        FExecuteAction::CreateRaw(this, &FRustPluginModule::PluginButtonClicked),
+        FCanExecuteAction());
 
-	UToolMenus::RegisterStartupCallback(FSimpleMulticastDelegate::FDelegate::CreateRaw(this, &FRustPluginModule::RegisterMenus));
+    UToolMenus::RegisterStartupCallback(FSimpleMulticastDelegate::FDelegate::CreateRaw(this, &FRustPluginModule::RegisterMenus));
 
-	FGlobalTabmanager::Get()->RegisterNomadTabSpawner(RustPluginTabName, FOnSpawnTab::CreateRaw(this, &FRustPluginModule::OnSpawnPluginTab)).SetDisplayName(LOCTEXT("FRustPluginTabTitle", "RustPlugin")).SetMenuType(ETabSpawnerMenuType::Hidden);
+    FGlobalTabmanager::Get()->RegisterNomadTabSpawner(RustPluginTabName, FOnSpawnTab::CreateRaw(this, &FRustPluginModule::OnSpawnPluginTab)).SetDisplayName(LOCTEXT("FRustPluginTabTitle", "RustPlugin")).SetMenuType(ETabSpawnerMenuType::Hidden);
 
-	TickDelegate = FTickerDelegate::CreateRaw(this, &FRustPluginModule::Tick);
-	TickDelegateHandle = FTicker::GetCoreTicker().AddTicker(TickDelegate);
+    TickDelegate = FTickerDelegate::CreateRaw(this, &FRustPluginModule::Tick);
+    TickDelegateHandle = FTicker::GetCoreTicker().AddTicker(TickDelegate);
 
-	IDirectoryWatcher *watcher = FModuleManager::LoadModuleChecked<FDirectoryWatcherModule>(TEXT("DirectoryWatcher")).Get();
-	watcher->RegisterDirectoryChangedCallback_Handle(
-		"F:/unreal/unreal/example/RustExample/rusttemp",
-		IDirectoryWatcher::FDirectoryChanged::CreateRaw(this, &FRustPluginModule::OnProjectDirectoryChanged), WatcherHandle, IDirectoryWatcher::WatchOptions::IgnoreChangesInSubtree);
-	FString P = FString(TEXT("F:/unreal/unreal/example/RustExample/rusttemp/unreal_rust_example.dll"));
-	Plugin.TryLoad(P);
+    IDirectoryWatcher *watcher = FModuleManager::LoadModuleChecked<FDirectoryWatcherModule>(TEXT("DirectoryWatcher")).Get();
+    watcher->RegisterDirectoryChangedCallback_Handle(
+        *Plugin.PluginPath(),
+        IDirectoryWatcher::FDirectoryChanged::CreateRaw(this, &FRustPluginModule::OnProjectDirectoryChanged), WatcherHandle, IDirectoryWatcher::WatchOptions::IgnoreChangesInSubtree);
+    Plugin.TryLoad();
 }
 void FRustPluginModule::OnProjectDirectoryChanged(const TArray<FFileChangeData> &Data)
 {
-	for (FFileChangeData Changed : Data)
-	{
-		FString Name = FPaths::GetBaseFilename(Changed.Filename);
-		FString Ext = FPaths::GetExtension(Changed.Filename, false);
-		FString Leaf = FPaths::GetPathLeaf(FPaths::GetPath(Changed.Filename));
-		if (Name == TEXT("unreal_rust_example") && Ext == TEXT("dll"))
-		{
-			ShouldReloadPlugin = true;
-			return;
-		}
-	}
+    for (FFileChangeData Changed : Data)
+    {
+        FString Name = FPaths::GetBaseFilename(Changed.Filename);
+        FString Ext = FPaths::GetExtension(Changed.Filename, false);
+        UE_LOG(LogTemp, Warning, TEXT("%s %s"), *Name, *Ext);
+
+        FString Leaf = FPaths::GetPathLeaf(FPaths::GetPath(Changed.Filename));
+        if (Name == TEXT("rustplugin") && Ext == TEXT("so"))
+        {
+            UE_LOG(LogTemp, Warning, TEXT("SHOULD RELOAD"));
+
+            ShouldReloadPlugin = true;
+            return;
+        }
+    }
 }
 
 void FRustPluginModule::ShutdownModule()
 {
-	// This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
-	// we call this function before unloading the module.
+    // This function may be called during shutdown to clean up your module.  For modules that support dynamic reloading,
+    // we call this function before unloading the module.
 
-	UToolMenus::UnRegisterStartupCallback(this);
+    UToolMenus::UnRegisterStartupCallback(this);
 
-	UToolMenus::UnregisterOwner(this);
+    UToolMenus::UnregisterOwner(this);
 
-	FRustPluginStyle::Shutdown();
+    FRustPluginStyle::Shutdown();
 
-	FRustPluginCommands::Unregister();
+    FRustPluginCommands::Unregister();
 
-	FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(RustPluginTabName);
+    FGlobalTabmanager::Get()->UnregisterNomadTabSpawner(RustPluginTabName);
 }
 
 TSharedRef<SDockTab> FRustPluginModule::OnSpawnPluginTab(const FSpawnTabArgs &SpawnTabArgs)
 {
-	FText WidgetText = FText::Format(
-		LOCTEXT("WindowWidgetText", "BAR Add code to {0} in {1} to override this window's contents"),
-		FText::FromString(TEXT("FRustPluginModule::OnSpawnPluginTab")),
-		FText::FromString(TEXT("RustPlugin.cpp")));
+    FText WidgetText = FText::Format(
+        LOCTEXT("WindowWidgetText", "BAR Add code to {0} in {1} to override this window's contents"),
+        FText::FromString(TEXT("FRustPluginModule::OnSpawnPluginTab")),
+        FText::FromString(TEXT("RustPlugin.cpp")));
 
-	return SNew(SDockTab)
-		.TabRole(ETabRole::NomadTab)
-			[
-				// Put your tab content here!
-				SNew(SBox)
-					.HAlign(HAlign_Center)
-					.VAlign(VAlign_Center)
-						[SNew(STextBlock)
-							 .Text(WidgetText)]];
+    return SNew(SDockTab)
+        .TabRole(ETabRole::NomadTab)
+            [
+                // Put your tab content here!
+                SNew(SBox)
+                    .HAlign(HAlign_Center)
+                    .VAlign(VAlign_Center)
+                        [SNew(STextBlock)
+                             .Text(WidgetText)]];
 }
 
 void FRustPluginModule::PluginButtonClicked()
 {
-	FGlobalTabmanager::Get()->TryInvokeTab(RustPluginTabName);
+    FGlobalTabmanager::Get()->TryInvokeTab(RustPluginTabName);
 }
 
 void FRustPluginModule::RegisterMenus()
 {
-	// Owner will be used for cleanup in call to UToolMenus::UnregisterOwner
-	FToolMenuOwnerScoped OwnerScoped(this);
+    // Owner will be used for cleanup in call to UToolMenus::UnregisterOwner
+    FToolMenuOwnerScoped OwnerScoped(this);
 
-	{
-		UToolMenu *Menu = UToolMenus::Get()->ExtendMenu("LevelEditor.MainMenu.Window");
-		{
-			FToolMenuSection &Section = Menu->FindOrAddSection("WindowLayout");
-			Section.AddMenuEntryWithCommandList(FRustPluginCommands::Get().OpenPluginWindow, PluginCommands);
-		}
-	}
+    {
+        UToolMenu *Menu = UToolMenus::Get()->ExtendMenu("LevelEditor.MainMenu.Window");
+        {
+            FToolMenuSection &Section = Menu->FindOrAddSection("WindowLayout");
+            Section.AddMenuEntryWithCommandList(FRustPluginCommands::Get().OpenPluginWindow, PluginCommands);
+        }
+    }
 
-	{
-		UToolMenu *ToolbarMenu = UToolMenus::Get()->ExtendMenu("LevelEditor.LevelEditorToolBar");
-		{
-			FToolMenuSection &Section = ToolbarMenu->FindOrAddSection("Settings");
-			{
-				FToolMenuEntry &Entry = Section.AddEntry(FToolMenuEntry::InitToolBarButton(FRustPluginCommands::Get().OpenPluginWindow));
-				Entry.SetCommandList(PluginCommands);
-			}
-		}
-	}
+    {
+        UToolMenu *ToolbarMenu = UToolMenus::Get()->ExtendMenu("LevelEditor.LevelEditorToolBar");
+        {
+            FToolMenuSection &Section = ToolbarMenu->FindOrAddSection("Settings");
+            {
+                FToolMenuEntry &Entry = Section.AddEntry(FToolMenuEntry::InitToolBarButton(FRustPluginCommands::Get().OpenPluginWindow));
+                Entry.SetCommandList(PluginCommands);
+            }
+        }
+    }
 }
 
 #undef LOCTEXT_NAMESPACE

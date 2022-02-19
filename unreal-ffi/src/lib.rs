@@ -141,6 +141,8 @@ pub type VisualLogCapsuleFn = unsafe extern "C" fn(
 pub type GetRegisteredClassesFn =
     unsafe extern "C" fn(classes: *mut *mut UClassOpague, len: *mut usize);
 
+pub type GetClassFn = unsafe extern "C" fn(actor: *const AActorOpaque) -> *mut UClassOpague;
+
 extern "C" {
     pub fn SetSpatialData(
         actor: *mut AActorOpaque,
@@ -186,6 +188,7 @@ extern "C" {
         color: Color,
     );
     pub fn GetRegisteredClasses(classes: *mut *mut UClassOpague, len: *mut usize);
+    pub fn GetClass(actor: *const AActorOpaque) -> *mut UClassOpague;
 }
 
 #[repr(C)]
@@ -206,6 +209,7 @@ pub struct UnrealBindings {
     pub physics_bindings: UnrealPhysicsBindings,
     pub get_root_component: GetRootComponentFn,
     pub get_registered_classes: GetRegisteredClassesFn,
+    pub get_class: GetClassFn,
 }
 unsafe impl Sync for UnrealBindings {}
 unsafe impl Send for UnrealBindings {}
@@ -261,7 +265,7 @@ pub type CollisionShape = c_void;
 
 #[repr(u32)]
 pub enum EventType {
-    ActorSpawned,
+    ActorSpawned = 0,
 }
 
 #[repr(C)]

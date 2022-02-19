@@ -1,3 +1,5 @@
+use std::collections::HashMap;
+
 use bevy_ecs::prelude::*;
 use unreal_api::{
     core::{
@@ -11,6 +13,24 @@ use unreal_api::{
     physics::{line_trace, sweep, SweepParams},
 };
 use unreal_reflect::{impl_component, registry::ReflectionRegistry, TypeUuid};
+
+#[repr(u32)]
+pub enum Class {
+    Player = 0,
+}
+
+impl Class {
+    pub fn from(i: u32) -> Option<Self> {
+        match i {
+            0 => Some(Self::Player),
+            _ => None
+        }
+    }
+}
+
+pub struct ClassesResource {
+    classes: HashMap<*mut ffi::UClassOpague, Class>,
+}
 
 fn project_onto_plane(dir: Vec3, normal: Vec3) -> Vec3 {
     dir - normal * Vec3::dot(dir, normal)
@@ -195,7 +215,7 @@ fn character_control_system(
                 }
             }
         }
-        transform.position += controller.velocity * frame.dt;
+        transform.position += controller.velocity * frame.dt * 1.0;
 
         if controller.velocity.length() > 0.2 {
             let velocity_dir = controller.velocity.normalize_or_zero();

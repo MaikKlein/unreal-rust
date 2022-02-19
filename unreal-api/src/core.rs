@@ -9,6 +9,11 @@ use crate::{
     math::{Quat, Vec3},
     module::{bindings, UserModule},
 };
+
+pub enum UnrealEvent{
+    ActorAdded(*mut AActorOpaque),
+}
+
 pub struct UnrealCore {
     world: World,
     schedule: Schedule,
@@ -112,7 +117,15 @@ pub unsafe extern "C" fn retrieve_uuids(ptr: *mut ffi::Uuid, len: *mut usize) {
     }
 }
 
-pub unsafe extern "C" fn unreal_event(_ty: *const EventType, _data: *const c_void) {
+pub unsafe extern "C" fn unreal_event(ty: *const EventType, data: *const c_void) {
+    // Todo: batch this
+
+    match *ty {
+        EventType::ActorSpawned => {
+            let actor_spawned_event = data as *const ffi::ActorSpawnedEvent;
+
+        }
+    }
     log::info!("Actor Added");
 }
 pub unsafe extern "C" fn get_velocity(actor: *const AActorOpaque, velocity: &mut ffi::Vector3) {

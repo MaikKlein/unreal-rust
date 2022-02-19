@@ -6,7 +6,7 @@
 		},
 		{
 			"name": "UE5",
-			"path": "F:\\unreal\\UE_5.0EA"
+			"path": "/home/maik/src/UnrealEngine"
 		}
 	],
 	"settings": {
@@ -15,7 +15,10 @@
 	"extensions": {
 		"recommendations": [
 			"ms-vscode.cpptools",
-			"ms-dotnettools.csharp"
+			"ms-dotnettools.csharp",
+			"vadimcn.vscode-lldb",
+			"ms-vscode.mono-debug",
+			"dfarley1.file-picker"
 		]
 	}
 }

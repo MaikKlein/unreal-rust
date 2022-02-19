@@ -9,9 +9,6 @@ public class RustExampleTarget : TargetRules
 	{
 		Type = TargetType.Game;
 		DefaultBuildSettings = BuildSettingsVersion.V2;
-		bUseUnityBuild = false;
-		bUsePCHFiles = false;
-
 		ExtraModuleNames.AddRange( new string[] { "RustExample" } );
 	}
 }
