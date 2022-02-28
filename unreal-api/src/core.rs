@@ -1,4 +1,7 @@
-use bevy_ecs::prelude::*;
+use bevy_ecs::{
+    event::{Events, ManualEventReader},
+    prelude::*,
+};
 use ffi::{ActorComponentPtr, ActorComponentType, EventType};
 use std::{collections::HashMap, ffi::c_void};
 
@@ -10,15 +13,20 @@ use crate::{
     module::{bindings, UserModule},
 };
 
-pub enum UnrealEvent{
+#[derive(Debug)]
+pub enum UnrealEvent {
     ActorAdded(*mut AActorOpaque),
 }
+
+unsafe impl Send for UnrealEvent {}
+unsafe impl Sync for UnrealEvent {}
 
 pub struct UnrealCore {
     world: World,
     schedule: Schedule,
     startup: Schedule,
     reflection_registry: ReflectionRegistry,
+    unreal_events: Vec<UnrealEvent>,
 }
 
 impl UnrealCore {
@@ -48,6 +56,7 @@ impl UnrealCore {
             schedule,
             startup,
             reflection_registry,
+            unreal_events: Vec::new(),
         }
     }
 
@@ -69,9 +78,6 @@ impl UnrealCore {
         self.world.insert_resource(ActorRegistration::default());
         let mut startup = Schedule::default();
         startup.add_stage(CoreStage::Startup, SystemStage::single_threaded());
-        startup.add_system_to_stage(CoreStage::Startup, register_actors.system());
-        startup.run_once(&mut self.world);
-        self.startup.run_once(&mut self.world);
         let mut schedule = Schedule::default();
         schedule
             .add_stage(CoreStage::PreUpdate, SystemStage::single_threaded())
@@ -83,7 +89,9 @@ impl UnrealCore {
             download_transform_from_unreal.system(),
         );
         schedule.add_system_to_stage(CoreStage::PostUpdate, upload_transform_to_unreal.system());
+        schedule.add_system_to_stage(CoreStage::PostUpdate, process_unreal_events.system());
         module.systems(&mut startup, &mut schedule);
+        startup.run_once(&mut self.world);
         self.schedule = schedule;
     }
     pub fn tick(&mut self, dt: f32) {
@@ -118,15 +126,17 @@ pub unsafe extern "C" fn retrieve_uuids(ptr: *mut ffi::Uuid, len: *mut usize) {
 }
 
 pub unsafe extern "C" fn unreal_event(ty: *const EventType, data: *const c_void) {
-    // Todo: batch this
-
-    match *ty {
-        EventType::ActorSpawned => {
-            let actor_spawned_event = data as *const ffi::ActorSpawnedEvent;
-
+    if let Some(global) = crate::module::MODULE.as_mut() {
+        match *ty {
+            EventType::ActorSpawned => {
+                let actor_spawned_event = data as *const ffi::ActorSpawnedEvent;
+                global
+                    .core
+                    .unreal_events
+                    .push(UnrealEvent::ActorAdded((*actor_spawned_event).actor));
+            }
         }
     }
-    log::info!("Actor Added");
 }
 pub unsafe extern "C" fn get_velocity(actor: *const AActorOpaque, velocity: &mut ffi::Vector3) {
     if let Some(global) = crate::module::MODULE.as_mut() {
@@ -372,6 +382,7 @@ fn download_transform_from_unreal(mut query: Query<(&ActorComponent, &mut Transf
         assert!(!transform.is_nan());
     }
 }
+
 fn upload_transform_to_unreal(query: Query<(&ActorComponent, &TransformComponent)>) {
     for (actor, transform) in query.iter() {
         assert!(!transform.is_nan());
@@ -388,31 +399,40 @@ fn update_input(mut input: ResMut<Input>) {
     input.update();
 }
 
-fn register_actors(mut actor_register: ResMut<ActorRegistration>, mut commands: Commands) {
-    for actor in iterate_actors(bindings()) {
-        let entity = commands
-            .spawn()
-            .insert_bundle((
-                ActorComponent {
-                    ptr: ActorPtr(actor),
-                },
-                TransformComponent::default(),
-                //MovementComponent::default(),
-                //PlayerInputComponent::default(),
-            ))
-            .id();
+fn process_unreal_events(mut actor_register: ResMut<ActorRegistration>, mut commands: Commands) {
+    unsafe {
+        // TODO: This is UB
+        if let Some(global) = crate::module::MODULE.as_mut() {
+            for event in global.core.unreal_events.drain(..) {
+                log::info!("{:?}", event);
+                match event {
+                    UnrealEvent::ActorAdded(actor) => {
+                        let entity = commands
+                            .spawn()
+                            .insert_bundle((
+                                ActorComponent {
+                                    ptr: ActorPtr(actor),
+                                },
+                                TransformComponent::default(),
+                            ))
+                            .id();
 
-        let mut root_component = ActorComponentPtr::default();
-        unsafe {
-            (bindings().get_root_component)(actor, &mut root_component);
-        }
-        if root_component.ty == ActorComponentType::Primitive && !root_component.ptr.is_null() {
-            let physics_component = PhysicsComponent::new(UnrealPtr::from_raw(root_component.ptr));
-            commands.entity(entity).insert(physics_component);
-        }
+                        let mut root_component = ActorComponentPtr::default();
+                        (bindings().get_root_component)(actor, &mut root_component);
+                        if root_component.ty == ActorComponentType::Primitive
+                            && !root_component.ptr.is_null()
+                        {
+                            let physics_component =
+                                PhysicsComponent::new(UnrealPtr::from_raw(root_component.ptr));
+                            commands.entity(entity).insert(physics_component);
+                        }
 
-        actor_register
-            .actor_to_entity
-            .insert(ActorPtr(actor), entity);
+                        actor_register
+                            .actor_to_entity
+                            .insert(ActorPtr(actor), entity);
+                    }
+                }
+            }
+        }
     }
 }

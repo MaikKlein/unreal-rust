@@ -8,13 +8,16 @@ macro_rules! impl_component {
     ($component: ty) => {
         $crate::impl_insert_with_default!($component);
         $crate::impl_reflection!($component);
+        impl $crate::bevy_ecs::component::Component for $component {
+            type Storage = $crate::bevy_ecs::component::TableStorage;
+        }
     };
 }
 #[macro_export]
 macro_rules! impl_insert_with_default {
     ($component: ty) => {
         impl $crate::registry::InsertComponent for $component {
-            fn insert(commands: &'_ mut $crate::bevy_ecs::system::EntityCommands<'_, '_>) {
+            fn insert(commands: &'_ mut $crate::bevy_ecs::system::EntityCommands<'_, '_, '_>) {
                 commands.insert(<$component>::default());
             }
         }
@@ -33,7 +36,7 @@ macro_rules! impl_reflection {
     };
 }
 
-pub type InsertComponentFn = Box<dyn Fn(&'_ mut EntityCommands<'_, '_>)>;
+pub type InsertComponentFn = Box<dyn Fn(&'_ mut EntityCommands<'_, '_, '_>)>;
 #[derive(Default)]
 pub struct ReflectionRegistry {
     pub uuid_to_insert_component: HashMap<uuid::Uuid, InsertComponentFn>,
@@ -64,7 +67,7 @@ impl ReflectionRegistry {
 }
 
 pub trait InsertComponent {
-    fn insert(commands: &'_ mut EntityCommands<'_, '_>);
+    fn insert(commands: &'_ mut EntityCommands<'_, '_, '_>);
 }
 #[derive(Debug)]
 pub struct ReflectionData {

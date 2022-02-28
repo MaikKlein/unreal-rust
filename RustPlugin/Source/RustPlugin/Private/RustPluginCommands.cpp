@@ -6,7 +6,7 @@
 
 void FRustPluginCommands::RegisterCommands()
 {
-	UI_COMMAND(OpenPluginWindow, "RustPlugin", "Bring up RustPlugin window", EUserInterfaceActionType::Button, FInputGesture());
+	//UI_COMMAND(OpenPluginWindow, "RustPlugin", "Bring up RustPlugin window", EUserInterfaceActionType::Button, FInputGesture());
 }
 
 #undef LOCTEXT_NAMESPACE

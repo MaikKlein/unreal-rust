@@ -34,6 +34,8 @@ struct FPlugin {
 	FPlugin();
 };
 
+FString PlatformExtensionName();
+
 
 class FRustPluginModule : public IModuleInterface
 {
@@ -45,7 +47,6 @@ public:
 	
 	/** This function will be bound to Command (by default it will bring up plugin window) */
 	void PluginButtonClicked();
-	bool Tick(float dt);
 	
 	FPlugin Plugin;
 	bool ShouldReloadPlugin;
@@ -53,8 +54,6 @@ public:
 	void Exit();
 private:
 
-	FTickerDelegate TickDelegate;
- 	FDelegateHandle TickDelegateHandle;
 	void RegisterMenus();
 
 	TSharedRef<class SDockTab> OnSpawnPluginTab(const class FSpawnTabArgs& SpawnTabArgs);

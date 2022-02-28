@@ -18,10 +18,18 @@
 #include "Framework/Notifications/NotificationManager.h"
 #include "Widgets/Notifications/SNotificationList.h"
 
+
 static const FName RustPluginTabName("RustPlugin");
 
 #define LOCTEXT_NAMESPACE "FRustPluginModule"
 
+FString PlatformExtensionName() {
+    #if PLATFORM_LINUX || PLATFORM_MAXOSX
+        return FString(TEXT("so"));
+    #elif PLATFORM_WINDOWS
+        return FString(TEXT("dll"));
+    #endif
+}
 FString FPlugin::PluginPath()
 {
     return FPaths::Combine(*FPaths::ConvertRelativePathToFull(FPaths::ProjectDir()), TEXT("rusttemp"));
@@ -90,14 +98,6 @@ void FPlugin::RetrieveUuids()
     Uuids = LocalUuids;
 }
 
-bool FRustPluginModule::Tick(float dt)
-{
-    if (!Plugin.IsLoaded())
-        return false;
-
-    return true;
-}
-
 void FRustPluginModule::StartupModule()
 {
     // This code will execute after your module is loaded into memory; the exact timing is specified in the .uplugin file per-module
@@ -107,19 +107,16 @@ void FRustPluginModule::StartupModule()
 
     FRustPluginCommands::Register();
 
-    PluginCommands = MakeShareable(new FUICommandList);
+    //PluginCommands = MakeShareable(new FUICommandList);
 
-    PluginCommands->MapAction(
-        FRustPluginCommands::Get().OpenPluginWindow,
-        FExecuteAction::CreateRaw(this, &FRustPluginModule::PluginButtonClicked),
-        FCanExecuteAction());
+    //PluginCommands->MapAction(
+    //    FRustPluginCommands::Get().OpenPluginWindow,
+    //    FExecuteAction::CreateRaw(this, &FRustPluginModule::PluginButtonClicked),
+    //    FCanExecuteAction());
 
-    UToolMenus::RegisterStartupCallback(FSimpleMulticastDelegate::FDelegate::CreateRaw(this, &FRustPluginModule::RegisterMenus));
+    //UToolMenus::RegisterStartupCallback(FSimpleMulticastDelegate::FDelegate::CreateRaw(this, &FRustPluginModule::RegisterMenus));
 
-    FGlobalTabmanager::Get()->RegisterNomadTabSpawner(RustPluginTabName, FOnSpawnTab::CreateRaw(this, &FRustPluginModule::OnSpawnPluginTab)).SetDisplayName(LOCTEXT("FRustPluginTabTitle", "RustPlugin")).SetMenuType(ETabSpawnerMenuType::Hidden);
-
-    TickDelegate = FTickerDelegate::CreateRaw(this, &FRustPluginModule::Tick);
-    TickDelegateHandle = FTicker::GetCoreTicker().AddTicker(TickDelegate);
+    //FGlobalTabmanager::Get()->RegisterNomadTabSpawner(RustPluginTabName, FOnSpawnTab::CreateRaw(this, &FRustPluginModule::OnSpawnPluginTab)).SetDisplayName(LOCTEXT("FRustPluginTabTitle", "RustPlugin")).SetMenuType(ETabSpawnerMenuType::Hidden);
 
     IDirectoryWatcher *watcher = FModuleManager::LoadModuleChecked<FDirectoryWatcherModule>(TEXT("DirectoryWatcher")).Get();
     watcher->RegisterDirectoryChangedCallback_Handle(
@@ -133,10 +130,9 @@ void FRustPluginModule::OnProjectDirectoryChanged(const TArray<FFileChangeData> 
     {
         FString Name = FPaths::GetBaseFilename(Changed.Filename);
         FString Ext = FPaths::GetExtension(Changed.Filename, false);
-        UE_LOG(LogTemp, Warning, TEXT("%s %s"), *Name, *Ext);
 
         FString Leaf = FPaths::GetPathLeaf(FPaths::GetPath(Changed.Filename));
-        if (Name == TEXT("rustplugin") && Ext == TEXT("so"))
+        if (Name == TEXT("rustplugin") && Ext == *PlatformExtensionName())
         {
             UE_LOG(LogTemp, Warning, TEXT("SHOULD RELOAD"));
 

@@ -6,7 +6,7 @@ use unreal_api::{
         ActorComponent, ActorPtr, CameraComponent, CoreStage, Frame, MovementComponent,
         ParentComponent, PhysicsComponent, TransformComponent,
     },
-    ffi::{self},
+    ffi::{self, UClassOpague},
     input::Input,
     math::{Quat, Vec3},
     module::{bindings, InitUserModule, UserModule},
@@ -15,6 +15,7 @@ use unreal_api::{
 use unreal_reflect::{impl_component, registry::ReflectionRegistry, TypeUuid};
 
 #[repr(u32)]
+#[derive(Copy, Clone)]
 pub enum Class {
     Player = 0,
 }
@@ -23,14 +24,17 @@ impl Class {
     pub fn from(i: u32) -> Option<Self> {
         match i {
             0 => Some(Self::Player),
-            _ => None
+            _ => None,
         }
     }
 }
 
+#[derive(Default)]
 pub struct ClassesResource {
     classes: HashMap<*mut ffi::UClassOpague, Class>,
 }
+unsafe impl Send for ClassesResource {}
+unsafe impl Sync for ClassesResource {}
 
 fn project_onto_plane(dir: Vec3, normal: Vec3) -> Vec3 {
     dir - normal * Vec3::dot(dir, normal)
@@ -84,6 +88,52 @@ impl PlayerInput {
     pub const MOVE_FORWARD: &'static str = "MoveForward";
     pub const MOVE_RIGHT: &'static str = "MoveRight";
 }
+fn register_class_resource(mut commands: Commands) {
+    let mut len: usize = 0;
+    unsafe {
+        (bindings().get_registered_classes)(std::ptr::null_mut(), &mut len);
+    }
+    let mut classes: Vec<*mut UClassOpague> = Vec::with_capacity(len);
+    unsafe {
+        (bindings().get_registered_classes)(classes.as_mut_ptr(), &mut len);
+        classes.set_len(len);
+    }
+
+    let mut classes_resource = ClassesResource::default();
+
+    for (id, class_ptr) in classes.into_iter().enumerate() {
+        log::info!("{:?} {:?}", id, class_ptr);
+        if let Some(class) = Class::from(id as u32) {
+            classes_resource.classes.insert(class_ptr, class);
+        }
+    }
+    commands.insert_resource(classes_resource);
+}
+
+fn spawn_class(
+    class_resource: Res<ClassesResource>,
+    query: Query<(Entity, &ActorComponent), Added<ActorComponent>>,
+    mut commands: Commands,
+) {
+    for (entity, actor) in query.iter() {
+        unsafe {
+            let class_ptr = (bindings().get_class)(actor.ptr.0);
+            if let Some(&class) = class_resource.classes.get(&class_ptr) {
+                match class {
+                    Class::Player => {
+                        log::info!("PLAYER");
+                        commands.entity(entity).insert_bundle((
+                            CharacterConfigComponent::default(),
+                            CharacterControllerComponent::default(),
+                            MovementComponent::default(),
+                        ));
+                    }
+                }
+            }
+        }
+    }
+}
+
 fn register_player_input(mut input: ResMut<Input>) {
     input.register_axis_binding(PlayerInput::MOVE_FORWARD);
     input.register_axis_binding(PlayerInput::MOVE_RIGHT);
@@ -325,8 +375,9 @@ impl UserModule for MyModule {
     fn register(&self, _registry: &mut ReflectionRegistry) {}
 
     fn systems(&self, startup: &mut Schedule, update: &mut Schedule) {
+        startup.add_system_to_stage(CoreStage::Startup, register_class_resource.system());
         startup.add_system_to_stage(CoreStage::Startup, register_player_input.system());
-        startup.add_system_to_stage(CoreStage::Startup, add_character_controller.system());
+        update.add_system_to_stage(CoreStage::Update, spawn_class.system());
         update.add_system_to_stage(CoreStage::Update, spawn_camera.system());
         update.add_system_to_stage(CoreStage::Update, character_control_system.system());
         update.add_system_to_stage(CoreStage::Update, update_controller_view.system());
