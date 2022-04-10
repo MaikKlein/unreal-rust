@@ -36,8 +36,6 @@ impl UnrealCore {
         world.insert_resource(Input::default());
         world.insert_resource(ActorRegistration::default());
 
-        let mut startup = Schedule::default();
-        startup.add_stage(CoreStage::Startup, SystemStage::single_threaded());
         let mut schedule = Schedule::default();
         schedule
             .add_stage(CoreStage::PreUpdate, SystemStage::single_threaded())
@@ -50,8 +48,6 @@ impl UnrealCore {
         );
         schedule.add_system_to_stage(CoreStage::PostUpdate, upload_transform_to_unreal.system());
         schedule.add_system_to_stage(CoreStage::PostUpdate, process_unreal_events.system());
-        module.systems(&mut startup, &mut schedule);
-        startup.run_once(&mut world);
         Self {
             world,
             schedule,
@@ -72,6 +68,14 @@ impl UnrealCore {
             }
         }));
         *self = Self::new(module);
+
+        let mut startup = Schedule::default();
+        startup.add_stage(CoreStage::Startup, SystemStage::single_threaded());
+
+        module.systems(&mut startup, &mut self.schedule);
+
+        startup.run_once(&mut self.world);
+
         log::info!("BeginPlay Rust");
     }
     pub fn tick(&mut self, dt: f32) {
