@@ -1,14 +1,10 @@
-use bevy_ecs::{
-    event::{Events, ManualEventReader},
-    prelude::*,
-};
+use bevy_ecs::prelude::*;
 use ffi::{ActorComponentPtr, ActorComponentType, EventType};
 use std::{collections::HashMap, ffi::c_void};
 
 use crate::{
     ffi::{self, AActorOpaque},
     input::Input,
-    iterate_actors,
     math::{Quat, Vec3},
     module::{bindings, UserModule},
 };
@@ -24,37 +20,41 @@ unsafe impl Sync for UnrealEvent {}
 pub struct UnrealCore {
     world: World,
     schedule: Schedule,
-    startup: Schedule,
     reflection_registry: ReflectionRegistry,
     unreal_events: Vec<UnrealEvent>,
 }
 
 impl UnrealCore {
     pub fn new(module: &dyn UserModule) -> Self {
-        log::info!("Initialize Rust");
+        let mut reflection_registry = ReflectionRegistry::default();
+        register_core_components(&mut reflection_registry);
+        module.register(&mut reflection_registry);
+
+        let mut world = World::new();
+
+        world.insert_resource(Frame::default());
+        world.insert_resource(Input::default());
+        world.insert_resource(ActorRegistration::default());
+
         let mut startup = Schedule::default();
         startup.add_stage(CoreStage::Startup, SystemStage::single_threaded());
-
         let mut schedule = Schedule::default();
         schedule
             .add_stage(CoreStage::PreUpdate, SystemStage::single_threaded())
             .add_stage(CoreStage::Update, SystemStage::single_threaded())
             .add_stage(CoreStage::PostUpdate, SystemStage::single_threaded());
-
+        schedule.add_system_to_stage(CoreStage::PreUpdate, update_input.system());
         schedule.add_system_to_stage(
             CoreStage::PreUpdate,
             download_transform_from_unreal.system(),
         );
         schedule.add_system_to_stage(CoreStage::PostUpdate, upload_transform_to_unreal.system());
-
-        let mut reflection_registry = ReflectionRegistry::default();
-        register_core_components(&mut reflection_registry);
-        module.register(&mut reflection_registry);
+        schedule.add_system_to_stage(CoreStage::PostUpdate, process_unreal_events.system());
         module.systems(&mut startup, &mut schedule);
+        startup.run_once(&mut world);
         Self {
-            world: World::new(),
+            world,
             schedule,
-            startup,
             reflection_registry,
             unreal_events: Vec::new(),
         }
@@ -73,26 +73,6 @@ impl UnrealCore {
         }));
         *self = Self::new(module);
         log::info!("BeginPlay Rust");
-        self.world.insert_resource(Frame::default());
-        self.world.insert_resource(Input::default());
-        self.world.insert_resource(ActorRegistration::default());
-        let mut startup = Schedule::default();
-        startup.add_stage(CoreStage::Startup, SystemStage::single_threaded());
-        let mut schedule = Schedule::default();
-        schedule
-            .add_stage(CoreStage::PreUpdate, SystemStage::single_threaded())
-            .add_stage(CoreStage::Update, SystemStage::single_threaded())
-            .add_stage(CoreStage::PostUpdate, SystemStage::single_threaded());
-        schedule.add_system_to_stage(CoreStage::PreUpdate, update_input.system());
-        schedule.add_system_to_stage(
-            CoreStage::PreUpdate,
-            download_transform_from_unreal.system(),
-        );
-        schedule.add_system_to_stage(CoreStage::PostUpdate, upload_transform_to_unreal.system());
-        schedule.add_system_to_stage(CoreStage::PostUpdate, process_unreal_events.system());
-        module.systems(&mut startup, &mut schedule);
-        startup.run_once(&mut self.world);
-        self.schedule = schedule;
     }
     pub fn tick(&mut self, dt: f32) {
         if let Some(mut frame) = self.world.get_resource_mut::<Frame>() {
