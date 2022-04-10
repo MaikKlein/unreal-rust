@@ -18,7 +18,6 @@
 #include "Framework/Notifications/NotificationManager.h"
 #include "Widgets/Notifications/SNotificationList.h"
 
-
 static const FName RustPluginTabName("RustPlugin");
 
 #define LOCTEXT_NAMESPACE "FRustPluginModule"
@@ -30,9 +29,17 @@ FString PlatformExtensionName() {
         return FString(TEXT("dll"));
     #endif
 }
-FString FPlugin::PluginPath()
+
+FString FPlugin::PluginFolderPath()
 {
     return FPaths::Combine(*FPaths::ConvertRelativePathToFull(FPaths::ProjectDir()), TEXT("rusttemp"));
+}
+FString FPlugin::PluginPath()
+{
+    return FPaths::Combine(*PluginFolderPath(), *PluginFileName());
+}
+FString FPlugin::PluginFileName() {
+    return FString::Printf(TEXT("%s.%s"), TEXT("rustplugin"), *PlatformExtensionName());
 }
 FPlugin::FPlugin()
 {
@@ -40,8 +47,8 @@ FPlugin::FPlugin()
 bool FPlugin::TryLoad()
 {
     UE_LOG(LogTemp, Warning, TEXT("TRY RELOAD"));
-    FString Path = FPaths::Combine(*PluginPath(), TEXT("rustplugin.so"));
-    FString LocalTargetPath = FPaths::Combine(*PluginPath(), *FString::Printf(TEXT("%s-%i"), TEXT("rustplugin.so"), FDateTime::Now().ToUnixTimestamp()));
+    FString Path = PluginPath();
+    FString LocalTargetPath = FPaths::Combine(*PluginFolderPath(), *FString::Printf(TEXT("%s-%i"), *PluginFileName(), FDateTime::Now().ToUnixTimestamp()));
     if (this->IsLoaded())
     {
         FPlatformProcess::FreeDllHandle(this->Handle);
@@ -120,7 +127,7 @@ void FRustPluginModule::StartupModule()
 
     IDirectoryWatcher *watcher = FModuleManager::LoadModuleChecked<FDirectoryWatcherModule>(TEXT("DirectoryWatcher")).Get();
     watcher->RegisterDirectoryChangedCallback_Handle(
-        *Plugin.PluginPath(),
+        *Plugin.PluginFolderPath(),
         IDirectoryWatcher::FDirectoryChanged::CreateRaw(this, &FRustPluginModule::OnProjectDirectoryChanged), WatcherHandle, IDirectoryWatcher::WatchOptions::IgnoreChangesInSubtree);
     Plugin.TryLoad();
 }

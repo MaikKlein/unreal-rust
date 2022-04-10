@@ -28,7 +28,9 @@ struct FPlugin {
 	bool TryLoad();
 	void CallEntryPoints();
 	void RetrieveUuids();
+	FString PluginFolderPath();
 	FString PluginPath();
+	FString PluginFileName();
 
 	TArray<Uuid> Uuids;
 	FPlugin();
