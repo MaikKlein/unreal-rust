@@ -24,7 +24,7 @@ static const FName RustPluginTabName("RustPlugin");
 #define LOCTEXT_NAMESPACE "FRustPluginModule"
 
 FString PlatformExtensionName() {
-    #if PLATFORM_LINUX || PLATFORM_MAXOSX
+    #if PLATFORM_LINUX || PLATFORM_MAC
         return FString(TEXT("so"));
     #elif PLATFORM_WINDOWS
         return FString(TEXT("dll"));

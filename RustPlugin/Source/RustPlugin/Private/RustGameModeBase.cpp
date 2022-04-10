@@ -66,14 +66,7 @@ void ARustGameModeBase::Tick(float Dt)
     if (Module.Plugin.NeedsInit)
     {
         UE_LOG(LogTemp, Warning, TEXT("REINIT"));
-        if (Module.Plugin.Rust.begin_play() == ResultCode::Panic)
-        {
-            Module.Exit();
-        }
-        else
-        {
-            Module.Plugin.NeedsInit = false;
-        }
+        StartPlay();
     }
     if (Module.Plugin.Rust.tick(Dt) == ResultCode::Panic)
     {

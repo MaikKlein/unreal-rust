@@ -75,11 +75,19 @@ struct LineTraceParams {
 
 struct HitResult {
   AActorOpaque *actor;
+  UPrimtiveOpaque *primtive;
   float distance;
   Vector3 normal;
   Vector3 location;
   Vector3 impact_location;
   float pentration_depth;
+};
+
+using FCollisionShapeOpague = void;
+
+struct OverlapResult {
+  AActorOpaque *actor;
+  UPrimtiveOpaque *primtive;
 };
 
 using GetSpatialDataFn = void(*)(const AActorOpaque *actor, Vector3 *position, Quaternion *rotation, Vector3 *scale);
@@ -124,6 +132,8 @@ using GetBoundingBoxExtentFn = Vector3(*)(const UPrimtiveOpaque *primitive);
 
 using SweepFn = uint32_t(*)(Vector3 start, Vector3 end, Quaternion rotation, LineTraceParams params, const UPrimtiveOpaque *primitive, HitResult *result);
 
+using OverlapMultiFn = uint32_t(*)(FCollisionShapeOpague *shape, Vector3 position, Quaternion rotation, LineTraceParams params, uintptr_t max_results, OverlapResult **result);
+
 struct UnrealPhysicsBindings {
   GetVelocityFn get_velocity;
   SetVelocityFn set_velocity;
@@ -133,6 +143,7 @@ struct UnrealPhysicsBindings {
   LineTraceFn line_trace;
   GetBoundingBoxExtentFn get_bounding_box_extent;
   SweepFn sweep;
+  OverlapMultiFn overlap_multi;
 };
 
 using GetRootComponentFn = void(*)(const AActorOpaque *actor, ActorComponentPtr *data);
@@ -140,6 +151,10 @@ using GetRootComponentFn = void(*)(const AActorOpaque *actor, ActorComponentPtr 
 using GetRegisteredClassesFn = void(*)(UClassOpague **classes, uintptr_t *len);
 
 using GetClassFn = UClassOpague*(*)(const AActorOpaque *actor);
+
+using IsMoveableFn = uint32_t(*)(const AActorOpaque *actor);
+
+using GetActorNameFn = void(*)(const AActorOpaque *actor, char *data, uintptr_t *len);
 
 struct UnrealBindings {
   GetSpatialDataFn get_spatial_data;
@@ -159,6 +174,8 @@ struct UnrealBindings {
   GetRootComponentFn get_root_component;
   GetRegisteredClassesFn get_registered_classes;
   GetClassFn get_class;
+  IsMoveableFn is_moveable;
+  GetActorNameFn get_actor_name;
 };
 
 struct Uuid {
@@ -239,6 +256,10 @@ extern void GetRegisteredClasses(UClassOpague **classes, uintptr_t *len);
 
 extern UClassOpague *GetClass(const AActorOpaque *actor);
 
+extern uint32_t IsMoveable(const AActorOpaque *actor);
+
+extern void GetActorName(const AActorOpaque *actor, char *data, uintptr_t *len);
+
 extern Vector3 GetVelocity(const UPrimtiveOpaque *primitive);
 
 extern void SetVelocity(UPrimtiveOpaque *primitive, Vector3 velocity);
@@ -259,5 +280,12 @@ extern uint32_t Sweep(Vector3 start,
                       LineTraceParams params,
                       const UPrimtiveOpaque *primitive,
                       HitResult *result);
+
+extern uint32_t OverlapMulti(FCollisionShapeOpague *shape,
+                             Vector3 position,
+                             Quaternion rotation,
+                             LineTraceParams params,
+                             uintptr_t max_results,
+                             OverlapResult **result);
 
 } // extern "C"

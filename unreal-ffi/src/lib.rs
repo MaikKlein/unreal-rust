@@ -96,6 +96,7 @@ pub type AActorOpaque = c_void;
 pub type UPrimtiveOpaque = c_void;
 pub type UCapsuleOpaque = c_void;
 pub type UClassOpague = c_void;
+pub type FCollisionShapeOpague = c_void;
 
 pub type GetSpatialDataFn = extern "C" fn(
     actor: *const AActorOpaque,
@@ -142,6 +143,9 @@ pub type GetRegisteredClassesFn =
     unsafe extern "C" fn(classes: *mut *mut UClassOpague, len: *mut usize);
 
 pub type GetClassFn = unsafe extern "C" fn(actor: *const AActorOpaque) -> *mut UClassOpague;
+pub type IsMoveableFn = unsafe extern "C" fn(actor: *const AActorOpaque) -> u32;
+pub type GetActorNameFn =
+    unsafe extern "C" fn(actor: *const AActorOpaque, data: *mut c_char, len: *mut usize);
 
 extern "C" {
     pub fn SetSpatialData(
@@ -189,6 +193,8 @@ extern "C" {
     );
     pub fn GetRegisteredClasses(classes: *mut *mut UClassOpague, len: *mut usize);
     pub fn GetClass(actor: *const AActorOpaque) -> *mut UClassOpague;
+    pub fn IsMoveable(actor: *const AActorOpaque) -> u32;
+    pub fn GetActorName(actor: *const AActorOpaque, data: *mut c_char, len: *mut usize);
 }
 
 #[repr(C)]
@@ -210,6 +216,8 @@ pub struct UnrealBindings {
     pub get_root_component: GetRootComponentFn,
     pub get_registered_classes: GetRegisteredClassesFn,
     pub get_class: GetClassFn,
+    pub is_moveable: IsMoveableFn,
+    pub get_actor_name: GetActorNameFn,
 }
 unsafe impl Sync for UnrealBindings {}
 unsafe impl Send for UnrealBindings {}
@@ -232,6 +240,14 @@ pub enum ActorClass {
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum ActorComponentType {
     Primitive,
+}
+
+#[repr(u8)]
+#[derive(Debug)]
+pub enum Mobility {
+    Static = 0,
+    Stationary = 1,
+    Moveable = 2,
 }
 
 #[repr(C)]
@@ -303,6 +319,15 @@ pub type SweepFn = unsafe extern "C" fn(
     primitive: *const UPrimtiveOpaque,
     result: &mut HitResult,
 ) -> u32;
+
+pub type OverlapMultiFn = unsafe extern "C" fn(
+    shape: *mut FCollisionShapeOpague,
+    position: Vector3,
+    rotation: Quaternion,
+    params: LineTraceParams,
+    max_results: usize,
+    result: *mut *mut OverlapResult,
+) -> u32;
 #[repr(C)]
 pub struct UnrealPhysicsBindings {
     pub get_velocity: GetVelocityFn,
@@ -313,11 +338,13 @@ pub struct UnrealPhysicsBindings {
     pub line_trace: LineTraceFn,
     pub get_bounding_box_extent: GetBoundingBoxExtentFn,
     pub sweep: SweepFn,
+    pub overlap_multi: OverlapMultiFn,
 }
 #[repr(C)]
 #[derive(Debug)]
 pub struct HitResult {
     pub actor: *mut AActorOpaque,
+    pub primtive: *mut UPrimtiveOpaque,
     pub distance: f32,
     pub normal: Vector3,
     pub location: Vector3,
@@ -328,11 +355,26 @@ impl Default for HitResult {
     fn default() -> Self {
         Self {
             actor: std::ptr::null_mut(),
+            primtive: std::ptr::null_mut(),
             distance: Default::default(),
             normal: Default::default(),
             location: Default::default(),
             impact_location: Default::default(),
             pentration_depth: Default::default(),
+        }
+    }
+}
+#[repr(C)]
+#[derive(Debug)]
+pub struct OverlapResult {
+    pub actor: *mut AActorOpaque,
+    pub primtive: *mut UPrimtiveOpaque,
+}
+impl Default for OverlapResult {
+    fn default() -> Self {
+        Self {
+            actor: std::ptr::null_mut(),
+            primtive: std::ptr::null_mut(),
         }
     }
 }
@@ -357,5 +399,13 @@ extern "C" {
         params: LineTraceParams,
         primitive: *const UPrimtiveOpaque,
         result: &mut HitResult,
+    ) -> u32;
+    pub fn OverlapMulti(
+        shape: *mut FCollisionShapeOpague,
+        position: Vector3,
+        rotation: Quaternion,
+        params: LineTraceParams,
+        max_results: usize,
+        result: *mut *mut OverlapResult,
     ) -> u32;
 }

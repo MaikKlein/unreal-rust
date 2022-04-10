@@ -206,6 +206,7 @@ uint32_t LineTrace(Vector3 start, Vector3 end, LineTraceParams Params, HitResult
     if (IsHit)
     {
         result->actor = (AActorOpaque *)Out.GetActor();
+        result->primtive = (UPrimtiveOpaque *)Out.GetComponent();
         result->distance = Out.Distance;
         result->location = ToVector3(Out.Location);
         result->normal = ToVector3(Out.Normal);
@@ -214,6 +215,41 @@ uint32_t LineTrace(Vector3 start, Vector3 end, LineTraceParams Params, HitResult
     }
 
     return IsHit;
+}
+uint32_t OverlapMulti(FCollisionShapeOpague *shape,
+                      Vector3 position,
+                      Quaternion rotation,
+                      LineTraceParams params,
+                      uintptr_t max_results,
+                      OverlapResult **results)
+{
+    TArray<FOverlapResult> Out;
+    auto CollisionParams = FCollisionQueryParams();
+    for (uintptr_t i = 0; i < params.ignored_actors_len; ++i)
+    {
+        CollisionParams.AddIgnoredActor((AActor *)params.ignored_actors[i]);
+    }
+    bool IsHit = GetModule().GameMode->GetWorld()->OverlapMultiByChannel(Out,
+                                                                         ToFVector(position),
+                                                                         ToFQuat(rotation),
+                                                                         ECollisionChannel::ECC_MAX,
+                                                                         *(const FCollisionShape *)shape,
+                                                                         CollisionParams,
+                                                                         FCollisionResponseParams{});
+    if (IsHit)
+    {
+        uintptr_t Length = FGenericPlatformMath::Min(max_results, (uintptr_t)Out.Num());
+        for (uintptr_t i = 0; i < Length; ++i)
+        {
+            OverlapResult *result = results[i];
+            FOverlapResult *Hit = &Out[i];
+            result->actor = (AActorOpaque *)Hit->GetActor();
+            result->primtive = (UPrimtiveOpaque *)Hit->GetComponent();
+        }
+    }
+
+    return IsHit;
+    return 0;
 }
 void VisualLogSegment(const AActorOpaque *actor, Vector3 start, Vector3 end, Color color)
 {
@@ -301,10 +337,23 @@ void GetRegisteredClasses(UClassOpague **classes, uintptr_t *len)
     uintptr_t Count = *len;
     for (uintptr_t Idx = 0; Idx < Count; ++Idx)
     {
-        classes[Idx] = (UClassOpague*)GameMode->RegisteredClasses[Idx].Get();
+        classes[Idx] = (UClassOpague *)GameMode->RegisteredClasses[Idx].Get();
     }
 }
 
-UClassOpague *GetClass(const AActorOpaque *actor) {
-    return (UClassOpague*)ToAActor(actor)->GetClass();
+UClassOpague *GetClass(const AActorOpaque *actor)
+{
+    return (UClassOpague *)ToAActor(actor)->GetClass();
+}
+
+uint32 IsMoveable(const AActorOpaque *actor) {
+    return ToAActor(actor)->IsRootComponentMovable();
+}
+void GetActorName(const AActorOpaque *actor, char *data, uintptr_t *len) {
+    // TODO: Implement
+    //if(data == nullptr) {
+    //    FString Name = ToAActor(actor)->GetActorNameOrLabel();
+    //    auto Utf8 = TCHAR_TO_UTF8(*Name);
+    //    auto Length = Utf8.Length();
+    //}
 }

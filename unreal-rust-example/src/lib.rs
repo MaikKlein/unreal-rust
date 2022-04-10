@@ -73,7 +73,7 @@ pub struct CharacterConfigComponent {
 impl Default for CharacterConfigComponent {
     fn default() -> Self {
         Self {
-            max_movement_speed: 500.0,
+            max_movement_speed: 5000.0,
             gravity_dir: -Vec3::Z,
             gravity_strength: 981.0,
             max_walkable_slope: 50.0,

@@ -232,6 +232,7 @@ impl PhysicsComponent {
     }
 
     pub fn upload_state(&mut self) {
+        log::info!("upload");
         unsafe {
             (bindings().physics_bindings.set_velocity)(self.ptr.ptr, self.velocity.into());
         }
@@ -385,6 +386,10 @@ fn download_transform_from_unreal(mut query: Query<(&ActorComponent, &mut Transf
 
 fn upload_transform_to_unreal(query: Query<(&ActorComponent, &TransformComponent)>) {
     for (actor, transform) in query.iter() {
+        let is_moveable = unsafe { (bindings().is_moveable)(actor.ptr.0) } > 0;
+        if !is_moveable {
+            continue;
+        }
         assert!(!transform.is_nan());
         (bindings().set_spatial_data)(
             actor.ptr.0,

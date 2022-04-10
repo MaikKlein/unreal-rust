@@ -33,6 +33,7 @@ UnrealBindings CreateBindings()
     b.get_root_component = &GetRootComponent;
     b.get_registered_classes = &GetRegisteredClasses;
     b.get_class = &GetClass;
+    b.is_moveable = &IsMoveable;
     return b;
 }
 
