@@ -32,7 +32,7 @@ FString PlatformExtensionName() {
 
 FString FPlugin::PluginFolderPath()
 {
-    return FPaths::Combine(*FPaths::ConvertRelativePathToFull(FPaths::ProjectDir()), TEXT("rusttemp"));
+    return FPaths::Combine(*FPaths::ConvertRelativePathToFull(FPaths::ProjectDir()), TEXT("Binaries"));
 }
 FString FPlugin::PluginPath()
 {
