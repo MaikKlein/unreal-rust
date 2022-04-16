@@ -1,1 +1,1 @@
-ln -s -f -d -r RustPlugin example/rustexample/Plugins/RustPlugin
+ln -s -f -d -r RustPlugin example/RustExample/Plugins/RustPlugin
