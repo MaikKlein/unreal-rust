@@ -34,10 +34,15 @@ I am releasing `unreal-rust` on github to develop it in the open.
 
 - Clone this repository `git clone https://github.com/MaikKlein/unreal-rust`
 - Make sure to clone the submodules as well `git submodule update --init`
+
 - Run the setup
 - - Linux `sh setup.sh`
 - - Windows Copy or symlink `RustPlugin` into `examples/RustExample/Plugins`
-- TODO Rust
+- Build the rust code
+- - `cargo build --release`
+- - Copy the dll/so file into the project `cp target/release/libunreal_rust_example.so example/RustExample/Binaries/rustplugin.so`
+- - Bonus: You can use `cargo-watch` to automatically rebuild your code on file changes. `cargo watch -i "*.so" -s "cargo build --release; cp target/release/libunreal_rust_example.so example/RustExample/Binaries/rustplugin.so"` You can install it with `cargo install cargo-watch`
+
 - Build `example/RustExample`
 - - I recommend installing [ue4cli](https://docs.adamrehn.com/ue4cli/overview/introduction-to-ue4cli)
 - - `cd example/RustExample`
