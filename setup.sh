@@ -1,1 +1,2 @@
-ln -s -f -d -r RustPlugin example/RustExample/Plugins/RustPlugin
+echo "Symlinking RustPlugin into RustExample"
+ln -s ../../../RustPlugin example/RustExample/Plugins/RustPlugin
