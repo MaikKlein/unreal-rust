@@ -14,13 +14,13 @@ I am releasing `unreal-rust` on github to develop it in the open.
 
 ## Features
 
-- Simple opinionated bindings: Easy access to APIs like playing sounds, spawning actors, doing physics while leaving almost the whole gameplay framework behind such as `Pawns`, `Characters`, `GameMode`, `GameState` etc.
-- Developer friendly: Fast iteration times with hot reloading in the editor and during live play both on Windows and Linux. Unable to crash the editor in safe code, all panics are caught and will just throw you out of play mode.
-- Fast: Built on top of an entity component system.
-- Practical: You still have access to blueprints. You don't need to leave behind your animations blueprints just because you are using `unreal-rust`. Just access the data you want like `velocity` to drive your animations.
-- No magic: Built on top of simple C FFI. This allows Unreal to call into Rust, and Rust to call into Unreal.
-- Easy to get started: Simply drop the `RustPlugin` into your projects `Plugin` folder and you are ready to go. No engine modifications necessary.
-- Free: Dual licensed under MIT/APACHE
+- **Simple opinionated bindings**: Easy access to APIs like playing sounds, spawning actors, doing physics while leaving almost the whole gameplay framework behind such as `Pawns`, `Characters`, `GameMode`, `GameState` etc.
+- **Developer friendly**: Fast iteration times with hot reloading in the editor and during live play both on Windows and Linux. Unable to crash the editor in safe code, all panics are caught and will just throw you out of play mode.
+- **Fast**: Built on top of an entity component system.
+- **Practical**: You still have access to blueprints. You don't need to leave behind your animations blueprints just because you are using `unreal-rust`. Just access the data you want like `velocity` to drive your animations.
+- **No magic**: Built on top of simple C FFI. This allows Unreal to call into Rust, and Rust to call into Unreal.
+- **Easy to get started**: Simply drop the `RustPlugin` into your projects `Plugin` folder and you are ready to go. No engine modifications necessary.
+- **Free**: Dual licensed under MIT/APACHE
 
 ## Known problems
 
