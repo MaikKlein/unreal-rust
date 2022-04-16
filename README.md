@@ -1,4 +1,4 @@
-# unreal-rust
+# 🦀 unreal-rust
 
 A Rust integration for Unreal Engine
 
@@ -6,13 +6,13 @@ A Rust integration for Unreal Engine
 [![LICENSE](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE-MIT)
 [![LICENSE](https://img.shields.io/badge/license-apache-blue.svg)](LICENSE-APACHE)
 
-## ⚠️Warning⚠️
+## ☣️ Warning
 
 This project is not ready to be used in a real project. The project is in a very early state and nothing more that a proof of concept right now. The API will change quite frequently. Things might crash, or not work as intended. The user experience will not be great.
 
 I am releasing `unreal-rust` on github to develop it in the open.
 
-## Features
+## 🎯 Features
 
 - **Simple opinionated bindings**: Easy access to APIs like playing sounds, spawning actors, doing physics while leaving almost the whole gameplay framework behind such as `Pawns`, `Characters`, `GameMode`, `GameState` etc.
 - **Developer friendly**: Fast iteration times with hot reloading in the editor and during live play both on Windows and Linux. Unable to crash the editor in safe code, all panics are caught and will just throw you out of play mode.
@@ -22,13 +22,13 @@ I am releasing `unreal-rust` on github to develop it in the open.
 - **Easy to get started**: Simply drop the `RustPlugin` into your projects `Plugin` folder and you are ready to go. No engine modifications necessary.
 - **Free**: Dual licensed under MIT/APACHE
 
-## Known problems
+## 🚩 Known problems
 
 - No console support. I simply can not offer console support as it is a very closed off ecosystem. Nor do I have access to any developer kits myself.
 - This is just a hobby project of mine that I work on outside of my normal work hours. I might be slow to respond to issues, questions, feature requests, or PR reviews.
 
 
-## Getting started
+## 🦮 Getting started
 
 ### Running the example
 
