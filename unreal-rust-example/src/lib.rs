@@ -87,6 +87,8 @@ pub struct PlayerInput;
 impl PlayerInput {
     pub const MOVE_FORWARD: &'static str = "MoveForward";
     pub const MOVE_RIGHT: &'static str = "MoveRight";
+    pub const LOOK_UP: &'static str = "LookUp";
+    pub const TURN_RIGHT: &'static str = "TurnRight";
 }
 fn register_class_resource(mut commands: Commands) {
     let mut len: usize = 0;
@@ -137,6 +139,8 @@ fn spawn_class(
 fn register_player_input(mut input: ResMut<Input>) {
     input.register_axis_binding(PlayerInput::MOVE_FORWARD);
     input.register_axis_binding(PlayerInput::MOVE_RIGHT);
+    input.register_axis_binding(PlayerInput::LOOK_UP);
+    input.register_axis_binding(PlayerInput::TURN_RIGHT);
 }
 
 pub enum MovementHit {
@@ -275,7 +279,9 @@ fn update_controller_view(
     }
 }
 
-fn rotate_camera(mut query: Query<(&mut TransformComponent, &mut CameraComponent)>) {
+fn rotate_camera(
+    mut query: Query<(&mut TransformComponent, &mut CameraComponent)>,
+) {
     fn lerp(start: f32, end: f32, t: f32) -> f32 {
         start * (1.0 - t) + end * t
     }
@@ -286,6 +292,7 @@ fn rotate_camera(mut query: Query<(&mut TransformComponent, &mut CameraComponent
     unsafe {
         (bindings().get_mouse_delta)(&mut x, &mut y);
     }
+
     for (mut spatial, mut cam) in query.iter_mut() {
         let speed = 0.05;
         cam.x += x * speed;
@@ -370,7 +377,7 @@ impl UserModule for MyModule {
         update.add_system_to_stage(CoreStage::Update, update_controller_view);
         update.add_system_to_stage(CoreStage::Update, update_movement_velocity);
         update.add_system_to_stage(CoreStage::Update, rotate_camera);
-        update.add_system_to_stage(CoreStage::Update, update_camera);
+        update.add_system_to_stage(CoreStage::Update, update_camera.after(rotate_camera));
     }
 }
 

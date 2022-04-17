@@ -33,19 +33,26 @@ impl UnrealCore {
         let mut world = World::new();
 
         world.insert_resource(Frame::default());
+        world.insert_resource(Time::default());
         world.insert_resource(Input::default());
         world.insert_resource(ActorRegistration::default());
 
         let mut schedule = Schedule::default();
         schedule
             .add_stage(CoreStage::PreUpdate, SystemStage::single_threaded())
-            .add_stage(CoreStage::Update, SystemStage::single_threaded())
-            .add_stage(CoreStage::PostUpdate, SystemStage::single_threaded());
+            .add_stage_after(
+                CoreStage::PreUpdate,
+                CoreStage::Update,
+                SystemStage::single_threaded(),
+            )
+            .add_stage_after(
+                CoreStage::Update,
+                CoreStage::PostUpdate,
+                SystemStage::single_threaded(),
+            );
+
         schedule.add_system_to_stage(CoreStage::PreUpdate, update_input);
-        schedule.add_system_to_stage(
-            CoreStage::PreUpdate,
-            download_transform_from_unreal,
-        );
+        schedule.add_system_to_stage(CoreStage::PreUpdate, download_transform_from_unreal);
         schedule.add_system_to_stage(CoreStage::PostUpdate, upload_transform_to_unreal);
         schedule.add_system_to_stage(CoreStage::PostUpdate, process_unreal_events);
         Self {
@@ -81,6 +88,9 @@ impl UnrealCore {
     pub fn tick(&mut self, dt: f32) {
         if let Some(mut frame) = self.world.get_resource_mut::<Frame>() {
             frame.dt = dt;
+        }
+        if let Some(mut time) = self.world.get_resource_mut::<Time>() {
+            time.time += dt as f64;
         }
         self.schedule.run_once(&mut self.world);
         self.world.clear_trackers();
@@ -183,6 +193,11 @@ pub enum CoreStage {
 #[derive(Default, Debug, Copy, Clone)]
 pub struct Frame {
     pub dt: f32,
+}
+
+#[derive(Default, Debug, Copy, Clone)]
+pub struct Time {
+    pub time: f64,
 }
 
 #[derive(Default, Debug, TypeUuid)]
