@@ -70,6 +70,33 @@ This project will always try to support the latest version.
 
 ## FAQ
 
+### Why?
+
+Unreal is a fantastic engine that comes with a huge amount of features that are ready to be used in a real game. I just have not been a huge fan of the gameplay framework. Compiling the C++ gamecode is quite slow, there is a lot of magic behind macros, hot reloading was not reliable, and you can crash the editor in gameplay code.
+
+I much prefer Unity. It is quite easy to get started and its very unopinionated. Sadly from an outsiders perspective it also seems to be in a weird state right now with DOTS. You also don't access to the source code and the whole engine is hidden away from you, unless you buy a license.
+
+I wanted to see if I can make Unreal more like Unity and fix all the issues I have with it. This is how `unreal-rust` was born. I want hotreloading to always work even on Linux. `unreal-rust` simply reloads a dll. I never want to accidentally crash the editor. `unreal-rust` will catch all panics and exit playmode.
+I also want live reloading so I can tweak code live while play testing it. Some gameplay code like character controllers are quite difficult to write and having a good iteration workflow is very important to have. You need to be able to test out ideas in a very short amount of time. I can make changes to the gameplay code in <1s and have it hot reloaded in the editor.
+
+There also already usable alternatives around like [Unreal Angelscript](https://angelscript.hazelight.se/) that fix most of my issues with Unreal.
+
+// TODO
+
+
+
+
+
+
+
+_I am aware that you can write your own engine, but not everyone has the expertise to do that and unless it is a 2d game or you heavily downscope your project its just not going to happen._
+
+### How does the C FFI work?
+
+We define the C FFI inside Rust like `fn set_actor_position(pos: Vec3)`. We generate a C header with bindgen. We then implement `set_actor_position` in C++. When we load the Rust dll from within Unreal, we pass in the function pointers like `set_actor_position` into the Rust dll. This allows Rust to call functions of Unreal.
+
+Additonally we also define and implement C functions in Rust. We then pass the function pointers of those functions into Unreal when the dll is loaded. This allows Unreal to call into Rust. For example Unreal calls `Tick` every frame which is define inside the Rust dll.
+
 ### Why Rust?
 
 // TODO improve
