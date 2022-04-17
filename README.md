@@ -72,9 +72,9 @@ This project will always try to support the latest version.
 
 ### Why?
 
-Unreal is a fantastic engine that comes with a huge amount of features that are ready to be used in a real game. I just have not been a huge fan of the gameplay framework. Compiling the C++ gamecode is quite slow, there is a lot of magic behind macros, hot reloading was not reliable, and you can crash the editor in gameplay code.
+Unreal is a fantastic engine that comes with a huge amount of features that are ready to be used in a real game. I am just not big fan of the gameplay framework. Compiling the C++ gamecode is quite slow, there is a lot of magic behind macros, hot reloading was not reliable, and you can crash the editor in gameplay code.
 
-I much prefer Unity. It is quite easy to get started and its very unopinionated. Sadly from an outsiders perspective it also seems to be in a weird state right now with DOTS. You also don't access to the source code and the whole engine is hidden away from you, unless you buy a license.
+I much prefer Unity. It is quite easy to get started and its very unopinionated. Sadly from an outsiders perspective it also seems to be in a weird state right now with DOTS. You also don't have access to the source code and the whole engine is hidden away from you unless you buy a license.
 
 I wanted to see if I can make Unreal more like Unity and fix all the issues I have with it. This is how `unreal-rust` was born. I want hotreloading to always work even on Linux. `unreal-rust` simply reloads a dll. I never want to accidentally crash the editor. `unreal-rust` will catch all panics and exit playmode.
 I also want live reloading so I can tweak code live while play testing it. Some gameplay code like character controllers are quite difficult to write and having a good iteration workflow is very important to have. You need to be able to test out ideas in a very short amount of time. I can make changes to the gameplay code in <1s and have it hot reloaded in the editor.
