@@ -83,14 +83,6 @@ There also already usable alternatives around like [Unreal Angelscript](https://
 
 // TODO
 
-
-
-
-
-
-
-_I am aware that you can write your own engine, but not everyone has the expertise to do that and unless it is a 2d game or you heavily downscope your project its just not going to happen._
-
 ### How does the C FFI work?
 
 We define the C FFI inside Rust like `fn set_actor_position(pos: Vec3)`. We generate a C header with bindgen. We then implement `set_actor_position` in C++. When we load the Rust dll from within Unreal, we pass in the function pointers like `set_actor_position` into the Rust dll. This allows Rust to call functions of Unreal.
