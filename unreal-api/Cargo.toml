@@ -5,7 +5,7 @@ edition = "2021"
 license = "MIT OR Apache-2.0"
 
 [dependencies]
-bevy_ecs = "0.6"
+bevy_ecs = "0.7"
 glam = "0.20.2"
 log = { version = "0.4.14", features =["std"] }
 unreal-reflect= { path = "../unreal-reflect" }

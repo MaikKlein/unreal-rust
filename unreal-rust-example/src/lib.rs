@@ -362,15 +362,15 @@ impl UserModule for MyModule {
     fn register(&self, _registry: &mut ReflectionRegistry) {}
 
     fn systems(&self, startup: &mut Schedule, update: &mut Schedule) {
-        startup.add_system_to_stage(CoreStage::Startup, register_class_resource.system());
-        startup.add_system_to_stage(CoreStage::Startup, register_player_input.system());
-        update.add_system_to_stage(CoreStage::Update, spawn_class.system());
-        update.add_system_to_stage(CoreStage::Update, spawn_camera.system());
-        update.add_system_to_stage(CoreStage::Update, character_control_system.system());
-        update.add_system_to_stage(CoreStage::Update, update_controller_view.system());
-        update.add_system_to_stage(CoreStage::Update, update_movement_velocity.system());
-        update.add_system_to_stage(CoreStage::Update, rotate_camera.system());
-        update.add_system_to_stage(CoreStage::Update, update_camera.system());
+        startup.add_system_to_stage(CoreStage::Startup, register_class_resource);
+        startup.add_system_to_stage(CoreStage::Startup, register_player_input);
+        update.add_system_to_stage(CoreStage::Update, spawn_class);
+        update.add_system_to_stage(CoreStage::Update, spawn_camera);
+        update.add_system_to_stage(CoreStage::Update, character_control_system);
+        update.add_system_to_stage(CoreStage::Update, update_controller_view);
+        update.add_system_to_stage(CoreStage::Update, update_movement_velocity);
+        update.add_system_to_stage(CoreStage::Update, rotate_camera);
+        update.add_system_to_stage(CoreStage::Update, update_camera);
     }
 }
 

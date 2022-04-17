@@ -41,13 +41,13 @@ impl UnrealCore {
             .add_stage(CoreStage::PreUpdate, SystemStage::single_threaded())
             .add_stage(CoreStage::Update, SystemStage::single_threaded())
             .add_stage(CoreStage::PostUpdate, SystemStage::single_threaded());
-        schedule.add_system_to_stage(CoreStage::PreUpdate, update_input.system());
+        schedule.add_system_to_stage(CoreStage::PreUpdate, update_input);
         schedule.add_system_to_stage(
             CoreStage::PreUpdate,
-            download_transform_from_unreal.system(),
+            download_transform_from_unreal,
         );
-        schedule.add_system_to_stage(CoreStage::PostUpdate, upload_transform_to_unreal.system());
-        schedule.add_system_to_stage(CoreStage::PostUpdate, process_unreal_events.system());
+        schedule.add_system_to_stage(CoreStage::PostUpdate, upload_transform_to_unreal);
+        schedule.add_system_to_stage(CoreStage::PostUpdate, process_unreal_events);
         Self {
             world,
             schedule,
