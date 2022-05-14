@@ -26,6 +26,12 @@ enum class EventType : uint32_t {
   ActorSpawned = 0,
 };
 
+enum class ReflectionType : uint32_t {
+  Float,
+  Vector3,
+  Bool,
+};
+
 enum class ResultCode : uint8_t {
   Success = 0,
   Panic = 1,
@@ -98,7 +104,7 @@ using LogFn = void(*)(const char*, int32_t);
 
 using IterateActorsFn = void(*)(AActorOpaque **array, uint64_t *len);
 
-using GetActionStateFn = void(*)(const char *name, ActionState *state);
+using GetActionStateFn = void(*)(const char *name, uintptr_t len, ActionState *state);
 
 using GetAxisValueFn = void(*)(const char *name, uintptr_t len, float *value);
 
@@ -192,12 +198,34 @@ using BeginPlayFn = ResultCode(*)();
 
 using UnrealEventFn = void(*)(const EventType *ty, const void *data);
 
+using NumberOfFieldsFn = uint32_t(*)(Uuid uuid, uint32_t *out);
+
+using GetFieldTypeFn = uint32_t(*)(Uuid uuid, uint32_t field_idx, ReflectionType *ty);
+
+using GetFieldNameFn = uint32_t(*)(Uuid uuid, uint32_t field_idx, const char **name, uintptr_t *len);
+
+using GetFieldVector3ValueFn = uint32_t(*)(Uuid uuid, Entity entity, uint32_t field_idx, Vector3 *out);
+
+using GetFieldBoolValueFn = uint32_t(*)(Uuid uuid, Entity entity, uint32_t field_idx, uint32_t *out);
+
+using GetFieldFloatValueFn = uint32_t(*)(Uuid uuid, Entity entity, uint32_t field_idx, float *out);
+
+struct ReflectionFns {
+  NumberOfFieldsFn number_of_fields;
+  GetFieldTypeFn get_field_type;
+  GetFieldNameFn get_field_name;
+  GetFieldVector3ValueFn get_field_vector3_value;
+  GetFieldBoolValueFn get_field_bool_value;
+  GetFieldFloatValueFn get_field_float_value;
+};
+
 struct RustBindings {
   RetrieveUuids retrieve_uuids;
   GetVelocityRustFn get_velocity;
   TickFn tick;
   BeginPlayFn begin_play;
   UnrealEventFn unreal_event;
+  ReflectionFns reflection_fns;
 };
 
 using EntryUnrealBindingsFn = RustBindings(*)(UnrealBindings bindings);
@@ -224,7 +252,7 @@ extern void Log(const char *s, int32_t len);
 
 extern void IterateActors(AActorOpaque **array, uint64_t *len);
 
-extern void GetActionState(const char *name, ActionState *state);
+extern void GetActionState(const char *name, uintptr_t len, ActionState *state);
 
 extern void GetAxisValue(const char *name, uintptr_t len, float *value);
 

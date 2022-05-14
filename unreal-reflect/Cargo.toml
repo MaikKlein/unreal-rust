@@ -12,3 +12,4 @@ uuid = { version = "0.8", features = ["v4", "serde"] }
 unreal-reflect-derive = { path = "../unreal-reflect-derive" }
 bevy_ecs = "0.7"
 log = "0.4"
+glam = "0.20"

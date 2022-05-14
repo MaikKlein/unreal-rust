@@ -57,20 +57,24 @@ void IterateActors(AActorOpaque **array, uint64_t *len)
     }
     *len = i;
 }
-void GetActionState(const char *name, ActionState *state)
+void GetActionState(const char *name, uintptr_t len, ActionState *state)
 {
 
     APlayerController *PC = UGameplayStatics::GetPlayerController(GetModule().GameMode, 0);
 
-    for (auto M : PC->PlayerInput->GetKeysForAction(name))
+    FName ActionName((int32)len, name);
+
+    for (auto M : PC->PlayerInput->GetKeysForAction(ActionName))
     {
         if (PC->PlayerInput->WasJustPressed(M.Key))
         {
+        UE_LOG(LogTemp, Warning, TEXT("Pressed %s %s"), *ActionName.ToString(), *M.Key.ToString());
             *state = ActionState::Pressed;
             return;
         }
         if (PC->PlayerInput->WasJustReleased(M.Key))
         {
+            UE_LOG(LogTemp, Warning, TEXT("Released %s %s"), *ActionName.ToString(), *M.Key.ToString());
             *state = ActionState::Released;
             return;
         }

@@ -89,6 +89,8 @@ impl PlayerInput {
     pub const MOVE_RIGHT: &'static str = "MoveRight";
     pub const LOOK_UP: &'static str = "LookUp";
     pub const TURN_RIGHT: &'static str = "TurnRight";
+
+    pub const JUMP: &'static str = "Jump";
 }
 fn register_class_resource(mut commands: Commands) {
     let mut len: usize = 0;
@@ -141,6 +143,8 @@ fn register_player_input(mut input: ResMut<Input>) {
     input.register_axis_binding(PlayerInput::MOVE_RIGHT);
     input.register_axis_binding(PlayerInput::LOOK_UP);
     input.register_axis_binding(PlayerInput::TURN_RIGHT);
+
+    input.register_action_binding(PlayerInput::JUMP);
 }
 
 pub enum MovementHit {
@@ -241,6 +245,10 @@ fn character_control_system(
         if let Some(_hit) = find_floor(actor, &transform, physics, config) {
             //transform.position = hit.position;
             controller.velocity.z = 0.0;
+            if input.is_action_pressed(PlayerInput::JUMP) {
+                log::info!("Jump---");
+                controller.velocity.z += 600.0;
+            }
         } else {
             controller.velocity += config.gravity_dir * config.gravity_strength * frame.dt;
         }

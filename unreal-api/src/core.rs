@@ -1,6 +1,6 @@
 use bevy_ecs::prelude::*;
-use ffi::{ActorComponentPtr, ActorComponentType, EventType};
-use std::{collections::HashMap, ffi::c_void};
+use ffi::{ActorComponentPtr, ActorComponentType, EventType, SetEntityForActor, Uuid};
+use std::{collections::HashMap, ffi::c_void, os::raw::c_char};
 
 use crate::{
     ffi::{self, AActorOpaque},
@@ -152,6 +152,181 @@ pub unsafe extern "C" fn get_velocity(actor: *const AActorOpaque, velocity: &mut
         }
     }
 }
+extern "C" fn get_field_float_value(
+    uuid: ffi::Uuid,
+    entity: ffi::Entity,
+    idx: u32,
+    out: *mut f32,
+) -> u32 {
+    let result = std::panic::catch_unwind(|| {
+        if let Some(ReflectValue::Float(f)) = get_field_value(uuid, entity, idx) {
+            unsafe {
+                *out = f;
+            }
+            1
+        } else {
+            0
+        }
+    });
+    result.unwrap_or(0)
+}
+
+extern "C" fn get_field_vector3_value(
+    uuid: ffi::Uuid,
+    entity: ffi::Entity,
+    idx: u32,
+    out: *mut ffi::Vector3,
+) -> u32 {
+    let result = std::panic::catch_unwind(|| {
+        if let Some(ReflectValue::Vector3(v)) = get_field_value(uuid, entity, idx) {
+            unsafe {
+                *out = v.into();
+            }
+            1
+        } else {
+            0
+        }
+    });
+    result.unwrap_or(0)
+}
+extern "C" fn get_field_bool_value(
+    uuid: ffi::Uuid,
+    entity: ffi::Entity,
+    idx: u32,
+    out: *mut u32,
+) -> u32 {
+    let result = std::panic::catch_unwind(|| {
+        if let Some(ReflectValue::Bool(b)) = get_field_value(uuid, entity, idx) {
+            unsafe {
+                *out = b as u32;
+            }
+            1
+        } else {
+            0
+        }
+    });
+    result.unwrap_or(0)
+}
+
+fn get_field_value(uuid: ffi::Uuid, entity: ffi::Entity, idx: u32) -> Option<ReflectValue> {
+    let uuid = unreal_reflect::Uuid::from_bytes(uuid.bytes);
+    unsafe {
+        let global = crate::module::MODULE.as_mut()?;
+        let reflect = global.core.reflection_registry.reflect.get(&uuid)?;
+
+        let entity = Entity::from_bits(entity.id);
+        reflect.get_field_value(&global.core.world, entity, idx)
+    }
+}
+
+unsafe extern "C" fn number_of_fields(uuid: ffi::Uuid, out: *mut u32) -> u32 {
+    fn get_number_fields(uuid: ffi::Uuid) -> Option<u32> {
+        let global = unsafe { crate::module::MODULE.as_mut() }?;
+        let uuid = unreal_reflect::Uuid::from_bytes(uuid.bytes);
+        let reflect = global.core.reflection_registry.reflect.get(&uuid)?;
+        Some(reflect.number_of_fields() as u32)
+    }
+    let result = std::panic::catch_unwind(|| {
+        if let Some(count) = get_number_fields(uuid) {
+            *out = count;
+            1
+        } else {
+            0
+        }
+    });
+    result.unwrap_or(0)
+}
+
+unsafe extern "C" fn get_field_name(
+    uuid: ffi::Uuid,
+    idx: u32,
+    out: *mut *const c_char,
+    len: *mut usize,
+) -> u32 {
+    fn get_field_name(uuid: ffi::Uuid, idx: u32) -> Option<&'static str> {
+        let global = unsafe { crate::module::MODULE.as_mut() }?;
+        let uuid = unreal_reflect::Uuid::from_bytes(uuid.bytes);
+        let reflect = global.core.reflection_registry.reflect.get(&uuid)?;
+        reflect.get_field_name(idx)
+    }
+    let result = std::panic::catch_unwind(|| {
+        if let Some(name) = get_field_name(uuid, idx) {
+            *out = name.as_ptr() as *const c_char;
+            *len = name.len();
+            1
+        } else {
+            0
+        }
+    });
+    result.unwrap_or(0)
+}
+unsafe extern "C" fn get_field_type(
+    uuid: ffi::Uuid,
+    idx: u32,
+    out: *mut ffi::ReflectionType,
+) -> u32 {
+    fn get_field_type(uuid: ffi::Uuid, idx: u32) -> Option<ffi::ReflectionType> {
+        let global = unsafe { crate::module::MODULE.as_mut() }?;
+        let uuid = unreal_reflect::Uuid::from_bytes(uuid.bytes);
+        let reflect = global.core.reflection_registry.reflect.get(&uuid)?;
+        let ty = reflect.get_field_type(idx)?;
+        Some(match ty {
+            ReflectType::Bool => ffi::ReflectionType::Bool,
+            ReflectType::Float => ffi::ReflectionType::Float,
+            ReflectType::Vector3 => ffi::ReflectionType::Vector3,
+        })
+    }
+    let result = std::panic::catch_unwind(|| {
+        if let Some(ty) = get_field_type(uuid, idx) {
+            *out = ty;
+            1
+        } else {
+            0
+        }
+    });
+    result.unwrap_or(0)
+}
+
+pub unsafe extern "C" fn get_movement_component(
+    actor: *const AActorOpaque,
+    movement_out: *mut ffi::Movement,
+) -> u32 {
+    if let Some(global) = crate::module::MODULE.as_mut() {
+        if let Some(entity) = global
+            .core
+            .world
+            .get_resource::<ActorRegistration>()
+            .and_then(|reg| reg.actor_to_entity.get(&ActorPtr(actor as *mut _)))
+            .copied()
+        {
+            if let Some(movement) = global
+                .core
+                .world
+                .get_entity(entity)
+                .and_then(|eref| eref.get::<MovementComponent>())
+            {
+                *movement_out = ffi::Movement {
+                    velocity: movement.velocity.into(),
+                    is_falling: movement.is_falling as u32,
+                };
+                return 1;
+            }
+        }
+    }
+    0
+}
+
+pub fn create_reflect_fns() -> ffi::ReflectionFns {
+    ffi::ReflectionFns {
+        get_field_bool_value,
+        get_field_float_value,
+        get_field_vector3_value,
+        number_of_fields,
+        get_field_name,
+        get_field_type,
+    }
+}
+
 pub extern "C" fn tick(dt: f32) -> crate::ffi::ResultCode {
     let r = std::panic::catch_unwind(|| unsafe {
         UnrealCore::tick(&mut crate::module::MODULE.as_mut().unwrap().core, dt);
@@ -176,13 +351,23 @@ pub fn register_core_components(registry: &mut ReflectionRegistry) {
     registry.register::<TransformComponent>();
     registry.register::<ActorComponent>();
     registry.register::<PlayerInputComponent>();
-    registry.register::<MovementComponent>();
     registry.register::<CameraComponent>();
     registry.register::<ParentComponent>();
     registry.register::<PhysicsComponent>();
+
+    registry.register::<MovementComponent>();
+    // TODO: Move into register
+    registry.reflect.insert(
+        MovementComponent::TYPE_UUID,
+        Box::new(MovementComponentReflect),
+    );
 }
 
-use unreal_reflect::{impl_component, registry::ReflectionRegistry, TypeUuid};
+use unreal_reflect::{
+    impl_component,
+    registry::{Reflect, ReflectType, ReflectValue, ReflectionRegistry},
+    TypeUuid,
+};
 #[derive(Debug, Hash, PartialEq, Eq, Clone, StageLabel)]
 pub enum CoreStage {
     Startup,
@@ -285,13 +470,60 @@ pub struct CameraComponent {
 }
 impl_component!(CameraComponent);
 
+#[repr(C)]
 #[derive(Default, Debug, TypeUuid)]
 #[uuid = "fc8bd668-fc0a-4ab7-8b3d-f0f22bb539e2"]
 pub struct MovementComponent {
     pub velocity: Vec3,
-    pub view: Quat,
     pub is_falling: bool,
+    pub view: Quat,
 }
+
+struct MovementComponentReflect;
+
+// TODO: Auto generate
+impl Reflect for MovementComponentReflect {
+    fn name(&self) -> &'static str {
+        "MovementComponent"
+    }
+
+    fn number_of_fields(&self) -> u32 {
+        2
+    }
+
+    fn get_field_type(&self, idx: u32) -> Option<ReflectType> {
+        let ty = match idx {
+            0 => ReflectType::Vector3,
+            1 => ReflectType::Bool,
+            _ => return None,
+        };
+        Some(ty)
+    }
+
+    fn get_field_value(&self, world: &World, entity: Entity, idx: u32) -> Option<ReflectValue> {
+        world
+            .get_entity(entity)
+            .and_then(|entity_ref| entity_ref.get::<MovementComponent>())
+            .and_then(|movement| {
+                let ty = match idx {
+                    0 => ReflectValue::Vector3(movement.velocity),
+                    1 => ReflectValue::Bool(movement.is_falling),
+                    _ => return None,
+                };
+                Some(ty)
+            })
+    }
+
+    fn get_field_name(&self, idx: u32) -> Option<&'static str> {
+        let name = match idx {
+            0 => "velocity",
+            1 => "is_falling",
+            _ => return None,
+        };
+        Some(name)
+    }
+}
+
 impl_component!(MovementComponent);
 
 #[derive(Debug, TypeUuid)]

@@ -52,6 +52,13 @@ pub struct Vector3 {
     pub z: f32,
 }
 
+#[repr(C)]
+#[derive(Default, Debug, Copy, Clone)]
+pub struct Movement {
+    pub velocity: Vector3,
+    pub is_falling: u32,
+}
+
 impl From<Quat> for Quaternion {
     fn from(v: Quat) -> Self {
         Quaternion {
@@ -114,7 +121,8 @@ pub type SetSpatialDataFn = extern "C" fn(
     scale: Vector3,
 );
 pub type IterateActorsFn = unsafe extern "C" fn(array: *mut *mut AActorOpaque, len: *mut u64);
-pub type GetActionStateFn = unsafe extern "C" fn(name: *const c_char, state: &mut ActionState);
+pub type GetActionStateFn =
+    unsafe extern "C" fn(name: *const c_char, len: usize, state: &mut ActionState);
 pub type GetAxisValueFn = unsafe extern "C" fn(name: *const c_char, len: usize, value: &mut f32);
 pub type SetEntityForActorFn = unsafe extern "C" fn(name: *mut AActorOpaque, entity: Entity);
 pub type SpawnActorFn = unsafe extern "C" fn(
@@ -164,7 +172,7 @@ extern "C" {
     pub fn TickActor(actor: *mut AActorOpaque, dt: f32);
     pub fn Log(s: *const c_char, len: i32);
     pub fn IterateActors(array: *mut *mut AActorOpaque, len: *mut u64);
-    pub fn GetActionState(name: *const c_char, state: &mut ActionState);
+    pub fn GetActionState(name: *const c_char, len: usize, state: &mut ActionState);
     pub fn GetAxisValue(name: *const c_char, len: usize, value: &mut f32);
     pub fn SetEntityForActor(name: *mut AActorOpaque, entity: Entity);
     pub fn SpawnActor(
@@ -296,6 +304,7 @@ pub struct RustBindings {
     pub tick: TickFn,
     pub begin_play: BeginPlayFn,
     pub unreal_event: UnrealEventFn,
+    pub reflection_fns: ReflectionFns,
 }
 pub type UnrealEventFn = unsafe extern "C" fn(ty: *const EventType, data: *const c_void);
 pub type GetVelocityFn = unsafe extern "C" fn(primitive: *const UPrimtiveOpaque) -> Vector3;
@@ -351,6 +360,7 @@ pub struct HitResult {
     pub impact_location: Vector3,
     pub pentration_depth: f32,
 }
+
 impl Default for HitResult {
     fn default() -> Self {
         Self {
@@ -408,4 +418,36 @@ extern "C" {
         max_results: usize,
         result: *mut *mut OverlapResult,
     ) -> u32;
+}
+
+#[repr(u32)]
+pub enum ReflectionType {
+    Float,
+    Vector3,
+    Bool,
+}
+
+pub type NumberOfFieldsFn = unsafe extern "C" fn(uuid: Uuid, out: *mut u32) -> u32;
+pub type GetFieldNameFn = unsafe extern "C" fn(
+    uuid: Uuid,
+    field_idx: u32,
+    name: *mut *const c_char,
+    len: *mut usize,
+) -> u32;
+pub type GetFieldTypeFn = unsafe extern "C" fn(uuid: Uuid, field_idx: u32, ty: *mut ReflectionType) -> u32;
+
+pub type GetFieldFloatValueFn =
+    unsafe extern "C" fn(uuid: Uuid, entity: Entity, field_idx: u32, out: *mut f32) -> u32;
+pub type GetFieldVector3ValueFn =
+    unsafe extern "C" fn(uuid: Uuid, entity: Entity, field_idx: u32, out: *mut Vector3) -> u32;
+pub type GetFieldBoolValueFn =
+    unsafe extern "C" fn(uuid: Uuid, entity: Entity, field_idx: u32, out: *mut u32) -> u32;
+#[repr(C)]
+pub struct ReflectionFns {
+    pub number_of_fields: NumberOfFieldsFn,
+    pub get_field_type: GetFieldTypeFn,
+    pub get_field_name: GetFieldNameFn,
+    pub get_field_vector3_value: GetFieldVector3ValueFn,
+    pub get_field_bool_value: GetFieldBoolValueFn,
+    pub get_field_float_value: GetFieldFloatValueFn,
 }
