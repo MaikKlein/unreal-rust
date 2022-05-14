@@ -37,6 +37,7 @@ macro_rules! implement_unreal_module {
                 tick: $crate::core::tick,
                 begin_play: $crate::core::begin_play,
                 unreal_event: $crate::core::unreal_event,
+                reflection_fns: $crate::core::create_reflection_fns(),
             }
         }
     };

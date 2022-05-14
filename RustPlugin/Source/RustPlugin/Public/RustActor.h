@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "EntityComponent.h"
 #include "GameFramework/Actor.h"
 #include "Misc/Guid.h"
 #include "RustActor.generated.h"
@@ -18,6 +19,7 @@ public:
 	ARustActor();
 	UPROPERTY(Category=Rust, EditAnywhere)
 	TArray<FGuid> Components;
+	UEntityComponent* EntityComponent;
 
 protected:
 	// Called when the game starts or when spawned

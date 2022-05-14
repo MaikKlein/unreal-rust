@@ -99,6 +99,11 @@ void SetEntityForActor(AActorOpaque *actor, Entity entity)
     Component->CreationMethod = EComponentCreationMethod::Native;
     Component->RegisterComponent();
 
+    ARustActor* RustActor = Cast<ARustActor>(ToAActor(actor));
+    if(RustActor != nullptr)
+    {
+        RustActor->EntityComponent = Component;
+    }
     // auto id = ((UEntityComponent*)ToAActor(actor)->GetComponentByClass(UEntityComponent::StaticClass()))->Id;
     UE_LOG(LogTemp, Warning, TEXT("Entity with %i"), entity.id);
 }

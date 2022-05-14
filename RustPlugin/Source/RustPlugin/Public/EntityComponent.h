@@ -11,9 +11,9 @@
 USTRUCT(BlueprintType)
 struct FEntity {
 	GENERATED_BODY()	
-	int64 Id;
+	uint64_t Id;
 };
-UCLASS(meta=(BlueprintSpawnableComponent) )
+UCLASS(Blueprintable, meta=(BlueprintSpawnableComponent) )
 class RUSTPLUGIN_API UEntityComponent : public UActorComponent
 {
 	GENERATED_BODY()
@@ -32,9 +32,4 @@ public:
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	UFUNCTION(BlueprintCallable, Category="Utilities", meta=(Keywords = "entity"))
 	virtual FEntity GetEntity();
-
-	UFUNCTION(BlueprintCallable, Category="Components", meta=(DisplayName="Get Entity Id"))
-	bool GetEntity2() const;
-
-		
 };

@@ -428,6 +428,11 @@ pub enum ReflectionType {
 }
 
 pub type NumberOfFieldsFn = unsafe extern "C" fn(uuid: Uuid, out: *mut u32) -> u32;
+pub type GetTypeNameFn = unsafe extern "C" fn(
+    uuid: Uuid,
+    name: *mut *const c_char,
+    len: *mut usize,
+) -> u32;
 pub type GetFieldNameFn = unsafe extern "C" fn(
     uuid: Uuid,
     field_idx: u32,
@@ -445,6 +450,7 @@ pub type GetFieldBoolValueFn =
 #[repr(C)]
 pub struct ReflectionFns {
     pub number_of_fields: NumberOfFieldsFn,
+    pub get_type_name: GetTypeNameFn,
     pub get_field_type: GetFieldTypeFn,
     pub get_field_name: GetFieldNameFn,
     pub get_field_vector3_value: GetFieldVector3ValueFn,

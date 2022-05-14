@@ -1,5 +1,5 @@
 use bevy_ecs::prelude::*;
-use ffi::{ActorComponentPtr, ActorComponentType, EventType, SetEntityForActor, Uuid};
+use ffi::{ActorComponentPtr, ActorComponentType, EventType};
 use std::{collections::HashMap, ffi::c_void, os::raw::c_char};
 
 use crate::{
@@ -236,6 +236,28 @@ unsafe extern "C" fn number_of_fields(uuid: ffi::Uuid, out: *mut u32) -> u32 {
     });
     result.unwrap_or(0)
 }
+unsafe extern "C" fn get_type_name(
+    uuid: ffi::Uuid,
+    out: *mut *const c_char,
+    len: *mut usize,
+) -> u32 {
+    fn get_type_name(uuid: ffi::Uuid) -> Option<&'static str> {
+        let global = unsafe { crate::module::MODULE.as_mut() }?;
+        let uuid = unreal_reflect::Uuid::from_bytes(uuid.bytes);
+        let reflect = global.core.reflection_registry.reflect.get(&uuid)?;
+        Some(reflect.name())
+    }
+    let result = std::panic::catch_unwind(|| {
+        if let Some(name) = get_type_name(uuid) {
+            *out = name.as_ptr() as *const c_char;
+            *len = name.len();
+            1
+        } else {
+            0
+        }
+    });
+    result.unwrap_or(0)
+}
 
 unsafe extern "C" fn get_field_name(
     uuid: ffi::Uuid,
@@ -316,7 +338,7 @@ pub unsafe extern "C" fn get_movement_component(
     0
 }
 
-pub fn create_reflect_fns() -> ffi::ReflectionFns {
+pub fn create_reflection_fns() -> ffi::ReflectionFns {
     ffi::ReflectionFns {
         get_field_bool_value,
         get_field_float_value,
@@ -324,6 +346,7 @@ pub fn create_reflect_fns() -> ffi::ReflectionFns {
         number_of_fields,
         get_field_name,
         get_field_type,
+        get_type_name,
     }
 }
 
@@ -666,6 +689,13 @@ fn process_unreal_events(mut actor_register: ResMut<ActorRegistration>, mut comm
                         actor_register
                             .actor_to_entity
                             .insert(ActorPtr(actor), entity);
+
+                        (bindings().set_entity_for_actor)(
+                            actor,
+                            ffi::Entity {
+                                id: entity.to_bits(),
+                            },
+                        );
                     }
                 }
             }

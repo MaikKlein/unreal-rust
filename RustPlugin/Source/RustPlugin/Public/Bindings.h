@@ -200,6 +200,8 @@ using UnrealEventFn = void(*)(const EventType *ty, const void *data);
 
 using NumberOfFieldsFn = uint32_t(*)(Uuid uuid, uint32_t *out);
 
+using GetTypeNameFn = uint32_t(*)(Uuid uuid, const char **name, uintptr_t *len);
+
 using GetFieldTypeFn = uint32_t(*)(Uuid uuid, uint32_t field_idx, ReflectionType *ty);
 
 using GetFieldNameFn = uint32_t(*)(Uuid uuid, uint32_t field_idx, const char **name, uintptr_t *len);
@@ -212,6 +214,7 @@ using GetFieldFloatValueFn = uint32_t(*)(Uuid uuid, Entity entity, uint32_t fiel
 
 struct ReflectionFns {
   NumberOfFieldsFn number_of_fields;
+  GetTypeNameFn get_type_name;
   GetFieldTypeFn get_field_type;
   GetFieldNameFn get_field_name;
   GetFieldVector3ValueFn get_field_vector3_value;
