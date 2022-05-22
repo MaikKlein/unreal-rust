@@ -25,7 +25,7 @@ public class RustPlugin : ModuleRules
 		PublicDependencyModuleNames.AddRange(
 			new string[]
 			{
-				"Core",
+				"Core", "GraphEditor",
 				// ... add other public dependencies that you statically link with here ...
 			}
 			);
@@ -43,6 +43,9 @@ public class RustPlugin : ModuleRules
 				"Engine",
 				"Slate",
 				"SlateCore",
+				"BlueprintGraph",
+				"GraphEditor",
+				"KismetWidgets"
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);

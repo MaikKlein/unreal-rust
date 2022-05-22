@@ -13,4 +13,6 @@ class UK2Node_GetComponentRust : public UK2Node
 	virtual void ExpandNode(class FKismetCompilerContext &CompilerContext, UEdGraph *SourceGraph) override;
 	virtual void GetMenuActions(FBlueprintActionDatabaseRegistrar &ActionRegistrar) const override;
 	virtual FText GetNodeTitle( ENodeTitleType::Type TitleType ) const override;
+	virtual TSharedPtr<SGraphNode> CreateVisualWidget() override;
+	void OnUuidPicked(FString* Name);
 };

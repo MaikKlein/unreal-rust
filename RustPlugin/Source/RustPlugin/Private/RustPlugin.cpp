@@ -13,6 +13,7 @@
 #include "IDirectoryWatcher.h"
 #include "Misc/Paths.h"
 #include "Api.h"
+#include "FUuidGraphPanelPinFactory.h"
 #include "Modules/ModuleManager.h"
 #include "RustBindingsActor.h"
 #include "Framework/Notifications/NotificationManager.h"
@@ -130,6 +131,9 @@ void FRustPluginModule::StartupModule()
         *Plugin.PluginFolderPath(),
         IDirectoryWatcher::FDirectoryChanged::CreateRaw(this, &FRustPluginModule::OnProjectDirectoryChanged), WatcherHandle, IDirectoryWatcher::WatchOptions::IgnoreChangesInSubtree);
     Plugin.TryLoad();
+    
+	TSharedPtr<FUuidGraphPanelPinFactory> UuidFactory = MakeShareable(new FUuidGraphPanelPinFactory());
+	FEdGraphUtilities::RegisterVisualPinFactory(UuidFactory);
 }
 void FRustPluginModule::OnProjectDirectoryChanged(const TArray<FFileChangeData> &Data)
 {
