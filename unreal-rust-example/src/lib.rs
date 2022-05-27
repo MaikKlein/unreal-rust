@@ -125,7 +125,6 @@ fn spawn_class(
             if let Some(&class) = class_resource.classes.get(&class_ptr) {
                 match class {
                     Class::Player => {
-                        log::info!("PLAYER");
                         commands.entity(entity).insert_bundle((
                             CharacterConfigComponent::default(),
                             CharacterControllerComponent::default(),

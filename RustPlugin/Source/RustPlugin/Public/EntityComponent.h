@@ -10,9 +10,25 @@
 
 USTRUCT(BlueprintType)
 struct FEntity {
-	GENERATED_BODY()	
-	uint64_t Id;
+	GENERATED_BODY()
+	UPROPERTY(EditDefaultsOnly, Category=Rust)
+	uint64 Id;
+
+	Entity ToRustEntity()
+	{
+		Entity E;
+		E.id = Id;
+		return E;
+	}
 };
+
+UCLASS(BlueprintType)
+class UUuid: public UObject {
+	GENERATED_BODY()
+public:
+	Uuid Id;
+};
+
 UCLASS(Blueprintable, meta=(BlueprintSpawnableComponent) )
 class RUSTPLUGIN_API UEntityComponent : public UActorComponent
 {
@@ -21,7 +37,8 @@ class RUSTPLUGIN_API UEntityComponent : public UActorComponent
 public:	
 	// Sets default values for this component's properties
 	UEntityComponent();
-	Entity Id;
+	UPROPERTY(EditDefaultsOnly, Category=Rust)
+	FEntity Id;
 
 protected:
 	// Called when the game starts

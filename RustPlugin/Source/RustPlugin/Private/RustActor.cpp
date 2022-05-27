@@ -10,6 +10,7 @@ ARustActor::ARustActor()
 {
 	// Set this actor to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
+	EntityComponent = CreateDefaultSubobject<UEntityComponent>(TEXT("EntityComponent"));
 }
 
 // Called when the game starts or when spawned
@@ -41,7 +42,7 @@ FVector ARustActor::GetRustVelocity()
 				if (N == TEXT("MovementComponent"))
 				{
 					GetModule().Plugin.Rust.reflection_fns.get_field_vector3_value(
-						uuid, this->EntityComponent->Id, 0, &Velocity);
+						uuid, this->EntityComponent->Id.ToRustEntity(), 0, &Velocity);
 					break;
 				}
 			}

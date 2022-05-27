@@ -45,7 +45,8 @@ public class RustPlugin : ModuleRules
 				"SlateCore",
 				"BlueprintGraph",
 				"GraphEditor",
-				"KismetWidgets"
+				"KismetWidgets",
+				"KismetCompiler"
 				// ... add private dependencies that you statically link with here ...	
 			}
 			);

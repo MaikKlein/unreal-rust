@@ -20,18 +20,19 @@ void SGraphNodeGetComponent::CreateBelowWidgetControls(TSharedPtr<SVerticalBox> 
 	{
 		const char* Name;
 		uintptr_t Len = 0;
-		if(GetModule().Plugin.Rust.reflection_fns.get_type_name(Id, &Name, &Len))
+		if (GetModule().Plugin.Rust.reflection_fns.get_type_name(Id, &Name, &Len))
 		{
-			
-			Items.Add(MakeShareable(new FString(Len, UTF8_TO_TCHAR(Name))));
-			
+			FUuidViewNode* Node = new FUuidViewNode();
+			Node->Name = FString(Len, UTF8_TO_TCHAR(Name));
+			Node->Id = ToFGuid(Id);
+			Items.Add(MakeShareable(Node));
 		}
 	}
 
 	MainBox->AddSlot()[
 		SNew(SScrollBox)
 		+ SScrollBox::Slot()[
-			SAssignNew(ListViewWidget, SListView<TSharedPtr<FString>>)
+			SAssignNew(ListViewWidget, SListView<TSharedPtr<FUuidViewNode>>)
 					.ItemHeight(24)
 					.ListItemsSource(&Items) //The Items array is the source of this listview
 					.SelectionMode(ESelectionMode::Single)
@@ -41,7 +42,7 @@ void SGraphNodeGetComponent::CreateBelowWidgetControls(TSharedPtr<SVerticalBox> 
 	];
 }
 
-TSharedRef<ITableRow> SGraphNodeGetComponent::OnGenerateRowForList(TSharedPtr<FString> Item,
+TSharedRef<ITableRow> SGraphNodeGetComponent::OnGenerateRowForList(TSharedPtr<FUuidViewNode> Item,
                                                                    const TSharedRef<STableViewBase>& OwnerTable)
 {
 	//Create the row
@@ -49,11 +50,11 @@ TSharedRef<ITableRow> SGraphNodeGetComponent::OnGenerateRowForList(TSharedPtr<FS
 		SNew(STableRow< TSharedPtr<FString> >, OwnerTable)
 		.Padding(2.0f)[
 
-			SNew(STextBlock).Text(FText::FromString(*Item.Get()))
+			SNew(STextBlock).Text(FText::FromString(*Item.Get()->Name))
 		];
 }
 
-void SGraphNodeGetComponent::OnClassViewerSelectionChanged(TSharedPtr<FString> Item, ESelectInfo::Type SelectInfo)
+void SGraphNodeGetComponent::OnClassViewerSelectionChanged(TSharedPtr<FUuidViewNode> Item, ESelectInfo::Type SelectInfo)
 {
 	OnUuidPicked.ExecuteIfBound(Item.Get());
 }

@@ -10,9 +10,7 @@ UEntityComponent::UEntityComponent()
 }
 
 FEntity UEntityComponent::GetEntity() {
-	FEntity e;
-	e.Id = Id.id;
-	return e;
+	return Id;
 }
 
 // Called when the game starts

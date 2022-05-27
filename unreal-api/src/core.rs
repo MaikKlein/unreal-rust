@@ -111,9 +111,7 @@ pub unsafe extern "C" fn retrieve_uuids(ptr: *mut ffi::Uuid, len: *mut usize) {
                 .take(*len)
                 .enumerate()
             {
-                (*slice)[idx] = ffi::Uuid {
-                    bytes: *uuid.as_bytes(),
-                };
+                (*slice)[idx] = to_ffi_uuid(*uuid);
             }
         }
     }
@@ -177,6 +175,7 @@ extern "C" fn get_field_vector3_value(
     idx: u32,
     out: *mut ffi::Vector3,
 ) -> u32 {
+    log::info!("REFLECTION");
     let result = std::panic::catch_unwind(|| {
         if let Some(ReflectValue::Vector3(v)) = get_field_value(uuid, entity, idx) {
             unsafe {
@@ -209,7 +208,7 @@ extern "C" fn get_field_bool_value(
 }
 
 fn get_field_value(uuid: ffi::Uuid, entity: ffi::Entity, idx: u32) -> Option<ReflectValue> {
-    let uuid = unreal_reflect::Uuid::from_bytes(uuid.bytes);
+    let uuid = from_ffi_uuid(uuid);
     unsafe {
         let global = crate::module::MODULE.as_mut()?;
         let reflect = global.core.reflection_registry.reflect.get(&uuid)?;
@@ -222,7 +221,7 @@ fn get_field_value(uuid: ffi::Uuid, entity: ffi::Entity, idx: u32) -> Option<Ref
 unsafe extern "C" fn number_of_fields(uuid: ffi::Uuid, out: *mut u32) -> u32 {
     fn get_number_fields(uuid: ffi::Uuid) -> Option<u32> {
         let global = unsafe { crate::module::MODULE.as_mut() }?;
-        let uuid = unreal_reflect::Uuid::from_bytes(uuid.bytes);
+        let uuid = from_ffi_uuid(uuid);
         let reflect = global.core.reflection_registry.reflect.get(&uuid)?;
         Some(reflect.number_of_fields() as u32)
     }
@@ -243,7 +242,7 @@ unsafe extern "C" fn get_type_name(
 ) -> u32 {
     fn get_type_name(uuid: ffi::Uuid) -> Option<&'static str> {
         let global = unsafe { crate::module::MODULE.as_mut() }?;
-        let uuid = unreal_reflect::Uuid::from_bytes(uuid.bytes);
+        let uuid = from_ffi_uuid(uuid);
         let reflect = global.core.reflection_registry.reflect.get(&uuid)?;
         Some(reflect.name())
     }
@@ -267,7 +266,7 @@ unsafe extern "C" fn get_field_name(
 ) -> u32 {
     fn get_field_name(uuid: ffi::Uuid, idx: u32) -> Option<&'static str> {
         let global = unsafe { crate::module::MODULE.as_mut() }?;
-        let uuid = unreal_reflect::Uuid::from_bytes(uuid.bytes);
+        let uuid = from_ffi_uuid(uuid);
         let reflect = global.core.reflection_registry.reflect.get(&uuid)?;
         reflect.get_field_name(idx)
     }
@@ -289,7 +288,7 @@ unsafe extern "C" fn get_field_type(
 ) -> u32 {
     fn get_field_type(uuid: ffi::Uuid, idx: u32) -> Option<ffi::ReflectionType> {
         let global = unsafe { crate::module::MODULE.as_mut() }?;
-        let uuid = unreal_reflect::Uuid::from_bytes(uuid.bytes);
+        let uuid = from_ffi_uuid(uuid);
         let reflect = global.core.reflection_registry.reflect.get(&uuid)?;
         let ty = reflect.get_field_type(idx)?;
         Some(match ty {
@@ -338,6 +337,19 @@ pub unsafe extern "C" fn get_movement_component(
     0
 }
 
+pub fn from_ffi_uuid(uuid: ffi::Uuid) -> Uuid {
+    unsafe {
+        let arr: [u32; 4] = [uuid.a, uuid.b, uuid.c, uuid.d];
+        Uuid::from_bytes(std::mem::transmute(arr))
+    }
+}
+pub fn to_ffi_uuid(uuid: Uuid) -> ffi::Uuid {
+    unsafe {
+        let [a, b, c, d]: [u32; 4] = std::mem::transmute(*uuid.as_bytes());
+        ffi::Uuid { a, b, c, d }
+    }
+}
+
 pub fn create_reflection_fns() -> ffi::ReflectionFns {
     ffi::ReflectionFns {
         get_field_bool_value,
@@ -384,12 +396,16 @@ pub fn register_core_components(registry: &mut ReflectionRegistry) {
         MovementComponent::TYPE_UUID,
         Box::new(MovementComponentReflect),
     );
+    registry.reflect.insert(
+        TransformComponent::TYPE_UUID,
+        Box::new(TransformComponentReflect),
+    );
 }
 
 use unreal_reflect::{
     impl_component,
     registry::{Reflect, ReflectType, ReflectValue, ReflectionRegistry},
-    TypeUuid,
+    TypeUuid, Uuid,
 };
 #[derive(Debug, Hash, PartialEq, Eq, Clone, StageLabel)]
 pub enum CoreStage {
@@ -439,7 +455,6 @@ impl PhysicsComponent {
     }
 
     pub fn upload_state(&mut self) {
-        log::info!("upload");
         unsafe {
             (bindings().physics_bindings.set_velocity)(self.ptr.ptr, self.velocity.into());
         }
@@ -467,6 +482,48 @@ pub struct TransformComponent {
     pub rotation: Quat,
     pub scale: Vec3,
 }
+struct TransformComponentReflect;
+
+impl Reflect for TransformComponentReflect {
+    fn name(&self) -> &'static str {
+        "TransformComponent"
+    }
+
+    fn number_of_fields(&self) -> u32 {
+        2
+    }
+
+    fn get_field_name(&self, idx: u32) -> Option<&'static str> {
+        match idx {
+            0 => Some("position"),
+            1 => Some("scale"),
+            _ => None,
+        }
+    }
+
+    fn get_field_type(&self, idx: u32) -> Option<ReflectType> {
+        match idx {
+            0 => Some(ReflectType::Vector3),
+            1 => Some(ReflectType::Vector3),
+            _ => None,
+        }
+    }
+
+    fn get_field_value(&self, world: &World, entity: Entity, idx: u32) -> Option<ReflectValue> {
+        world
+            .get_entity(entity)
+            .and_then(|entity_ref| entity_ref.get::<TransformComponent>())
+            .and_then(|movement| {
+                let ty = match idx {
+                    0 => ReflectValue::Vector3(movement.position),
+                    1 => ReflectValue::Vector3(movement.scale),
+                    _ => return None,
+                };
+                Some(ty)
+            })
+    }
+}
+
 impl TransformComponent {
     pub fn right(&self) -> Vec3 {
         self.rotation * Vec3::Y
@@ -663,7 +720,6 @@ fn process_unreal_events(mut actor_register: ResMut<ActorRegistration>, mut comm
         // TODO: This is UB
         if let Some(global) = crate::module::MODULE.as_mut() {
             for event in global.core.unreal_events.drain(..) {
-                log::info!("{:?}", event);
                 match event {
                     UnrealEvent::ActorAdded(actor) => {
                         let entity = commands

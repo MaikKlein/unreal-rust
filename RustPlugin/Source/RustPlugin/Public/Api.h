@@ -22,5 +22,8 @@ FQuat ToFQuat(Quaternion q);
 AActor *ToAActor(const AActorOpaque *actor);
 AActor *ToAActor(AActorOpaque *actor);
 
+FGuid ToFGuid(Uuid uuid);
+Uuid ToUuid(FGuid guid);
+
 UnrealBindings CreateBindings();
 FRustPluginModule& GetModule();
