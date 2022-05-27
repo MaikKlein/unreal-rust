@@ -101,14 +101,21 @@ void SetEntityForActor(AActorOpaque* actor, Entity entity)
 	ARustActor* RustActor = Cast<ARustActor>(ToAActor(actor));
 	if (RustActor != nullptr && RustActor->EntityComponent != nullptr)
 	{
+		UE_LOG(LogTemp, Warning, TEXT("Entity with %i"), entity.id);
 		RustActor->EntityComponent->Id.Id = entity.id;
 	}
 	else
 	{
+		AActor* Actor = ToAActor(actor);
 		UEntityComponent* Component = NewObject<UEntityComponent>(ToAActor(actor), TEXT("EntityComponent"));
 		Component->Id.Id = entity.id;
+		
+		
+		//Actor->AttachToComponent(Actor->GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
 		Component->CreationMethod = EComponentCreationMethod::Native;
+		ToAActor(actor)->AddOwnedComponent(Component);
 		Component->RegisterComponent();
+		////Component->RegisterComponent();
 	}
 	// auto id = ((UEntityComponent*)ToAActor(actor)->GetComponentByClass(UEntityComponent::StaticClass()))->Id;
 	//UE_LOG(LogTemp, Warning, TEXT("Entity with %i"), entity.id);

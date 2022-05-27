@@ -175,7 +175,6 @@ extern "C" fn get_field_vector3_value(
     idx: u32,
     out: *mut ffi::Vector3,
 ) -> u32 {
-    log::info!("REFLECTION");
     let result = std::panic::catch_unwind(|| {
         if let Some(ReflectValue::Vector3(v)) = get_field_value(uuid, entity, idx) {
             unsafe {
@@ -550,7 +549,6 @@ pub struct CameraComponent {
 }
 impl_component!(CameraComponent);
 
-#[repr(C)]
 #[derive(Default, Debug, TypeUuid)]
 #[uuid = "fc8bd668-fc0a-4ab7-8b3d-f0f22bb539e2"]
 pub struct MovementComponent {

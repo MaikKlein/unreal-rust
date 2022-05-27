@@ -33,12 +33,6 @@ void UK2Node_GetComponentRust::AllocateDefaultPins()
 
 
 	FGuid Id = SelectedNode.Id;
-	auto UuidPin = CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Object, UUuid::StaticClass(), UuidParamName);
-	UuidPin->bHidden = true;
-	auto UuidObject = NewObject<UUuid>();
-	UuidObject->Id = ToUuid(Id);
-	UuidPin->DefaultObject = UuidObject;
-
 	uint32_t NumberOfFields = 0;
 	Module.Plugin.Rust.reflection_fns.number_of_fields(ToUuid(Id), &NumberOfFields);
 	UE_LOG(LogTemp, Warning, TEXT("Alloc %s, %i"), *SelectedNode.Name, NumberOfFields);
@@ -51,6 +45,7 @@ void UK2Node_GetComponentRust::AllocateDefaultPins()
 		{
 			FString IdxName = FString::FromInt(Idx);
 			auto IdxPin = CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Int, *IdxName);
+			IdxPin->bHidden = true;
 			IdxPin->DefaultValue = IdxName;
 
 			ReflectionType Type = ReflectionType::Bool;
@@ -86,7 +81,13 @@ void UK2Node_GetComponentRust::ExpandNode(class FKismetCompilerContext& Compiler
 	uint32_t NumberOfFields = 0;
 	Module.Plugin.Rust.reflection_fns.number_of_fields(Id, &NumberOfFields);
 	UE_LOG(LogTemp, Warning, TEXT("Expand %s, %i"), *SelectedNode.Name, NumberOfFields);
-	UEdGraphPin* UUidPin = FindPinChecked(UuidParamName, EGPD_Input);
+	//UEdGraphPin* UUidPin = FindPinChecked(UuidParamName, EGPD_Input);
+	auto UuidPin = CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Object, UUuid::StaticClass(), UuidParamName);
+	UuidPin->bHidden = true;
+	auto UuidObject = NewObject<UUuid>();
+	UuidObject->Id = Id;
+	UuidPin->DefaultObject = UuidObject;
+
 	UEdGraphPin* EntityPin = FindPinChecked(EntityParamName, EGPD_Input);
 	UEdGraphPin* ThenPin = FindPinChecked(UEdGraphSchema_K2::PN_Then, EGPD_Output);
 
@@ -108,32 +109,20 @@ void UK2Node_GetComponentRust::ExpandNode(class FKismetCompilerContext& Compiler
 				UEdGraphPin* OutputPin = FindPinChecked(*VarName, EGPD_Output);
 				if (Type == ReflectionType::Vector3)
 				{
-					UE_LOG(LogTemp, Warning, TEXT("Call function"));
-					UK2Node_CallFunction* CallFunctionNode = CompilerContext.SpawnIntermediateNode<
-						UK2Node_CallFunction>(this, SourceGraph);
-					CallFunctionNode->SetFromFunction(
-						GetDefault<URustReflectionLibrary>()->FindFunctionChecked(
-							GET_FUNCTION_NAME_CHECKED(URustReflectionLibrary, K2_GetReflectionVector3)));
-					CallFunctionNode->AllocateDefaultPins();
-
-					UEdGraphPin* CallExecPin = CallFunctionNode->GetExecPin();
-					UEdGraphPin* CallThen = CallFunctionNode->GetThenPin();
-					UEdGraphPin* CallUUid = CallFunctionNode->FindPinChecked(ReflectUuidParamName, EGPD_Input);
-					UEdGraphPin* CallEntity = CallFunctionNode->FindPinChecked(ReflectEntityParamName, EGPD_Input);
-					UEdGraphPin* CallIndex = CallFunctionNode->FindPinChecked(ReflectIndexParamName, EGPD_Input);
-					UEdGraphPin* CallOut = CallFunctionNode->FindPinChecked(ReflectOutputParamName, EGPD_Output);
-
-					//CompilerContext.MovePinLinksToIntermediate(*PrevExecPin, *CallExecPin);
-					PrevExecPin->MakeLinkTo(CallExecPin);
-					CompilerContext.MovePinLinksToIntermediate(*UUidPin, *CallUUid);
-					CompilerContext.MovePinLinksToIntermediate(*EntityPin, *CallEntity);
-					CompilerContext.MovePinLinksToIntermediate(*InputIdxPin, *CallIndex);
-					CompilerContext.MovePinLinksToIntermediate(*CallOut, *OutputPin);
-
-					PrevExecPin = CallThen;
+					auto Vector3Fn = GetDefault<URustReflectionLibrary>()->FindFunctionChecked(
+						GET_FUNCTION_NAME_CHECKED(URustReflectionLibrary, K2_GetReflectionVector3));
+					PrevExecPin = CallReflection(CompilerContext, SourceGraph, Vector3Fn, UuidPin, EntityPin,
+					                             InputIdxPin,
+					                             OutputPin, PrevExecPin);
 				}
 				if (Type == ReflectionType::Bool)
 				{
+					//UE_LOG(LogTemp, Warning, TEXT("Bool Type"));
+					//auto BoolFn = GetDefault<URustReflectionLibrary>()->FindFunctionChecked(
+					//	GET_FUNCTION_NAME_CHECKED(URustReflectionLibrary, K2_GetReflectionBool));
+					//PrevExecPin = CallReflection(CompilerContext, SourceGraph, BoolFn, UuidPin, EntityPin,
+					//                             InputIdxPin,
+					//                             OutputPin, PrevExecPin);
 				}
 				if (Type == ReflectionType::Float)
 				{
@@ -142,7 +131,8 @@ void UK2Node_GetComponentRust::ExpandNode(class FKismetCompilerContext& Compiler
 		}
 	}
 	//CompilerContext.MovePinLinksToIntermediate(*PrevExecPin, *ThenPin);
-	PrevExecPin->MakeLinkTo(ThenPin);
+	CompilerContext.MovePinLinksToIntermediate(*ThenPin, *PrevExecPin);
+	//PrevExecPin->MakeLinkTo(ThenPin);
 	BreakAllNodeLinks();
 }
 
@@ -208,6 +198,39 @@ void UK2Node_GetComponentRust::BreakAllOutputPins()
 	{
 		Node->NodeConnectionListChanged();
 	}
+}
+
+UEdGraphPin* UK2Node_GetComponentRust::CallReflection(class FKismetCompilerContext& CompilerContext,
+                                                      UEdGraph* SourceGraph,
+                                                      UFunction* ReflectionFn,
+                                                      UEdGraphPin* UuidPin,
+                                                      UEdGraphPin* EntityIdPin,
+                                                      UEdGraphPin* InputIdxPin,
+                                                      UEdGraphPin* VariableOutputPin,
+                                                      UEdGraphPin* PrevExecPin)
+{
+	UE_LOG(LogTemp, Warning, TEXT("Call function"));
+	UK2Node_CallFunction* CallFunctionNode = CompilerContext.SpawnIntermediateNode<
+		UK2Node_CallFunction>(this, SourceGraph);
+	CallFunctionNode->SetFromFunction(ReflectionFn);
+	CallFunctionNode->AllocateDefaultPins();
+
+	UEdGraphPin* CallExecPin = CallFunctionNode->GetExecPin();
+	UEdGraphPin* CallThen = CallFunctionNode->GetThenPin();
+	UEdGraphPin* CallUUid = CallFunctionNode->FindPinChecked(ReflectUuidParamName, EGPD_Input);
+	UEdGraphPin* CallEntity = CallFunctionNode->FindPinChecked(ReflectEntityParamName, EGPD_Input);
+	UEdGraphPin* CallIndex = CallFunctionNode->FindPinChecked(ReflectIndexParamName, EGPD_Input);
+	UEdGraphPin* CallOut = CallFunctionNode->FindPinChecked(ReflectOutputParamName, EGPD_Output);
+
+	CompilerContext.MovePinLinksToIntermediate(*PrevExecPin, *CallExecPin);
+	//PrevExecPin->MakeLinkTo(CallExecPin);
+	CompilerContext.MovePinLinksToIntermediate(*UuidPin, *CallUUid);
+	CompilerContext.MovePinLinksToIntermediate(*EntityIdPin, *CallEntity);
+	CompilerContext.CopyPinLinksToIntermediate(*InputIdxPin, *CallIndex);
+	//CompilerContext.MovePinLinksToIntermediate(*CallOut, *VariableOutputPin);
+	CompilerContext.MovePinLinksToIntermediate(*VariableOutputPin, *CallOut);
+
+	return CallThen;
 }
 
 #undef LOCTEXT_NAMESPACE

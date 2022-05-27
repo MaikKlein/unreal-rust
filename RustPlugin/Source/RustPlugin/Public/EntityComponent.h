@@ -37,12 +37,7 @@ class RUSTPLUGIN_API UEntityComponent : public UActorComponent
 public:	
 	// Sets default values for this component's properties
 	UEntityComponent();
-	UPROPERTY(EditDefaultsOnly, Category=Rust)
 	FEntity Id;
-
-protected:
-	// Called when the game starts
-	virtual void BeginPlay() override;
 
 public:	
 	// Called every frame

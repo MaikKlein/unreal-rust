@@ -47,6 +47,7 @@ void ARustGameModeBase::OnActorSpawnedHandler(AActor* actor){
 
 void ARustGameModeBase::PostLogin(APlayerController *NewPlayer)
 {
+    Super::PostLogin(NewPlayer);
 }
 void ARustGameModeBase::Tick(float Dt)
 {
