@@ -428,21 +428,20 @@ pub enum ReflectionType {
     Float,
     Vector3,
     Bool,
+    Quaternion,
 }
 
 pub type NumberOfFieldsFn = unsafe extern "C" fn(uuid: Uuid, out: *mut u32) -> u32;
-pub type GetTypeNameFn = unsafe extern "C" fn(
-    uuid: Uuid,
-    name: *mut *const c_char,
-    len: *mut usize,
-) -> u32;
+pub type GetTypeNameFn =
+    unsafe extern "C" fn(uuid: Uuid, name: *mut *const c_char, len: *mut usize) -> u32;
 pub type GetFieldNameFn = unsafe extern "C" fn(
     uuid: Uuid,
     field_idx: u32,
     name: *mut *const c_char,
     len: *mut usize,
 ) -> u32;
-pub type GetFieldTypeFn = unsafe extern "C" fn(uuid: Uuid, field_idx: u32, ty: *mut ReflectionType) -> u32;
+pub type GetFieldTypeFn =
+    unsafe extern "C" fn(uuid: Uuid, field_idx: u32, ty: *mut ReflectionType) -> u32;
 
 pub type GetFieldFloatValueFn =
     unsafe extern "C" fn(uuid: Uuid, entity: Entity, field_idx: u32, out: *mut f32) -> u32;
@@ -450,6 +449,8 @@ pub type GetFieldVector3ValueFn =
     unsafe extern "C" fn(uuid: Uuid, entity: Entity, field_idx: u32, out: *mut Vector3) -> u32;
 pub type GetFieldBoolValueFn =
     unsafe extern "C" fn(uuid: Uuid, entity: Entity, field_idx: u32, out: *mut u32) -> u32;
+pub type GetFieldQuatValueFn =
+    unsafe extern "C" fn(uuid: Uuid, entity: Entity, field_idx: u32, out: *mut Quaternion) -> u32;
 #[repr(C)]
 pub struct ReflectionFns {
     pub number_of_fields: NumberOfFieldsFn,
@@ -459,4 +460,5 @@ pub struct ReflectionFns {
     pub get_field_vector3_value: GetFieldVector3ValueFn,
     pub get_field_bool_value: GetFieldBoolValueFn,
     pub get_field_float_value: GetFieldFloatValueFn,
+    pub get_field_quat_value: GetFieldQuatValueFn,
 }

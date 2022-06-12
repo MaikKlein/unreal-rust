@@ -1,5 +1,5 @@
 use bevy_ecs::prelude::*;
-use ffi::{ActorComponentPtr, ActorComponentType, EventType};
+use ffi::{ActorComponentPtr, ActorComponentType, EventType, Quaternion};
 use std::{collections::HashMap, ffi::c_void, os::raw::c_char};
 
 use crate::{
@@ -168,6 +168,24 @@ extern "C" fn get_field_float_value(
     });
     result.unwrap_or(0)
 }
+extern "C" fn get_field_quat_value(
+    uuid: ffi::Uuid,
+    entity: ffi::Entity,
+    idx: u32,
+    out: *mut Quaternion,
+) -> u32 {
+    let result = std::panic::catch_unwind(|| {
+        if let Some(ReflectValue::Quat(q)) = get_field_value(uuid, entity, idx) {
+            unsafe {
+                *out = q.into();
+            }
+            1
+        } else {
+            0
+        }
+    });
+    result.unwrap_or(0)
+}
 
 extern "C" fn get_field_vector3_value(
     uuid: ffi::Uuid,
@@ -294,6 +312,7 @@ unsafe extern "C" fn get_field_type(
             ReflectType::Bool => ffi::ReflectionType::Bool,
             ReflectType::Float => ffi::ReflectionType::Float,
             ReflectType::Vector3 => ffi::ReflectionType::Vector3,
+            ReflectType::Quat => ffi::ReflectionType::Quaternion,
         })
     }
     let result = std::panic::catch_unwind(|| {
@@ -353,6 +372,7 @@ pub fn create_reflection_fns() -> ffi::ReflectionFns {
     ffi::ReflectionFns {
         get_field_bool_value,
         get_field_float_value,
+        get_field_quat_value,
         get_field_vector3_value,
         number_of_fields,
         get_field_name,
@@ -489,13 +509,14 @@ impl Reflect for TransformComponentReflect {
     }
 
     fn number_of_fields(&self) -> u32 {
-        2
+        3
     }
 
     fn get_field_name(&self, idx: u32) -> Option<&'static str> {
         match idx {
             0 => Some("position"),
-            1 => Some("scale"),
+            1 => Some("rotation"),
+            2 => Some("scale"),
             _ => None,
         }
     }
@@ -503,7 +524,8 @@ impl Reflect for TransformComponentReflect {
     fn get_field_type(&self, idx: u32) -> Option<ReflectType> {
         match idx {
             0 => Some(ReflectType::Vector3),
-            1 => Some(ReflectType::Vector3),
+            1 => Some(ReflectType::Quat),
+            2 => Some(ReflectType::Vector3),
             _ => None,
         }
     }
@@ -515,7 +537,8 @@ impl Reflect for TransformComponentReflect {
             .and_then(|movement| {
                 let ty = match idx {
                     0 => ReflectValue::Vector3(movement.position),
-                    1 => ReflectValue::Vector3(movement.scale),
+                    1 => ReflectValue::Quat(movement.rotation),
+                    2 => ReflectValue::Vector3(movement.scale),
                     _ => return None,
                 };
                 Some(ty)

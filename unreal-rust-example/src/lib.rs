@@ -214,6 +214,7 @@ fn update_movement_velocity(
 ) {
     for (controller, mut movement) in query.iter_mut() {
         movement.velocity = controller.velocity;
+        movement.is_falling = matches!(controller.movement_state, MovementState::Falling);
     }
 }
 
@@ -242,6 +243,7 @@ fn character_control_system(
         controller.velocity = input_dir;
 
         if let Some(_hit) = find_floor(actor, &transform, physics, config) {
+            controller.movement_state = MovementState::Walking;
             //transform.position = hit.position;
             controller.velocity.z = 0.0;
             if input.is_action_pressed(PlayerInput::JUMP) {
@@ -249,6 +251,7 @@ fn character_control_system(
                 controller.velocity.z += 600.0;
             }
         } else {
+            controller.movement_state = MovementState::Falling;
             controller.velocity += config.gravity_dir * config.gravity_strength * frame.dt;
         }
         if let Some(hit) = movement_hit(actor, &transform, physics, config, &controller, frame.dt) {

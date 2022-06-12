@@ -31,11 +31,9 @@ void UK2Node_GetComponentRust::AllocateDefaultPins()
 
 	const auto& Module = GetModule();
 
-
 	FGuid Id = SelectedNode.Id;
 	uint32_t NumberOfFields = 0;
 	Module.Plugin.Rust.reflection_fns.number_of_fields(ToUuid(Id), &NumberOfFields);
-	UE_LOG(LogTemp, Warning, TEXT("Alloc %s, %i"), *SelectedNode.Name, NumberOfFields);
 
 	for (uint32_t Idx = 0; Idx < NumberOfFields; Idx++)
 	{
@@ -67,6 +65,11 @@ void UK2Node_GetComponentRust::AllocateDefaultPins()
 					CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Float,
 					          *VarName);
 				}
+				if (Type == ReflectionType::Quaternion)
+				{
+					CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Struct, TBaseStructure<FQuat>::Get(),
+					          *VarName);
+				}
 			}
 		}
 	}
@@ -80,8 +83,6 @@ void UK2Node_GetComponentRust::ExpandNode(class FKismetCompilerContext& Compiler
 	const auto& Module = GetModule();
 	uint32_t NumberOfFields = 0;
 	Module.Plugin.Rust.reflection_fns.number_of_fields(Id, &NumberOfFields);
-	UE_LOG(LogTemp, Warning, TEXT("Expand %s, %i"), *SelectedNode.Name, NumberOfFields);
-	//UEdGraphPin* UUidPin = FindPinChecked(UuidParamName, EGPD_Input);
 	auto UuidPin = CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Object, UUuid::StaticClass(), UuidParamName);
 	UuidPin->bHidden = true;
 	auto UuidObject = NewObject<UUuid>();
@@ -104,35 +105,43 @@ void UK2Node_GetComponentRust::ExpandNode(class FKismetCompilerContext& Compiler
 			ReflectionType Type = ReflectionType::Bool;
 			if (Module.Plugin.Rust.reflection_fns.get_field_type(Id, Idx, &Type))
 			{
-				UE_LOG(LogTemp, Warning, TEXT("Type"));
+				//UE_LOG(LogTemp, Warning, TEXT("Type"));
 				FString VarName = FString(Len, UTF8_TO_TCHAR(Name));
 				UEdGraphPin* OutputPin = FindPinChecked(*VarName, EGPD_Output);
+				UFunction* Function = nullptr;
+
 				if (Type == ReflectionType::Vector3)
 				{
-					auto Vector3Fn = GetDefault<URustReflectionLibrary>()->FindFunctionChecked(
+					Function = GetDefault<URustReflectionLibrary>()->FindFunctionChecked(
 						GET_FUNCTION_NAME_CHECKED(URustReflectionLibrary, K2_GetReflectionVector3));
-					PrevExecPin = CallReflection(CompilerContext, SourceGraph, Vector3Fn, UuidPin, EntityPin,
-					                             InputIdxPin,
-					                             OutputPin, PrevExecPin);
 				}
 				if (Type == ReflectionType::Bool)
 				{
-					//UE_LOG(LogTemp, Warning, TEXT("Bool Type"));
-					//auto BoolFn = GetDefault<URustReflectionLibrary>()->FindFunctionChecked(
-					//	GET_FUNCTION_NAME_CHECKED(URustReflectionLibrary, K2_GetReflectionBool));
-					//PrevExecPin = CallReflection(CompilerContext, SourceGraph, BoolFn, UuidPin, EntityPin,
-					//                             InputIdxPin,
-					//                             OutputPin, PrevExecPin);
+					Function = GetDefault<URustReflectionLibrary>()->FindFunctionChecked(
+						GET_FUNCTION_NAME_CHECKED(URustReflectionLibrary, K2_GetReflectionBool));
 				}
 				if (Type == ReflectionType::Float)
 				{
+					Function = GetDefault<URustReflectionLibrary>()->FindFunctionChecked(
+						GET_FUNCTION_NAME_CHECKED(URustReflectionLibrary, K2_GetReflectionFloat));
+				}
+				if (Type == ReflectionType::Quaternion)
+				{
+					Function = GetDefault<URustReflectionLibrary>()->FindFunctionChecked(
+						GET_FUNCTION_NAME_CHECKED(URustReflectionLibrary, K2_GetReflectionQuat));
+				}
+				if (Function != nullptr)
+				{
+					UEdGraphPin* CurrentExecPin = CallReflection(CompilerContext, SourceGraph, Function, UuidPin,
+					                                             EntityPin,
+					                                             InputIdxPin,
+					                                             OutputPin, PrevExecPin);
+					PrevExecPin = CurrentExecPin;
 				}
 			}
 		}
 	}
-	//CompilerContext.MovePinLinksToIntermediate(*PrevExecPin, *ThenPin);
 	CompilerContext.MovePinLinksToIntermediate(*ThenPin, *PrevExecPin);
-	//PrevExecPin->MakeLinkTo(ThenPin);
 	BreakAllNodeLinks();
 }
 
@@ -165,7 +174,6 @@ TSharedPtr<SGraphNode> UK2Node_GetComponentRust::CreateVisualWidget()
 
 void UK2Node_GetComponentRust::OnUuidPicked(FUuidViewNode* Node)
 {
-	UE_LOG(LogTemp, Warning, TEXT("Picked %s"), *Node->Name);
 	SelectedNode = *Node;
 	BreakAllOutputPins();
 	ReconstructNode();
@@ -209,7 +217,6 @@ UEdGraphPin* UK2Node_GetComponentRust::CallReflection(class FKismetCompilerConte
                                                       UEdGraphPin* VariableOutputPin,
                                                       UEdGraphPin* PrevExecPin)
 {
-	UE_LOG(LogTemp, Warning, TEXT("Call function"));
 	UK2Node_CallFunction* CallFunctionNode = CompilerContext.SpawnIntermediateNode<
 		UK2Node_CallFunction>(this, SourceGraph);
 	CallFunctionNode->SetFromFunction(ReflectionFn);
@@ -222,12 +229,17 @@ UEdGraphPin* UK2Node_GetComponentRust::CallReflection(class FKismetCompilerConte
 	UEdGraphPin* CallIndex = CallFunctionNode->FindPinChecked(ReflectIndexParamName, EGPD_Input);
 	UEdGraphPin* CallOut = CallFunctionNode->FindPinChecked(ReflectOutputParamName, EGPD_Output);
 
-	CompilerContext.MovePinLinksToIntermediate(*PrevExecPin, *CallExecPin);
-	//PrevExecPin->MakeLinkTo(CallExecPin);
-	CompilerContext.MovePinLinksToIntermediate(*UuidPin, *CallUUid);
-	CompilerContext.MovePinLinksToIntermediate(*EntityIdPin, *CallEntity);
-	CompilerContext.CopyPinLinksToIntermediate(*InputIdxPin, *CallIndex);
-	//CompilerContext.MovePinLinksToIntermediate(*CallOut, *VariableOutputPin);
+	if (PrevExecPin == GetExecPin())
+	{
+		CompilerContext.MovePinLinksToIntermediate(*PrevExecPin, *CallExecPin);
+	}
+	else
+	{
+		CompilerContext.GetSchema()->TryCreateConnection(PrevExecPin, CallExecPin);
+	}
+	CompilerContext.CopyPinLinksToIntermediate(*UuidPin, *CallUUid);
+	CompilerContext.CopyPinLinksToIntermediate(*EntityIdPin, *CallEntity);
+	CompilerContext.MovePinLinksToIntermediate(*InputIdxPin, *CallIndex);
 	CompilerContext.MovePinLinksToIntermediate(*VariableOutputPin, *CallOut);
 
 	return CallThen;

@@ -1,5 +1,5 @@
 use bevy_ecs::{entity::Entity, prelude::World, system::EntityCommands};
-use glam::Vec3;
+use glam::{Quat, Vec3};
 use std::collections::{HashMap, HashSet};
 
 use crate::TypeUuid;
@@ -89,12 +89,14 @@ pub enum ReflectValue {
     Float(f32),
     Vector3(Vec3),
     Bool(bool),
+    Quat(Quat),
 }
 
 pub enum ReflectType {
     Float,
     Vector3,
     Bool,
+    Quat,
 }
 
 pub trait Reflect {

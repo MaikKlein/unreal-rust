@@ -30,6 +30,7 @@ enum class ReflectionType : uint32_t {
   Float,
   Vector3,
   Bool,
+  Quaternion,
 };
 
 enum class ResultCode : uint8_t {
@@ -215,6 +216,8 @@ using GetFieldBoolValueFn = uint32_t(*)(Uuid uuid, Entity entity, uint32_t field
 
 using GetFieldFloatValueFn = uint32_t(*)(Uuid uuid, Entity entity, uint32_t field_idx, float *out);
 
+using GetFieldQuatValueFn = uint32_t(*)(Uuid uuid, Entity entity, uint32_t field_idx, Quaternion *out);
+
 struct ReflectionFns {
   NumberOfFieldsFn number_of_fields;
   GetTypeNameFn get_type_name;
@@ -223,6 +226,7 @@ struct ReflectionFns {
   GetFieldVector3ValueFn get_field_vector3_value;
   GetFieldBoolValueFn get_field_bool_value;
   GetFieldFloatValueFn get_field_float_value;
+  GetFieldQuatValueFn get_field_quat_value;
 };
 
 struct RustBindings {
