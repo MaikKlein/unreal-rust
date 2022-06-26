@@ -31,6 +31,7 @@ enum class ReflectionType : uint32_t {
   Vector3,
   Bool,
   Quaternion,
+  Composite,
 };
 
 enum class ResultCode : uint8_t {

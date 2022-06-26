@@ -4,11 +4,7 @@ use quote::{quote, ToTokens};
 use syn::*;
 use uuid::Uuid;
 
-pub fn type_uuid_derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    // Construct a representation of Rust code as a syntax tree
-    // that we can manipulate
-    let ast: DeriveInput = syn::parse(input).unwrap();
-
+pub fn type_uuid_derive(ast: &DeriveInput) -> proc_macro2::TokenStream {
     // Build the trait implementation
     let name = &ast.ident;
 
@@ -53,12 +49,11 @@ pub fn type_uuid_derive(input: proc_macro::TokenStream) -> proc_macro::TokenStre
         .map(|byte| format!("{:#X}", byte))
         .map(|byte_str| syn::parse_str::<LitInt>(&byte_str).unwrap());
 
-    let gen = quote! {
+    quote! {
         impl unreal_reflect::TypeUuid for #name {
             const TYPE_UUID: unreal_reflect::uuid::Uuid = unreal_reflect::uuid::Uuid::from_bytes([
                 #( #bytes ),*
             ]);
         }
-    };
-    gen.into()
+    }
 }

@@ -313,6 +313,7 @@ unsafe extern "C" fn get_field_type(
             ReflectType::Float => ffi::ReflectionType::Float,
             ReflectType::Vector3 => ffi::ReflectionType::Vector3,
             ReflectType::Quat => ffi::ReflectionType::Quaternion,
+            ReflectType::Composite => ffi::ReflectionType::Composite,
         })
     }
     let result = std::panic::catch_unwind(|| {
@@ -423,8 +424,8 @@ pub fn register_core_components(registry: &mut ReflectionRegistry) {
 
 use unreal_reflect::{
     impl_component,
-    registry::{Reflect, ReflectType, ReflectValue, ReflectionRegistry},
-    TypeUuid, Uuid,
+    registry::{ReflectType, ReflectValue, ReflectionRegistry},
+    Reflect, TypeUuid, Uuid,
 };
 #[derive(Debug, Hash, PartialEq, Eq, Clone, StageLabel)]
 pub enum CoreStage {
@@ -443,15 +444,17 @@ pub struct Time {
     pub time: f64,
 }
 
-#[derive(Default, Debug, TypeUuid)]
+#[derive(Default, Debug, Reflect)]
 #[uuid = "5ad05c2b-7cbc-4081-8819-1997b3e13331"]
 pub struct ActorComponent {
+    #[reflect(skip)]
     pub ptr: ActorPtr,
 }
 impl_component!(ActorComponent);
-#[derive(Default, Debug, TypeUuid)]
+#[derive(Default, Debug, Reflect)]
 #[uuid = "ffc10b5c-635c-43ce-8288-e3c6f6d67e36"]
 pub struct PhysicsComponent {
+    #[reflect(skip)]
     pub ptr: UnrealPtr<Primitive>,
     pub is_simulating: bool,
     pub velocity: Vec3,
@@ -494,56 +497,12 @@ impl PhysicsComponent {
 
 impl_component!(PhysicsComponent);
 
-#[derive(Default, Debug, TypeUuid, Clone)]
+#[derive(Default, Debug, Reflect, Clone)]
 #[uuid = "b8738d9e-ab21-47db-8587-4019b38e35a6"]
 pub struct TransformComponent {
     pub position: Vec3,
     pub rotation: Quat,
     pub scale: Vec3,
-}
-struct TransformComponentReflect;
-
-impl Reflect for TransformComponentReflect {
-    fn name(&self) -> &'static str {
-        "TransformComponent"
-    }
-
-    fn number_of_fields(&self) -> u32 {
-        3
-    }
-
-    fn get_field_name(&self, idx: u32) -> Option<&'static str> {
-        match idx {
-            0 => Some("position"),
-            1 => Some("rotation"),
-            2 => Some("scale"),
-            _ => None,
-        }
-    }
-
-    fn get_field_type(&self, idx: u32) -> Option<ReflectType> {
-        match idx {
-            0 => Some(ReflectType::Vector3),
-            1 => Some(ReflectType::Quat),
-            2 => Some(ReflectType::Vector3),
-            _ => None,
-        }
-    }
-
-    fn get_field_value(&self, world: &World, entity: Entity, idx: u32) -> Option<ReflectValue> {
-        world
-            .get_entity(entity)
-            .and_then(|entity_ref| entity_ref.get::<TransformComponent>())
-            .and_then(|movement| {
-                let ty = match idx {
-                    0 => ReflectValue::Vector3(movement.position),
-                    1 => ReflectValue::Quat(movement.rotation),
-                    2 => ReflectValue::Vector3(movement.scale),
-                    _ => return None,
-                };
-                Some(ty)
-            })
-    }
 }
 
 impl TransformComponent {
@@ -562,7 +521,7 @@ impl TransformComponent {
 }
 
 impl_component!(TransformComponent);
-#[derive(Default, Debug, TypeUuid)]
+#[derive(Default, Debug, Reflect)]
 #[uuid = "8d2df877-499b-46f3-9660-bd2e1867af0d"]
 pub struct CameraComponent {
     pub x: f32,
@@ -572,7 +531,7 @@ pub struct CameraComponent {
 }
 impl_component!(CameraComponent);
 
-#[derive(Default, Debug, TypeUuid)]
+#[derive(Default, Debug, Reflect)]
 #[uuid = "fc8bd668-fc0a-4ab7-8b3d-f0f22bb539e2"]
 pub struct MovementComponent {
     pub velocity: Vec3,
@@ -580,58 +539,15 @@ pub struct MovementComponent {
     pub view: Quat,
 }
 
-struct MovementComponentReflect;
-
-// TODO: Auto generate
-impl Reflect for MovementComponentReflect {
-    fn name(&self) -> &'static str {
-        "MovementComponent"
-    }
-
-    fn number_of_fields(&self) -> u32 {
-        2
-    }
-
-    fn get_field_type(&self, idx: u32) -> Option<ReflectType> {
-        let ty = match idx {
-            0 => ReflectType::Vector3,
-            1 => ReflectType::Bool,
-            _ => return None,
-        };
-        Some(ty)
-    }
-
-    fn get_field_value(&self, world: &World, entity: Entity, idx: u32) -> Option<ReflectValue> {
-        world
-            .get_entity(entity)
-            .and_then(|entity_ref| entity_ref.get::<MovementComponent>())
-            .and_then(|movement| {
-                let ty = match idx {
-                    0 => ReflectValue::Vector3(movement.velocity),
-                    1 => ReflectValue::Bool(movement.is_falling),
-                    _ => return None,
-                };
-                Some(ty)
-            })
-    }
-
-    fn get_field_name(&self, idx: u32) -> Option<&'static str> {
-        let name = match idx {
-            0 => "velocity",
-            1 => "is_falling",
-            _ => return None,
-        };
-        Some(name)
-    }
-}
-
 impl_component!(MovementComponent);
 
-#[derive(Debug, TypeUuid)]
+#[derive(Debug, Reflect)]
 #[uuid = "f1e22f5b-2bfe-4ce5-938b-7c093def708e"]
 pub struct ParentComponent {
+    #[reflect(skip)]
     pub parent: Entity,
 }
+
 impl_component!(ParentComponent);
 
 impl Default for ParentComponent {
@@ -640,7 +556,7 @@ impl Default for ParentComponent {
     }
 }
 
-#[derive(Default, Debug, TypeUuid)]
+#[derive(Default, Debug, Reflect)]
 #[uuid = "35256309-43b4-4459-9884-eb6e9137faf5"]
 pub struct PlayerInputComponent {
     pub direction: Vec3,

@@ -1,5 +1,6 @@
 pub use bevy_ecs;
-pub use unreal_reflect_derive::TypeUuid;
+pub use bevy_ecs::{entity::Entity, world::World};
+pub use unreal_reflect_derive::Reflect;
 pub use uuid;
 pub use uuid::Uuid;
 

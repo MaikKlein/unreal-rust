@@ -1,6 +1,18 @@
-mod type_uuid;
+use syn::DeriveInput;
 
-#[proc_macro_derive(TypeUuid, attributes(uuid))]
-pub fn type_uuid_derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
-    type_uuid::type_uuid_derive(input)
+mod reflect;
+mod type_uuid;
+use quote::quote;
+
+#[proc_macro_derive(Reflect, attributes(uuid, reflect))]
+pub fn reflect_derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+    let ast: DeriveInput = syn::parse(input).unwrap();
+
+    let reflect = reflect::reflect_derive(&ast);
+    let type_uuid = type_uuid::type_uuid_derive(&ast);
+    quote! {
+        #reflect
+        #type_uuid
+    }
+    .into()
 }

@@ -429,6 +429,7 @@ pub enum ReflectionType {
     Vector3,
     Bool,
     Quaternion,
+    Composite,
 }
 
 pub type NumberOfFieldsFn = unsafe extern "C" fn(uuid: Uuid, out: *mut u32) -> u32;

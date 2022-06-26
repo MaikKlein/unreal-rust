@@ -49,6 +49,9 @@ void UK2Node_GetComponentRust::AllocateDefaultPins()
 			ReflectionType Type = ReflectionType::Bool;
 			if (Module.Plugin.Rust.reflection_fns.get_field_type(ToUuid(Id), Idx, &Type))
 			{
+				if(Type == ReflectionType::Composite)
+					// TODO: Implement composite types
+					continue;
 				FString VarName = FString(Len, UTF8_TO_TCHAR(Name));
 				if (Type == ReflectionType::Vector3)
 				{
@@ -105,6 +108,9 @@ void UK2Node_GetComponentRust::ExpandNode(class FKismetCompilerContext& Compiler
 			ReflectionType Type = ReflectionType::Bool;
 			if (Module.Plugin.Rust.reflection_fns.get_field_type(Id, Idx, &Type))
 			{
+				if(Type == ReflectionType::Composite)
+					// TODO: Implement composite types
+					continue;
 				//UE_LOG(LogTemp, Warning, TEXT("Type"));
 				FString VarName = FString(Len, UTF8_TO_TCHAR(Name));
 				UEdGraphPin* OutputPin = FindPinChecked(*VarName, EGPD_Output);

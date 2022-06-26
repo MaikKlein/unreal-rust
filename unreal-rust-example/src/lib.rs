@@ -12,7 +12,7 @@ use unreal_api::{
     module::{bindings, InitUserModule, UserModule},
     physics::{line_trace, sweep, SweepParams},
 };
-use unreal_reflect::{impl_component, registry::ReflectionRegistry, TypeUuid};
+use unreal_reflect::{impl_component, registry::ReflectionRegistry, Reflect};
 
 #[repr(u32)]
 #[derive(Copy, Clone)]
@@ -51,17 +51,18 @@ impl Default for MovementState {
     }
 }
 
-#[derive(Default, Debug, TypeUuid)]
+#[derive(Default, Debug, Reflect)]
 #[uuid = "ac41cdd4-3311-45ef-815c-9a31adbe4098"]
 pub struct CharacterControllerComponent {
     pub velocity: Vec3,
     pub camera_view: Quat,
+    #[reflect(skip)]
     pub movement_state: MovementState,
     pub visual_rotation: Quat,
 }
 
 impl_component!(CharacterControllerComponent);
-#[derive(Debug, TypeUuid)]
+#[derive(Debug, Reflect)]
 #[uuid = "16ca6de6-7a30-412d-8bef-4ee96e18a101"]
 pub struct CharacterConfigComponent {
     pub max_movement_speed: f32,
