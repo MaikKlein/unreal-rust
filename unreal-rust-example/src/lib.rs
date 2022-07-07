@@ -12,7 +12,7 @@ use unreal_api::{
     module::{bindings, InitUserModule, UserModule},
     physics::{line_trace, sweep, SweepParams},
 };
-use unreal_reflect::{impl_component, registry::ReflectionRegistry, Reflect};
+use unreal_reflect::{registry::ReflectionRegistry, Component};
 
 #[repr(u32)]
 #[derive(Copy, Clone)]
@@ -51,7 +51,7 @@ impl Default for MovementState {
     }
 }
 
-#[derive(Default, Debug, Reflect)]
+#[derive(Default, Debug, Component)]
 #[uuid = "ac41cdd4-3311-45ef-815c-9a31adbe4098"]
 pub struct CharacterControllerComponent {
     pub velocity: Vec3,
@@ -61,8 +61,7 @@ pub struct CharacterControllerComponent {
     pub visual_rotation: Quat,
 }
 
-impl_component!(CharacterControllerComponent);
-#[derive(Debug, Reflect)]
+#[derive(Debug, Component)]
 #[uuid = "16ca6de6-7a30-412d-8bef-4ee96e18a101"]
 pub struct CharacterConfigComponent {
     pub max_movement_speed: f32,
@@ -82,7 +81,6 @@ impl Default for CharacterConfigComponent {
         }
     }
 }
-impl_component!(CharacterConfigComponent);
 
 pub struct PlayerInput;
 impl PlayerInput {
@@ -143,7 +141,6 @@ fn register_player_input(mut input: ResMut<Input>) {
     input.register_axis_binding(PlayerInput::MOVE_RIGHT);
     input.register_axis_binding(PlayerInput::LOOK_UP);
     input.register_axis_binding(PlayerInput::TURN_RIGHT);
-
     input.register_action_binding(PlayerInput::JUMP);
 }
 

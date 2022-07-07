@@ -18,6 +18,7 @@ pub fn reflect_derive(ast: &DeriveInput) -> proc_macro2::TokenStream {
     if let Data::Struct(data) = &ast.data {
         let literal_name = LitStr::new(&ast.ident.to_string(), Span::call_site());
         let reflect_struct_ident = Ident::new(&format!("{}Reflect", ast.ident), Span::call_site());
+        let struct_ident = &ast.ident;
 
         let fields: Vec<ReflectField> = data
             .fields
@@ -104,6 +105,18 @@ pub fn reflect_derive(ast: &DeriveInput) -> proc_macro2::TokenStream {
             }
             impl unreal_reflect::registry::ReflectStatic for #reflect_struct_ident {
                 const TYPE: unreal_reflect::registry::ReflectType = unreal_reflect::registry::ReflectType::Composite;
+            }
+            impl unreal_reflect::ecs::component::Component for #struct_ident {
+                type Storage = unreal_reflect::ecs::component::TableStorage;
+            }
+            impl unreal_reflect::registry::InsertReflectionStruct for #struct_ident {
+                fn insert(registry: &mut unreal_reflect::registry::ReflectionRegistry) {
+                    registry.reflect.insert(
+                        <#struct_ident as unreal_reflect::TypeUuid>::TYPE_UUID,
+                        Box::new(#reflect_struct_ident),
+                    );
+
+                }
             }
         }
     } else {

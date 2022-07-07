@@ -4,8 +4,8 @@ mod reflect;
 mod type_uuid;
 use quote::quote;
 
-#[proc_macro_derive(Reflect, attributes(uuid, reflect))]
-pub fn reflect_derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
+#[proc_macro_derive(Component, attributes(uuid, reflect))]
+pub fn component_derive(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
     let ast: DeriveInput = syn::parse(input).unwrap();
 
     let reflect = reflect::reflect_derive(&ast);

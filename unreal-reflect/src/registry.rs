@@ -3,44 +3,9 @@ use bevy_ecs::{entity::Entity, prelude::World, system::EntityCommands};
 use glam::{Quat, Vec3};
 use std::collections::{HashMap, HashSet};
 
-#[macro_export]
-macro_rules! impl_component {
-    ($component: ty) => {
-        $crate::impl_insert_with_default!($component);
-        $crate::impl_reflection!($component);
-        impl $crate::bevy_ecs::component::Component for $component {
-            type Storage = $crate::bevy_ecs::component::TableStorage;
-        }
-    };
-}
-#[macro_export]
-macro_rules! impl_insert_with_default {
-    ($component: ty) => {
-        impl $crate::registry::InsertComponent for $component {
-            fn insert(commands: &'_ mut $crate::bevy_ecs::system::EntityCommands<'_, '_, '_>) {
-                commands.insert(<$component>::default());
-            }
-        }
-    };
-}
-#[macro_export]
-macro_rules! impl_reflection {
-    ($component: ty) => {
-        impl $crate::registry::Reflection for $component {
-            fn reflection() -> $crate::registry::ReflectionData {
-                $crate::registry::ReflectionData {
-                    name: std::any::type_name::<$component>(),
-                }
-            }
-        }
-    };
-}
-
 pub type InsertComponentFn = Box<dyn Fn(&'_ mut EntityCommands<'_, '_, '_>)>;
 #[derive(Default)]
 pub struct ReflectionRegistry {
-    pub uuid_to_insert_component: HashMap<uuid::Uuid, InsertComponentFn>,
-    pub uuid_to_refection_data: HashMap<uuid::Uuid, ReflectionData>,
     pub uuid_set: HashSet<uuid::Uuid>,
     pub reflect: HashMap<uuid::Uuid, Box<dyn ReflectDyn>>,
 }
@@ -48,7 +13,7 @@ pub struct ReflectionRegistry {
 impl ReflectionRegistry {
     pub fn register<T>(&mut self)
     where
-        T: Reflection + InsertComponent + TypeUuid + 'static,
+        T: InsertReflectionStruct + TypeUuid + 'static,
     {
         if self.uuid_set.contains(&T::TYPE_UUID) {
             //TODO: Log not ready here
@@ -59,29 +24,13 @@ impl ReflectionRegistry {
             );
             return;
         }
-        self.uuid_to_insert_component
-            .insert(T::TYPE_UUID, Box::new(T::insert));
-        self.uuid_to_refection_data
-            .insert(T::TYPE_UUID, T::reflection());
+        T::insert(self);
         self.uuid_set.insert(T::TYPE_UUID);
     }
 }
 
-pub trait InsertComponent {
-    fn insert(commands: &'_ mut EntityCommands<'_, '_, '_>);
-}
-#[derive(Debug)]
-pub struct ReflectionData {
-    pub name: &'static str,
-}
-
-pub trait Reflection {
-    fn reflection() -> ReflectionData;
-}
-#[derive(Debug)]
-pub struct ReflectionData2 {
-    pub name: &'static str,
-    pub number_of_fields: u32,
+pub trait InsertReflectionStruct {
+    fn insert(registry: &mut ReflectionRegistry);
 }
 
 pub enum ReflectValue {

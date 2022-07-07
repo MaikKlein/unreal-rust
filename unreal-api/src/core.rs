@@ -423,9 +423,8 @@ pub fn register_core_components(registry: &mut ReflectionRegistry) {
 }
 
 use unreal_reflect::{
-    impl_component,
     registry::{ReflectType, ReflectValue, ReflectionRegistry},
-    Reflect, TypeUuid, Uuid,
+    Component, TypeUuid, Uuid,
 };
 #[derive(Debug, Hash, PartialEq, Eq, Clone, StageLabel)]
 pub enum CoreStage {
@@ -444,14 +443,13 @@ pub struct Time {
     pub time: f64,
 }
 
-#[derive(Default, Debug, Reflect)]
+#[derive(Default, Debug, Component)]
 #[uuid = "5ad05c2b-7cbc-4081-8819-1997b3e13331"]
 pub struct ActorComponent {
     #[reflect(skip)]
     pub ptr: ActorPtr,
 }
-impl_component!(ActorComponent);
-#[derive(Default, Debug, Reflect)]
+#[derive(Default, Debug, Component)]
 #[uuid = "ffc10b5c-635c-43ce-8288-e3c6f6d67e36"]
 pub struct PhysicsComponent {
     #[reflect(skip)]
@@ -495,9 +493,7 @@ impl PhysicsComponent {
     }
 }
 
-impl_component!(PhysicsComponent);
-
-#[derive(Default, Debug, Reflect, Clone)]
+#[derive(Default, Debug, Component, Clone)]
 #[uuid = "b8738d9e-ab21-47db-8587-4019b38e35a6"]
 pub struct TransformComponent {
     pub position: Vec3,
@@ -520,8 +516,7 @@ impl TransformComponent {
     }
 }
 
-impl_component!(TransformComponent);
-#[derive(Default, Debug, Reflect)]
+#[derive(Default, Debug, Component)]
 #[uuid = "8d2df877-499b-46f3-9660-bd2e1867af0d"]
 pub struct CameraComponent {
     pub x: f32,
@@ -529,9 +524,8 @@ pub struct CameraComponent {
     pub current_x: f32,
     pub current_y: f32,
 }
-impl_component!(CameraComponent);
 
-#[derive(Default, Debug, Reflect)]
+#[derive(Default, Debug, Component)]
 #[uuid = "fc8bd668-fc0a-4ab7-8b3d-f0f22bb539e2"]
 pub struct MovementComponent {
     pub velocity: Vec3,
@@ -539,16 +533,12 @@ pub struct MovementComponent {
     pub view: Quat,
 }
 
-impl_component!(MovementComponent);
-
-#[derive(Debug, Reflect)]
+#[derive(Debug, Component)]
 #[uuid = "f1e22f5b-2bfe-4ce5-938b-7c093def708e"]
 pub struct ParentComponent {
     #[reflect(skip)]
     pub parent: Entity,
 }
-
-impl_component!(ParentComponent);
 
 impl Default for ParentComponent {
     fn default() -> Self {
@@ -556,12 +546,11 @@ impl Default for ParentComponent {
     }
 }
 
-#[derive(Default, Debug, Reflect)]
+#[derive(Default, Debug, Component)]
 #[uuid = "35256309-43b4-4459-9884-eb6e9137faf5"]
 pub struct PlayerInputComponent {
     pub direction: Vec3,
 }
-impl_component!(PlayerInputComponent);
 
 // TODO: Implement unregister.
 #[derive(Default)]
