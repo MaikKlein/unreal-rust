@@ -397,3 +397,8 @@ void GetActorName(const AActorOpaque* actor, char* data, uintptr_t* len)
 	//    auto Length = Utf8.Length();
 	//}
 }
+
+void SetOwner(AActorOpaque *actor, const AActorOpaque *new_owner)
+{
+	ToAActor(actor)->SetOwner(ToAActor(new_owner));
+}

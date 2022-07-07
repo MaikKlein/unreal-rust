@@ -3,8 +3,8 @@ use std::collections::HashMap;
 use bevy_ecs::prelude::*;
 use unreal_api::{
     core::{
-        ActorComponent, ActorPtr, CameraComponent, CoreStage, Frame, MovementComponent,
-        ParentComponent, PhysicsComponent, TransformComponent,
+        ActorComponent, ActorPtr, CoreStage, Frame, ParentComponent, PhysicsComponent,
+        TransformComponent,
     },
     ffi::{self, UClassOpague},
     input::Input,
@@ -12,7 +12,7 @@ use unreal_api::{
     module::{bindings, InitUserModule, UserModule},
     physics::{line_trace, sweep, SweepParams},
 };
-use unreal_reflect::{registry::ReflectionRegistry, Component};
+use unreal_reflect::{register_components, registry::ReflectionRegistry, Component};
 
 #[repr(u32)]
 #[derive(Copy, Clone)]
@@ -49,6 +49,23 @@ impl Default for MovementState {
     fn default() -> Self {
         Self::Walking
     }
+}
+
+#[derive(Default, Debug, Component)]
+#[uuid = "fc8bd668-fc0a-4ab7-8b3d-f0f22bb539e2"]
+pub struct MovementComponent {
+    pub velocity: Vec3,
+    pub is_falling: bool,
+    pub view: Quat,
+}
+
+#[derive(Default, Debug, Component)]
+#[uuid = "8d2df877-499b-46f3-9660-bd2e1867af0d"]
+pub struct CameraComponent {
+    pub x: f32,
+    pub y: f32,
+    pub current_x: f32,
+    pub current_y: f32,
 }
 
 #[derive(Default, Debug, Component)]
@@ -372,7 +389,14 @@ impl InitUserModule for MyModule {
     }
 }
 impl UserModule for MyModule {
-    fn register(&self, _registry: &mut ReflectionRegistry) {}
+    fn register(&self, registry: &mut ReflectionRegistry) {
+        register_components! {
+            CameraComponent,
+            MovementComponent,
+            CharacterConfigComponent,
+            => registry
+        }
+    }
 
     fn systems(&self, startup: &mut Schedule, update: &mut Schedule) {
         startup.add_system_to_stage(CoreStage::Startup, register_class_resource);

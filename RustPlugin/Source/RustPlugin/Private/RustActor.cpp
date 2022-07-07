@@ -24,30 +24,3 @@ void ARustActor::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 }
-
-FVector ARustActor::GetRustVelocity()
-{
-	Vector3 Velocity;
-	//GetModule().Plugin.Rust.get_velocity(static_cast<const AActorOpaque*>(this), &Velocity);
-
-	if (EntityComponent != nullptr)
-	{
-		for (Uuid uuid : GetModule().Plugin.Uuids)
-		{
-			const char* Name;
-			uintptr_t Len;
-			if (GetModule().Plugin.Rust.reflection_fns.get_type_name(uuid, &Name, &Len))
-			{
-				FString N = FString(Len, UTF8_TO_TCHAR(Name));
-				if (N == TEXT("MovementComponent"))
-				{
-					GetModule().Plugin.Rust.reflection_fns.get_field_vector3_value(
-						uuid, this->EntityComponent->Id.ToRustEntity(), 0, &Velocity);
-					break;
-				}
-			}
-		}
-	}
-
-	return ToFVector(Velocity);
-}

@@ -155,7 +155,12 @@ pub type IsMoveableFn = unsafe extern "C" fn(actor: *const AActorOpaque) -> u32;
 pub type GetActorNameFn =
     unsafe extern "C" fn(actor: *const AActorOpaque, data: *mut c_char, len: *mut usize);
 
+pub type SetOwnerFn =
+    unsafe extern "C" fn(actor: *mut AActorOpaque, new_owner: *const AActorOpaque);
+
 extern "C" {
+    pub fn SetOwner(actor: *mut AActorOpaque, new_owner: *const AActorOpaque);
+
     pub fn SetSpatialData(
         actor: *mut AActorOpaque,
         position: Vector3,
@@ -226,6 +231,7 @@ pub struct UnrealBindings {
     pub get_class: GetClassFn,
     pub is_moveable: IsMoveableFn,
     pub get_actor_name: GetActorNameFn,
+    pub set_owner: SetOwnerFn,
 }
 unsafe impl Sync for UnrealBindings {}
 unsafe impl Send for UnrealBindings {}
@@ -303,7 +309,6 @@ pub struct ActorSpawnedEvent {
 #[repr(C)]
 pub struct RustBindings {
     pub retrieve_uuids: RetrieveUuids,
-    pub get_velocity: GetVelocityRustFn,
     pub tick: TickFn,
     pub begin_play: BeginPlayFn,
     pub unreal_event: UnrealEventFn,

@@ -1,9 +1,17 @@
 use crate::TypeUuid;
-use bevy_ecs::{entity::Entity, prelude::World, system::EntityCommands};
+use bevy_ecs::{entity::Entity, prelude::World};
 use glam::{Quat, Vec3};
 use std::collections::{HashMap, HashSet};
 
-pub type InsertComponentFn = Box<dyn Fn(&'_ mut EntityCommands<'_, '_, '_>)>;
+#[macro_export]
+macro_rules! register_components {
+    ($($ty: ty,)* => $registry: expr) => {
+        $(
+            $registry.register::<$ty>();
+        )*
+    };
+}
+
 #[derive(Default)]
 pub struct ReflectionRegistry {
     pub uuid_set: HashSet<uuid::Uuid>,
@@ -16,13 +24,11 @@ impl ReflectionRegistry {
         T: InsertReflectionStruct + TypeUuid + 'static,
     {
         if self.uuid_set.contains(&T::TYPE_UUID) {
-            //TODO: Log not ready here
-            log::error!(
+            panic!(
                 "Duplicated UUID {} for {}",
                 T::TYPE_UUID,
                 std::any::type_name::<T>()
             );
-            return;
         }
         T::insert(self);
         self.uuid_set.insert(T::TYPE_UUID);

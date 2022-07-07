@@ -29,8 +29,6 @@ protected:
 public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
-	UFUNCTION(BlueprintCallable, Category="Rust", meta=(DisplayName="Get Entity Velocity"))
-	FVector GetRustVelocity();
 	UFUNCTION(BlueprintCallable, Category="Rust", meta=(DisplayName="Get Entity Component"))
 	UEntityComponent* GetEntityComponent() { return EntityComponent; }
 	UFUNCTION(BlueprintCallable, Category="Rust", meta=(DisplayName="Get Entity"))

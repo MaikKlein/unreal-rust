@@ -34,6 +34,7 @@ UnrealBindings CreateBindings()
 	b.get_registered_classes = &GetRegisteredClasses;
 	b.get_class = &GetClass;
 	b.is_moveable = &IsMoveable;
+	b.set_owner = &SetOwner;
 	return b;
 }
 

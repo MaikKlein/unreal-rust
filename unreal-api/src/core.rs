@@ -130,26 +130,6 @@ pub unsafe extern "C" fn unreal_event(ty: *const EventType, data: *const c_void)
         }
     }
 }
-pub unsafe extern "C" fn get_velocity(actor: *const AActorOpaque, velocity: &mut ffi::Vector3) {
-    if let Some(global) = crate::module::MODULE.as_mut() {
-        if let Some(entity) = global
-            .core
-            .world
-            .get_resource::<ActorRegistration>()
-            .and_then(|reg| reg.actor_to_entity.get(&ActorPtr(actor as *mut _)))
-            .copied()
-        {
-            if let Some(movement) = global
-                .core
-                .world
-                .get_entity(entity)
-                .and_then(|eref| eref.get::<MovementComponent>())
-            {
-                *velocity = movement.velocity.into();
-            }
-        }
-    }
-}
 extern "C" fn get_field_float_value(
     uuid: ffi::Uuid,
     entity: ffi::Entity,
@@ -327,35 +307,6 @@ unsafe extern "C" fn get_field_type(
     result.unwrap_or(0)
 }
 
-pub unsafe extern "C" fn get_movement_component(
-    actor: *const AActorOpaque,
-    movement_out: *mut ffi::Movement,
-) -> u32 {
-    if let Some(global) = crate::module::MODULE.as_mut() {
-        if let Some(entity) = global
-            .core
-            .world
-            .get_resource::<ActorRegistration>()
-            .and_then(|reg| reg.actor_to_entity.get(&ActorPtr(actor as *mut _)))
-            .copied()
-        {
-            if let Some(movement) = global
-                .core
-                .world
-                .get_entity(entity)
-                .and_then(|eref| eref.get::<MovementComponent>())
-            {
-                *movement_out = ffi::Movement {
-                    velocity: movement.velocity.into(),
-                    is_falling: movement.is_falling as u32,
-                };
-                return 1;
-            }
-        }
-    }
-    0
-}
-
 pub fn from_ffi_uuid(uuid: ffi::Uuid) -> Uuid {
     unsafe {
         let arr: [u32; 4] = [uuid.a, uuid.b, uuid.c, uuid.d];
@@ -402,29 +353,18 @@ pub extern "C" fn begin_play() -> ffi::ResultCode {
         Err(_) => ffi::ResultCode::Panic,
     }
 }
+
 pub fn register_core_components(registry: &mut ReflectionRegistry) {
     registry.register::<TransformComponent>();
     registry.register::<ActorComponent>();
     registry.register::<PlayerInputComponent>();
-    registry.register::<CameraComponent>();
     registry.register::<ParentComponent>();
     registry.register::<PhysicsComponent>();
-
-    registry.register::<MovementComponent>();
-    // TODO: Move into register
-    registry.reflect.insert(
-        MovementComponent::TYPE_UUID,
-        Box::new(MovementComponentReflect),
-    );
-    registry.reflect.insert(
-        TransformComponent::TYPE_UUID,
-        Box::new(TransformComponentReflect),
-    );
 }
 
 use unreal_reflect::{
     registry::{ReflectType, ReflectValue, ReflectionRegistry},
-    Component, TypeUuid, Uuid,
+    Component, Uuid,
 };
 #[derive(Debug, Hash, PartialEq, Eq, Clone, StageLabel)]
 pub enum CoreStage {
@@ -514,23 +454,6 @@ impl TransformComponent {
     pub fn is_nan(&self) -> bool {
         self.position.is_nan() || self.rotation.is_nan() || self.scale.is_nan()
     }
-}
-
-#[derive(Default, Debug, Component)]
-#[uuid = "8d2df877-499b-46f3-9660-bd2e1867af0d"]
-pub struct CameraComponent {
-    pub x: f32,
-    pub y: f32,
-    pub current_x: f32,
-    pub current_y: f32,
-}
-
-#[derive(Default, Debug, Component)]
-#[uuid = "fc8bd668-fc0a-4ab7-8b3d-f0f22bb539e2"]
-pub struct MovementComponent {
-    pub velocity: Vec3,
-    pub is_falling: bool,
-    pub view: Quat,
 }
 
 #[derive(Debug, Component)]

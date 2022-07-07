@@ -33,7 +33,6 @@ macro_rules! implement_unreal_module {
             $crate::module::MODULE = Some($crate::module::Global { core, module });
             $crate::ffi::RustBindings {
                 retrieve_uuids: $crate::core::retrieve_uuids,
-                get_velocity: $crate::core::get_velocity,
                 tick: $crate::core::tick,
                 begin_play: $crate::core::begin_play,
                 unreal_event: $crate::core::unreal_event,

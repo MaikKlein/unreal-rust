@@ -164,6 +164,8 @@ using IsMoveableFn = uint32_t(*)(const AActorOpaque *actor);
 
 using GetActorNameFn = void(*)(const AActorOpaque *actor, char *data, uintptr_t *len);
 
+using SetOwnerFn = void(*)(AActorOpaque *actor, const AActorOpaque *new_owner);
+
 struct UnrealBindings {
   GetSpatialDataFn get_spatial_data;
   SetSpatialDataFn set_spatial_data;
@@ -184,6 +186,7 @@ struct UnrealBindings {
   GetClassFn get_class;
   IsMoveableFn is_moveable;
   GetActorNameFn get_actor_name;
+  SetOwnerFn set_owner;
 };
 
 struct Uuid {
@@ -194,8 +197,6 @@ struct Uuid {
 };
 
 using RetrieveUuids = void(*)(Uuid *ptr, uintptr_t *len);
-
-using GetVelocityRustFn = void(*)(const AActorOpaque *actor, Vector3 *velocity);
 
 using TickFn = ResultCode(*)(float dt);
 
@@ -232,7 +233,6 @@ struct ReflectionFns {
 
 struct RustBindings {
   RetrieveUuids retrieve_uuids;
-  GetVelocityRustFn get_velocity;
   TickFn tick;
   BeginPlayFn begin_play;
   UnrealEventFn unreal_event;
@@ -246,6 +246,8 @@ struct ActorSpawnedEvent {
 };
 
 extern "C" {
+
+extern void SetOwner(AActorOpaque *actor, const AActorOpaque *new_owner);
 
 extern void SetSpatialData(AActorOpaque *actor,
                            Vector3 position,
