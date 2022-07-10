@@ -22,6 +22,12 @@ enum class ActorComponentType : uint32_t {
   Primitive,
 };
 
+enum class CollisionShapeType : uint32_t {
+  Box,
+  Capsule,
+  Sphere,
+};
+
 enum class EventType : uint32_t {
   ActorSpawned = 0,
 };
@@ -91,7 +97,31 @@ struct HitResult {
   float pentration_depth;
 };
 
-using FCollisionShapeOpague = void;
+struct CollisionBox {
+  float half_extent_x;
+  float half_extent_y;
+  float half_extent_z;
+};
+
+struct CollisionSphere {
+  float radius;
+};
+
+struct CollisionCapsule {
+  float radius;
+  float half_height;
+};
+
+union CollisionShapeUnion {
+  CollisionBox collision_box;
+  CollisionSphere sphere;
+  CollisionCapsule capsule;
+};
+
+struct CollisionShape {
+  CollisionShapeUnion data;
+  CollisionShapeType ty;
+};
 
 struct OverlapResult {
   AActorOpaque *actor;
@@ -138,9 +168,11 @@ using LineTraceFn = uint32_t(*)(Vector3 start, Vector3 end, LineTraceParams para
 
 using GetBoundingBoxExtentFn = Vector3(*)(const UPrimtiveOpaque *primitive);
 
-using SweepFn = uint32_t(*)(Vector3 start, Vector3 end, Quaternion rotation, LineTraceParams params, const UPrimtiveOpaque *primitive, HitResult *result);
+using SweepFn = uint32_t(*)(Vector3 start, Vector3 end, Quaternion rotation, LineTraceParams params, CollisionShape collision_shape, HitResult *result);
 
-using OverlapMultiFn = uint32_t(*)(FCollisionShapeOpague *shape, Vector3 position, Quaternion rotation, LineTraceParams params, uintptr_t max_results, OverlapResult **result);
+using OverlapMultiFn = uint32_t(*)(CollisionShape collision_shape, Vector3 position, Quaternion rotation, LineTraceParams params, uintptr_t max_results, OverlapResult **result);
+
+using GetCollisionShapeFn = uint32_t(*)(const UPrimtiveOpaque *primitive, CollisionShape *shape);
 
 struct UnrealPhysicsBindings {
   GetVelocityFn get_velocity;
@@ -152,6 +184,7 @@ struct UnrealPhysicsBindings {
   GetBoundingBoxExtentFn get_bounding_box_extent;
   SweepFn sweep;
   OverlapMultiFn overlap_multi;
+  GetCollisionShapeFn get_collision_shape;
 };
 
 using GetRootComponentFn = void(*)(const AActorOpaque *actor, ActorComponentPtr *data);
@@ -319,14 +352,16 @@ extern uint32_t Sweep(Vector3 start,
                       Vector3 end,
                       Quaternion rotation,
                       LineTraceParams params,
-                      const UPrimtiveOpaque *primitive,
+                      CollisionShape collision_shape,
                       HitResult *result);
 
-extern uint32_t OverlapMulti(FCollisionShapeOpague *shape,
+extern uint32_t OverlapMulti(CollisionShape collision_shape,
                              Vector3 position,
                              Quaternion rotation,
                              LineTraceParams params,
                              uintptr_t max_results,
                              OverlapResult **result);
+
+extern uint32_t GetCollisionShape(const UPrimtiveOpaque *primitive, CollisionShape *shape);
 
 } // extern "C"

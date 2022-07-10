@@ -387,9 +387,63 @@ pub struct Time {
 #[uuid = "5ad05c2b-7cbc-4081-8819-1997b3e13331"]
 pub struct ActorComponent {
     #[reflect(skip)]
-    pub ptr: ActorPtr,
+    pub actor: ActorPtr,
 }
-#[derive(Default, Debug, Component)]
+
+impl ActorComponent {
+    pub fn set_owner(&mut self, new_owner: Option<&Self>) {
+        unsafe {
+            let ptr = new_owner
+                .map(|comp| comp.actor.0 as *const AActorOpaque)
+                .unwrap_or(std::ptr::null());
+            (bindings().set_owner)(self.actor.0, ptr);
+        }
+    }
+}
+
+#[derive(Copy, Clone)]
+pub enum CollisionShape {
+    Capsule { half_height: f32, radius: f32 },
+    Box { half_extent: Vec3 },
+    Sphere { radius: f32 },
+}
+
+impl From<CollisionShape> for ffi::CollisionShape {
+    fn from(val: CollisionShape) -> Self {
+        match val {
+            CollisionShape::Box { half_extent } => ffi::CollisionShape {
+                ty: ffi::CollisionShapeType::Box,
+                data: ffi::CollisionShapeUnion {
+                    collision_box: ffi::CollisionBox {
+                        half_extent_x: half_extent.x,
+                        half_extent_y: half_extent.y,
+                        half_extent_z: half_extent.z,
+                    },
+                },
+            },
+            CollisionShape::Capsule {
+                half_height,
+                radius,
+            } => ffi::CollisionShape {
+                data: ffi::CollisionShapeUnion {
+                    capsule: ffi::CollisionCapsule {
+                        radius,
+                        half_height,
+                    },
+                },
+                ty: ffi::CollisionShapeType::Capsule,
+            },
+            CollisionShape::Sphere { radius } => ffi::CollisionShape {
+                data: ffi::CollisionShapeUnion {
+                    sphere: ffi::CollisionSphere { radius },
+                },
+                ty: ffi::CollisionShapeType::Sphere,
+            },
+        }
+    }
+}
+
+#[derive(Default, Component)]
 #[uuid = "ffc10b5c-635c-43ce-8288-e3c6f6d67e36"]
 pub struct PhysicsComponent {
     #[reflect(skip)]
@@ -406,6 +460,31 @@ impl PhysicsComponent {
         };
         p.download_state();
         p
+    }
+
+    pub fn get_collision_shape(&self) -> CollisionShape {
+        unsafe {
+            let mut shape = ffi::CollisionShape::default();
+            assert!(
+                (bindings().physics_bindings.get_collision_shape)(self.ptr.ptr, &mut shape) == 1
+            );
+            match shape.ty {
+                ffi::CollisionShapeType::Capsule => CollisionShape::Capsule {
+                    half_height: shape.data.capsule.half_height,
+                    radius: shape.data.capsule.radius,
+                },
+                ffi::CollisionShapeType::Box => CollisionShape::Box {
+                    half_extent: Vec3::new(
+                        shape.data.collision_box.half_extent_x,
+                        shape.data.collision_box.half_extent_y,
+                        shape.data.collision_box.half_extent_y,
+                    ),
+                },
+                ffi::CollisionShapeType::Sphere => CollisionShape::Sphere {
+                    radius: shape.data.sphere.radius,
+                },
+            }
+        }
     }
     pub fn download_state(&mut self) {
         unsafe {
@@ -490,6 +569,7 @@ impl Default for ActorPtr {
         Self(std::ptr::null_mut())
     }
 }
+
 #[derive(Debug, Hash, PartialEq, Eq, PartialOrd, Ord)]
 pub struct UnrealPtr<T> {
     pub ptr: *mut c_void,
@@ -535,7 +615,7 @@ fn download_transform_from_unreal(mut query: Query<(&ActorComponent, &mut Transf
         let mut rotation = ffi::Quaternion::default();
         let mut scale = ffi::Vector3::default();
 
-        (bindings().get_spatial_data)(actor.ptr.0, &mut position, &mut rotation, &mut scale);
+        (bindings().get_spatial_data)(actor.actor.0, &mut position, &mut rotation, &mut scale);
 
         transform.position = position.into();
         transform.rotation = rotation.into();
@@ -546,13 +626,13 @@ fn download_transform_from_unreal(mut query: Query<(&ActorComponent, &mut Transf
 
 fn upload_transform_to_unreal(query: Query<(&ActorComponent, &TransformComponent)>) {
     for (actor, transform) in query.iter() {
-        let is_moveable = unsafe { (bindings().is_moveable)(actor.ptr.0) } > 0;
+        let is_moveable = unsafe { (bindings().is_moveable)(actor.actor.0) } > 0;
         if !is_moveable {
             continue;
         }
         assert!(!transform.is_nan());
         (bindings().set_spatial_data)(
-            actor.ptr.0,
+            actor.actor.0,
             transform.position.into(),
             transform.rotation.into(),
             transform.scale.into(),
@@ -575,7 +655,7 @@ fn process_unreal_events(mut actor_register: ResMut<ActorRegistration>, mut comm
                             .spawn()
                             .insert_bundle((
                                 ActorComponent {
-                                    ptr: ActorPtr(actor),
+                                    actor: ActorPtr(actor),
                                 },
                                 TransformComponent::default(),
                             ))

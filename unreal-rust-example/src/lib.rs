@@ -45,6 +45,23 @@ pub enum MovementState {
     Walking,
     Falling,
 }
+
+#[derive(Default, Debug, Copy, Clone)]
+pub enum CameraMode {
+    #[default]
+    ThirdPerson,
+    FirstPerson,
+}
+
+impl CameraMode {
+    pub fn toggle(&mut self) {
+        *self = match *self {
+            CameraMode::ThirdPerson => CameraMode::FirstPerson,
+            CameraMode::FirstPerson => CameraMode::ThirdPerson,
+        };
+    }
+}
+
 impl Default for MovementState {
     fn default() -> Self {
         Self::Walking
@@ -66,6 +83,8 @@ pub struct CameraComponent {
     pub y: f32,
     pub current_x: f32,
     pub current_y: f32,
+    #[reflect(skip)]
+    pub mode: CameraMode,
 }
 
 #[derive(Default, Debug, Component)]
@@ -105,7 +124,7 @@ impl PlayerInput {
     pub const MOVE_RIGHT: &'static str = "MoveRight";
     pub const LOOK_UP: &'static str = "LookUp";
     pub const TURN_RIGHT: &'static str = "TurnRight";
-
+    pub const TOGGLE_CAMERA: &'static str = "ToggleCamera";
     pub const JUMP: &'static str = "Jump";
 }
 fn register_class_resource(mut commands: Commands) {
@@ -137,7 +156,7 @@ fn spawn_class(
 ) {
     for (entity, actor) in query.iter() {
         unsafe {
-            let class_ptr = (bindings().get_class)(actor.ptr.0);
+            let class_ptr = (bindings().get_class)(actor.actor.0);
             if let Some(&class) = class_resource.classes.get(&class_ptr) {
                 match class {
                     Class::Player => {
@@ -159,6 +178,7 @@ fn register_player_input(mut input: ResMut<Input>) {
     input.register_axis_binding(PlayerInput::LOOK_UP);
     input.register_axis_binding(PlayerInput::TURN_RIGHT);
     input.register_action_binding(PlayerInput::JUMP);
+    input.register_action_binding(PlayerInput::TOGGLE_CAMERA);
 }
 
 pub enum MovementHit {
@@ -177,7 +197,7 @@ pub fn find_floor(
 ) -> Option<FloorHit> {
     let mut params = SweepParams::default();
 
-    params.ignored_actors.push(actor.ptr.0);
+    params.ignored_actors.push(actor.actor.0);
     if let Some(hit) = line_trace(
         transform.position,
         transform.position + config.gravity_dir * 1000.0,
@@ -203,12 +223,12 @@ pub fn movement_hit(
 ) -> Option<MovementHit> {
     let mut params = SweepParams::default();
 
-    params.ignored_actors.push(actor.ptr.0);
+    params.ignored_actors.push(actor.actor.0);
     if let Some(hit) = sweep(
         transform.position,
         transform.position + controller.velocity * dt,
         transform.rotation,
-        physics,
+        physics.get_collision_shape(),
         params,
     ) {
         let is_moving_against_wall = Vec3::dot(hit.normal, controller.velocity) < 0.0;
@@ -233,6 +253,25 @@ fn update_movement_velocity(
     }
 }
 
+fn toggle_camera(
+    input: Res<Input>,
+    mut camera_query: Query<(Entity, &mut CameraComponent, &ParentComponent)>,
+    mut actor_query: Query<&mut ActorComponent>,
+) {
+    if input.is_action_pressed(PlayerInput::TOGGLE_CAMERA) {
+        for (entity, mut camera, parent) in camera_query.iter_mut() {
+            camera.mode.toggle();
+            if let Ok([camera_actor, mut parent_actor]) =
+                actor_query.get_many_mut([entity, parent.parent])
+            {
+                match camera.mode {
+                    CameraMode::FirstPerson => parent_actor.set_owner(Some(&camera_actor)),
+                    CameraMode::ThirdPerson => parent_actor.set_owner(None),
+                };
+            }
+        }
+    }
+}
 fn character_control_system(
     input: Res<Input>,
     frame: Res<Frame>,
@@ -353,7 +392,7 @@ fn spawn_camera(
                     ..Default::default()
                 },
                 ActorComponent {
-                    ptr: ActorPtr(actor),
+                    actor: ActorPtr(actor),
                 },
                 CameraComponent::default(),
                 ParentComponent { parent: entity },
@@ -366,7 +405,7 @@ fn update_camera(
     mut query: Query<(Entity, &ParentComponent, &CameraComponent)>,
     mut spatial_query: Query<&mut TransformComponent>,
 ) {
-    for (entity, parent, _) in query.iter_mut() {
+    for (entity, parent, camera) in query.iter_mut() {
         let spatial_parent = spatial_query
             .get_component::<TransformComponent>(parent.parent)
             .ok()
@@ -375,7 +414,11 @@ fn update_camera(
             .get_component_mut::<TransformComponent>(entity)
             .ok();
         if let (Some(mut spatial), Some(parent)) = (spatial, spatial_parent) {
-            let local_offset = spatial.rotation * Vec3::new(-500.0, 0.0, 150.0);
+            let local_offset = match camera.mode {
+                CameraMode::ThirdPerson => spatial.rotation * Vec3::new(-500.0, 0.0, 150.0),
+                CameraMode::FirstPerson => Vec3::new(0.0, 0.0, 50.0),
+            };
+
             spatial.position = parent.position + local_offset;
         }
     }
@@ -408,6 +451,7 @@ impl UserModule for MyModule {
         update.add_system_to_stage(CoreStage::Update, update_movement_velocity);
         update.add_system_to_stage(CoreStage::Update, rotate_camera);
         update.add_system_to_stage(CoreStage::Update, update_camera.after(rotate_camera));
+        update.add_system_to_stage(CoreStage::Update, toggle_camera);
     }
 }
 

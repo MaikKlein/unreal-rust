@@ -9,6 +9,61 @@ pub enum ResultCode {
 }
 
 #[repr(C)]
+#[derive(Copy, Clone)]
+pub struct CollisionBox {
+    pub half_extent_x: f32,
+    pub half_extent_y: f32,
+    pub half_extent_z: f32,
+}
+
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct CollisionSphere {
+    pub radius: f32,
+}
+
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct CollisionCapsule {
+    pub radius: f32,
+    pub half_height: f32,
+}
+
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub struct CollisionShape {
+    pub data: CollisionShapeUnion,
+    pub ty: CollisionShapeType,
+}
+
+impl Default for CollisionShape {
+    fn default() -> Self {
+        Self {
+            data: CollisionShapeUnion {
+                sphere: CollisionSphere { radius: 0.0 },
+            },
+            ty: CollisionShapeType::Sphere,
+        }
+    }
+}
+
+#[repr(u32)]
+#[derive(Copy, Clone)]
+pub enum CollisionShapeType {
+    Box,
+    Capsule,
+    Sphere,
+}
+
+#[repr(C)]
+#[derive(Copy, Clone)]
+pub union CollisionShapeUnion {
+    pub collision_box: CollisionBox,
+    pub sphere: CollisionSphere,
+    pub capsule: CollisionCapsule,
+}
+
+#[repr(C)]
 #[derive(Default, Debug, Copy, Clone)]
 pub struct Quaternion {
     x: f32,
@@ -95,6 +150,47 @@ impl From<Vec3> for Vector3 {
 pub struct LineTraceParams {
     pub ignored_actors: *const *mut AActorOpaque,
     pub ignored_actors_len: usize,
+}
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct OverlapResult {
+    pub actor: *mut AActorOpaque,
+    pub primtive: *mut UPrimtiveOpaque,
+}
+impl Default for OverlapResult {
+    fn default() -> Self {
+        Self {
+            actor: std::ptr::null_mut(),
+            primtive: std::ptr::null_mut(),
+        }
+    }
+}
+
+#[repr(C)]
+#[derive(Debug)]
+pub struct HitResult {
+    pub actor: *mut AActorOpaque,
+    pub primtive: *mut UPrimtiveOpaque,
+    pub distance: f32,
+    pub normal: Vector3,
+    pub location: Vector3,
+    pub impact_location: Vector3,
+    pub pentration_depth: f32,
+}
+
+impl Default for HitResult {
+    fn default() -> Self {
+        Self {
+            actor: std::ptr::null_mut(),
+            primtive: std::ptr::null_mut(),
+            distance: Default::default(),
+            normal: Default::default(),
+            location: Default::default(),
+            impact_location: Default::default(),
+            pentration_depth: Default::default(),
+        }
+    }
 }
 
 // TODO: Is there a more typesafe way of defining an opaque type that
@@ -294,8 +390,6 @@ pub type RetrieveUuids = unsafe extern "C" fn(ptr: *mut Uuid, len: *mut usize);
 pub type GetVelocityRustFn =
     unsafe extern "C" fn(actor: *const AActorOpaque, velocity: &mut Vector3);
 
-pub type CollisionShape = c_void;
-
 #[repr(u32)]
 pub enum EventType {
     ActorSpawned = 0,
@@ -333,69 +427,21 @@ pub type SweepFn = unsafe extern "C" fn(
     end: Vector3,
     rotation: Quaternion,
     params: LineTraceParams,
-    primitive: *const UPrimtiveOpaque,
+    collision_shape: CollisionShape,
     result: &mut HitResult,
 ) -> u32;
 
 pub type OverlapMultiFn = unsafe extern "C" fn(
-    shape: *mut FCollisionShapeOpague,
+    collision_shape: CollisionShape,
     position: Vector3,
     rotation: Quaternion,
     params: LineTraceParams,
     max_results: usize,
     result: *mut *mut OverlapResult,
 ) -> u32;
-#[repr(C)]
-pub struct UnrealPhysicsBindings {
-    pub get_velocity: GetVelocityFn,
-    pub set_velocity: SetVelocityFn,
-    pub is_simulating: IsSimulatingFn,
-    pub add_force: AddForceFn,
-    pub add_impulse: AddImpulseFn,
-    pub line_trace: LineTraceFn,
-    pub get_bounding_box_extent: GetBoundingBoxExtentFn,
-    pub sweep: SweepFn,
-    pub overlap_multi: OverlapMultiFn,
-}
-#[repr(C)]
-#[derive(Debug)]
-pub struct HitResult {
-    pub actor: *mut AActorOpaque,
-    pub primtive: *mut UPrimtiveOpaque,
-    pub distance: f32,
-    pub normal: Vector3,
-    pub location: Vector3,
-    pub impact_location: Vector3,
-    pub pentration_depth: f32,
-}
 
-impl Default for HitResult {
-    fn default() -> Self {
-        Self {
-            actor: std::ptr::null_mut(),
-            primtive: std::ptr::null_mut(),
-            distance: Default::default(),
-            normal: Default::default(),
-            location: Default::default(),
-            impact_location: Default::default(),
-            pentration_depth: Default::default(),
-        }
-    }
-}
-#[repr(C)]
-#[derive(Debug)]
-pub struct OverlapResult {
-    pub actor: *mut AActorOpaque,
-    pub primtive: *mut UPrimtiveOpaque,
-}
-impl Default for OverlapResult {
-    fn default() -> Self {
-        Self {
-            actor: std::ptr::null_mut(),
-            primtive: std::ptr::null_mut(),
-        }
-    }
-}
+pub type GetCollisionShapeFn =
+    extern "C" fn(primitive: *const UPrimtiveOpaque, shape: *mut CollisionShape) -> u32;
 
 extern "C" {
     pub fn GetVelocity(primitive: *const UPrimtiveOpaque) -> Vector3;
@@ -415,17 +461,32 @@ extern "C" {
         end: Vector3,
         rotation: Quaternion,
         params: LineTraceParams,
-        primitive: *const UPrimtiveOpaque,
+        collision_shape: CollisionShape,
         result: &mut HitResult,
     ) -> u32;
     pub fn OverlapMulti(
-        shape: *mut FCollisionShapeOpague,
+        collision_shape: CollisionShape,
         position: Vector3,
         rotation: Quaternion,
         params: LineTraceParams,
         max_results: usize,
         result: *mut *mut OverlapResult,
     ) -> u32;
+    pub fn GetCollisionShape(primitive: *const UPrimtiveOpaque, shape: *mut CollisionShape) -> u32;
+}
+
+#[repr(C)]
+pub struct UnrealPhysicsBindings {
+    pub get_velocity: GetVelocityFn,
+    pub set_velocity: SetVelocityFn,
+    pub is_simulating: IsSimulatingFn,
+    pub add_force: AddForceFn,
+    pub add_impulse: AddImpulseFn,
+    pub line_trace: LineTraceFn,
+    pub get_bounding_box_extent: GetBoundingBoxExtentFn,
+    pub sweep: SweepFn,
+    pub overlap_multi: OverlapMultiFn,
+    pub get_collision_shape: GetCollisionShapeFn,
 }
 
 #[repr(u32)]

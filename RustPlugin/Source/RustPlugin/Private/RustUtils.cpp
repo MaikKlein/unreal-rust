@@ -1,4 +1,4 @@
-#include "Api.h"
+#include "RustUtils.h"
 #include "Modules/ModuleManager.h"
 #include "RustPlugin.h"
 #include "EngineUtils.h"
@@ -14,6 +14,7 @@ UnrealBindings CreateBindings()
 	physics_bindings.line_trace = &LineTrace;
 	physics_bindings.get_bounding_box_extent = &GetBoundingBoxExtent;
 	physics_bindings.sweep = &Sweep;
+	physics_bindings.get_collision_shape = &GetCollisionShape;
 
 	UnrealBindings b = {};
 	b.physics_bindings = physics_bindings;
@@ -100,4 +101,31 @@ FRustPluginModule& GetModule()
 FColor ToFColor(Color c)
 {
 	return FColor(c.r, c.g, c.b, c.a);
+}
+
+FCollisionShape ToFCollisionShape(CollisionShape Shape)
+{
+	if (Shape.ty == CollisionShapeType::Box)
+	{
+		return FCollisionShape::MakeBox(FVector3f(
+			Shape.data.collision_box.half_extent_x,
+			Shape.data.collision_box.half_extent_y,
+			Shape.data.collision_box.half_extent_z
+		));
+	}
+	if (Shape.ty == CollisionShapeType::Sphere)
+	{
+		return FCollisionShape::MakeSphere(Shape.data.sphere.radius);
+	}
+
+	if (Shape.ty == CollisionShapeType::Capsule)
+	{
+		return FCollisionShape::MakeCapsule(
+			Shape.data.capsule.radius,
+			Shape.data.capsule.half_height
+		);
+	}
+
+	// TODO: Unreal way?
+	abort();
 }

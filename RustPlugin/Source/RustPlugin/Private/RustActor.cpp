@@ -3,7 +3,7 @@
 
 #include "RustActor.h"
 #include "RustPlugin.h"
-#include "Api.h"
+#include "Utils.h"
 
 // Sets default values
 ARustActor::ARustActor()

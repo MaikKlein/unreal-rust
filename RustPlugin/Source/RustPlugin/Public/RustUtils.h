@@ -2,7 +2,6 @@
 
 #include "CoreMinimal.h"
 #include "Bindings.h"
-#include "Engine/World.h"
 
 class AActor;
 class FRustPluginModule;
@@ -27,3 +26,5 @@ Uuid ToUuid(FGuid guid);
 
 UnrealBindings CreateBindings();
 FRustPluginModule& GetModule();
+
+FCollisionShape ToFCollisionShape(CollisionShape Shape);

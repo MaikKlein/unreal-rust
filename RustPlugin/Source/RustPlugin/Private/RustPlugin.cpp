@@ -12,7 +12,7 @@
 #include "DirectoryWatcherModule.h"
 #include "IDirectoryWatcher.h"
 #include "Misc/Paths.h"
-#include "Api.h"
+#include "Utils.h"
 #include "FUuidGraphPanelPinFactory.h"
 #include "Modules/ModuleManager.h"
 #include "RustBindingsActor.h"

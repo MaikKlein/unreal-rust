@@ -1,6 +1,6 @@
 #include "Bindings.h"
 #include "GameFramework/Actor.h"
-#include "Api.h"
+#include "RustUtils.h"
 #include "Containers/UnrealString.h"
 #include "RustActor.h"
 #include "EngineUtils.h"
@@ -12,7 +12,6 @@
 #include "Camera/CameraActor.h"
 #include "UObject/UObjectIterator.h"
 #include "VisualLogger/VisualLogger.h"
-#include "VisualLogger/VisualLoggerTypes.h"
 #include "DrawDebugHelpers.h"
 
 DEFINE_LOG_CATEGORY(RustVisualLog);
@@ -248,7 +247,7 @@ uint32_t LineTrace(Vector3 start, Vector3 end, LineTraceParams Params, HitResult
 	return IsHit;
 }
 
-uint32_t OverlapMulti(FCollisionShapeOpague* shape,
+uint32_t OverlapMulti(CollisionShape shape,
                       Vector3 position,
                       Quaternion rotation,
                       LineTraceParams params,
@@ -265,7 +264,7 @@ uint32_t OverlapMulti(FCollisionShapeOpague* shape,
 	                                                                     ToFVector(position),
 	                                                                     ToFQuat(rotation),
 	                                                                     ECollisionChannel::ECC_MAX,
-	                                                                     *(const FCollisionShape*)shape,
+	                                                                     ToFCollisionShape(shape),
 	                                                                     CollisionParams,
 	                                                                     FCollisionResponseParams{});
 	if (IsHit)
@@ -331,7 +330,7 @@ uint32_t Sweep(Vector3 start,
                Vector3 end,
                Quaternion rotation,
                LineTraceParams params,
-               const UPrimtiveOpaque* primitive,
+               CollisionShape shape,
                HitResult* result)
 {
 	FHitResult Out;
@@ -340,6 +339,7 @@ uint32_t Sweep(Vector3 start,
 	{
 		CollisionParams.AddIgnoredActor((AActor*)params.ignored_actors[i]);
 		CollisionParams.bFindInitialOverlaps = true;
+		// TODO: Make configurable
 		CollisionParams.bDebugQuery = true;
 	}
 	bool IsHit = GetModule().GameMode->GetWorld()->SweepSingleByChannel(
@@ -348,7 +348,7 @@ uint32_t Sweep(Vector3 start,
 		ToFVector(end),
 		ToFQuat(rotation),
 		ECollisionChannel::ECC_MAX,
-		((UPrimitiveComponent*)primitive)->GetCollisionShape(),
+		ToFCollisionShape(shape),
 		CollisionParams, FCollisionResponseParams{});
 	if (IsHit)
 	{
@@ -401,4 +401,55 @@ void GetActorName(const AActorOpaque* actor, char* data, uintptr_t* len)
 void SetOwner(AActorOpaque *actor, const AActorOpaque *new_owner)
 {
 	ToAActor(actor)->SetOwner(ToAActor(new_owner));
+}
+uint32_t GetCollisionShape(const UPrimtiveOpaque *primitive, CollisionShape *out)
+{
+	const FCollisionShape UnrealShape = static_cast<const UPrimitiveComponent*>(primitive)->GetCollisionShape();
+
+
+	if(UnrealShape.IsBox())
+	{
+		CollisionShape Shape;
+		Shape.ty = CollisionShapeType::Box;
+		const FVector HalfExtent = UnrealShape.GetBox();
+		CollisionBox Box;
+		Box.half_extent_x = HalfExtent.X;
+		Box.half_extent_y = HalfExtent.Y;
+		Box.half_extent_z = HalfExtent.Z;
+		Shape.data.collision_box = Box;
+
+		*out = Shape;
+		return 1;
+	}
+	
+	if(UnrealShape.IsSphere())
+	{
+		CollisionShape Shape;
+		Shape.ty = CollisionShapeType::Sphere;
+		const float Radius = UnrealShape.GetSphereRadius();
+		CollisionSphere Sphere;
+
+		Sphere.radius = Radius;
+		Shape.data.sphere = Sphere;
+
+		*out = Shape;
+		return 1;
+	}
+	
+	if(UnrealShape.IsCapsule())
+	{
+		CollisionShape Shape;
+		Shape.ty = CollisionShapeType::Capsule;
+		const float Radius = UnrealShape.GetCapsuleRadius();
+		const float HalfHeight = UnrealShape.GetCapsuleHalfHeight();
+		CollisionCapsule Capsule;
+		Capsule.radius = Radius;
+		Capsule.half_height = HalfHeight;
+		Shape.data.capsule = Capsule;
+
+		*out = Shape;
+		return 1;
+	}
+	// TODO: Handle line instead?
+	return 0;
 }

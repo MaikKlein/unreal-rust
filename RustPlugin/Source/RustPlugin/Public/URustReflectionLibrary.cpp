@@ -1,6 +1,6 @@
 #include "URustReflectionLibrary.h"
 
-#include "Api.h"
+#include "RustUtils.h"
 #include "RustPlugin.h"
 
 void URustReflectionLibrary::K2_GetReflectionVector3(UUuid* Id, FEntity EntityId, int32 Index, FVector& Out)

@@ -2,7 +2,7 @@ use ffi::AActorOpaque;
 use glam::{Quat, Vec3};
 use unreal_ffi as ffi;
 
-use crate::{core::PhysicsComponent, module::bindings};
+use crate::{core::CollisionShape, module::bindings};
 
 pub struct SweepResult {
     pub impact_location: Vec3,
@@ -40,7 +40,7 @@ pub fn sweep(
     start: Vec3,
     end: Vec3,
     rotation: Quat,
-    physics: &PhysicsComponent,
+    collision_shape: CollisionShape,
     params: SweepParams,
 ) -> Option<SweepResult> {
     let params = ffi::LineTraceParams {
@@ -54,7 +54,7 @@ pub fn sweep(
             end.into(),
             rotation.into(),
             params,
-            physics.ptr.ptr,
+            collision_shape.into(),
             &mut hit,
         ) == 1
         {

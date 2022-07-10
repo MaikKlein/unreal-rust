@@ -1,6 +1,6 @@
 #include "K2Node_GetComponentRust.h"
 
-#include "Api.h"
+#include "Utils.h"
 #include "BlueprintActionDatabaseRegistrar.h"
 #include "BlueprintNodeSpawner.h"
 #include "EntityComponent.h"
