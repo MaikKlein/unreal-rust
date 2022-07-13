@@ -201,7 +201,7 @@ pub fn find_floor(
     if let Some(hit) = line_trace(
         transform.position,
         transform.position + config.gravity_dir * 1000.0,
-        params,
+        params.clone(),
     ) {
         let distance = Vec3::distance(transform.position, hit.impact_location) - 110.0;
         if Vec3::dot(hit.normal, Vec3::Z) > 0.9 && distance <= config.max_height_until_fall {

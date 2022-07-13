@@ -6,7 +6,12 @@
 class AActor;
 class FRustPluginModule;
 
-DECLARE_LOG_CATEGORY_EXTERN(RustVisualLog, Log, All);
+extern struct FLogCategoryRustVisualLog : public FLogCategory<ELogVerbosity::Log, ELogVerbosity::All>
+{
+	FORCEINLINE FLogCategoryRustVisualLog() : FLogCategory(TEXT("RustVisualLog"))
+	{
+	}
+} RustVisualLog;;
 
 Quaternion ToQuaternion(FQuat q);
 
@@ -18,8 +23,8 @@ FColor ToFColor(Color c);
 // W, X, Y, Z
 FQuat ToFQuat(Quaternion q);
 
-AActor *ToAActor(const AActorOpaque *actor);
-AActor *ToAActor(AActorOpaque *actor);
+AActor* ToAActor(const AActorOpaque* actor);
+AActor* ToAActor(AActorOpaque* actor);
 
 FGuid ToFGuid(Uuid uuid);
 Uuid ToUuid(FGuid guid);
@@ -28,3 +33,6 @@ UnrealBindings CreateBindings();
 FRustPluginModule& GetModule();
 
 FCollisionShape ToFCollisionShape(CollisionShape Shape);
+
+
+FString ToFString(Utf8Str Str);

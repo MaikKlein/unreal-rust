@@ -1,5 +1,6 @@
 use glam::{Quat, Vec3};
 use log::{set_boxed_logger, set_max_level, LevelFilter, Metadata, Record, SetLoggerError};
+use unreal_ffi as ffi;
 use unreal_ffi::Color;
 
 use crate::{core::ActorPtr, module::bindings};
@@ -26,6 +27,7 @@ pub fn init() -> Result<(), SetLoggerError> {
 }
 
 pub fn visual_log_capsule(
+    category: &str,
     actor: ActorPtr,
     position: Vec3,
     rotation: Quat,
@@ -35,10 +37,29 @@ pub fn visual_log_capsule(
 ) {
     unsafe {
         (bindings().visual_log_capsule)(
+            ffi::Utf8Str::from(category),
             actor.0,
             position.into(),
             rotation.into(),
             half_height,
+            radius,
+            color,
+        );
+    }
+}
+
+pub fn visual_log_location(
+    category: &str,
+    actor: ActorPtr,
+    position: Vec3,
+    radius: f32,
+    color: Color,
+) {
+    unsafe {
+        (bindings().visual_log_location)(
+            ffi::Utf8Str::from(category),
+            actor.0,
+            position.into(),
             radius,
             color,
         );

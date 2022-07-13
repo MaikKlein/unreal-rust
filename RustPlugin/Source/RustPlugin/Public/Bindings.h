@@ -78,6 +78,11 @@ struct Color {
 static const Color Color_RED = Color{ /* .r = */ 255, /* .g = */ 0, /* .b = */ 0, /* .a = */ 255 };
 static const Color Color_GREEN = Color{ /* .r = */ 0, /* .g = */ 255, /* .b = */ 0, /* .a = */ 255 };
 
+struct Utf8Str {
+  const char *ptr;
+  uintptr_t len;
+};
+
 using UClassOpague = void;
 
 using UPrimtiveOpaque = void;
@@ -93,8 +98,10 @@ struct HitResult {
   float distance;
   Vector3 normal;
   Vector3 location;
+  Vector3 impact_normal;
   Vector3 impact_location;
   float pentration_depth;
+  uint32_t start_penetrating;
 };
 
 struct CollisionBox {
@@ -152,7 +159,9 @@ using GetActorComponentsFn = void(*)(const AActorOpaque *actor, ActorComponentPt
 
 using VisualLogSegmentFn = void(*)(const AActorOpaque *owner, Vector3 start, Vector3 end, Color color);
 
-using VisualLogCapsuleFn = void(*)(const AActorOpaque *owner, Vector3 position, Quaternion rotation, float half_height, float radius, Color color);
+using VisualLogCapsuleFn = void(*)(Utf8Str category, const AActorOpaque *owner, Vector3 position, Quaternion rotation, float half_height, float radius, Color color);
+
+using VisualLogLocationFn = void(*)(Utf8Str category, const AActorOpaque *owner, Vector3 position, float radius, Color color);
 
 using GetVelocityFn = Vector3(*)(const UPrimtiveOpaque *primitive);
 
@@ -170,6 +179,8 @@ using GetBoundingBoxExtentFn = Vector3(*)(const UPrimtiveOpaque *primitive);
 
 using SweepFn = uint32_t(*)(Vector3 start, Vector3 end, Quaternion rotation, LineTraceParams params, CollisionShape collision_shape, HitResult *result);
 
+using SweepMultiFn = uint32_t(*)(Vector3 start, Vector3 end, Quaternion rotation, LineTraceParams params, CollisionShape collision_shape, uintptr_t max_results, HitResult *results);
+
 using OverlapMultiFn = uint32_t(*)(CollisionShape collision_shape, Vector3 position, Quaternion rotation, LineTraceParams params, uintptr_t max_results, OverlapResult **result);
 
 using GetCollisionShapeFn = uint32_t(*)(const UPrimtiveOpaque *primitive, CollisionShape *shape);
@@ -183,6 +194,7 @@ struct UnrealPhysicsBindings {
   LineTraceFn line_trace;
   GetBoundingBoxExtentFn get_bounding_box_extent;
   SweepFn sweep;
+  SweepMultiFn sweep_multi;
   OverlapMultiFn overlap_multi;
   GetCollisionShapeFn get_collision_shape;
 };
@@ -213,6 +225,7 @@ struct UnrealBindings {
   GetActorComponentsFn get_actor_components;
   VisualLogSegmentFn visual_log_segment;
   VisualLogCapsuleFn visual_log_capsule;
+  VisualLogLocationFn visual_log_location;
   UnrealPhysicsBindings physics_bindings;
   GetRootComponentFn get_root_component;
   GetRegisteredClassesFn get_registered_classes;
@@ -319,12 +332,19 @@ extern void GetRootComponent(const AActorOpaque *actor, ActorComponentPtr *data)
 
 extern void VisualLogSegment(const AActorOpaque *owner, Vector3 start, Vector3 end, Color color);
 
-extern void VisualLogCapsule(const AActorOpaque *owner,
+extern void VisualLogCapsule(Utf8Str category,
+                             const AActorOpaque *owner,
                              Vector3 position,
                              Quaternion rotation,
                              float half_height,
                              float radius,
                              Color color);
+
+extern void VisualLogLocation(Utf8Str category,
+                              const AActorOpaque *owner,
+                              Vector3 position,
+                              float radius,
+                              Color color);
 
 extern void GetRegisteredClasses(UClassOpague **classes, uintptr_t *len);
 
@@ -354,6 +374,14 @@ extern uint32_t Sweep(Vector3 start,
                       LineTraceParams params,
                       CollisionShape collision_shape,
                       HitResult *result);
+
+extern uint32_t SweepMulti(Vector3 start,
+                           Vector3 end,
+                           Quaternion rotation,
+                           LineTraceParams params,
+                           CollisionShape collision_shape,
+                           uintptr_t max_results,
+                           HitResult *results);
 
 extern uint32_t OverlapMulti(CollisionShape collision_shape,
                              Vector3 position,

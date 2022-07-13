@@ -4,14 +4,17 @@ use unreal_ffi as ffi;
 
 use crate::{core::CollisionShape, module::bindings};
 
+#[derive(Debug)]
 pub struct SweepResult {
     pub impact_location: Vec3,
     pub location: Vec3,
     pub penetration_depth: f32,
     pub normal: Vec3,
+    pub impact_normal: Vec3,
+    pub start_penetrating: bool,
 }
 
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub struct SweepParams {
     pub ignored_actors: Vec<*mut AActorOpaque>,
 }
@@ -29,6 +32,8 @@ pub fn line_trace(start: Vec3, end: Vec3, params: SweepParams) -> Option<SweepRe
                 location: hit.location.into(),
                 normal: hit.normal.into(),
                 penetration_depth: hit.pentration_depth,
+                start_penetrating: hit.start_penetrating == 1,
+                impact_normal: hit.impact_normal.into(),
             })
         } else {
             None
@@ -63,7 +68,52 @@ pub fn sweep(
                 location: hit.location.into(),
                 normal: hit.normal.into(),
                 penetration_depth: hit.pentration_depth,
+                start_penetrating: hit.start_penetrating == 1,
+                impact_normal: hit.impact_normal.into(),
             })
+        } else {
+            None
+        }
+    }
+}
+pub fn sweep_multi(
+    start: Vec3,
+    end: Vec3,
+    rotation: Quat,
+    collision_shape: CollisionShape,
+    max_results: usize,
+    params: SweepParams,
+) -> Option<Vec<SweepResult>> {
+    let params = ffi::LineTraceParams {
+        ignored_actors: params.ignored_actors.as_ptr(),
+        ignored_actors_len: params.ignored_actors.len(),
+    };
+    let mut hits: Vec<ffi::HitResult> = Vec::new();
+    hits.resize_with(max_results, Default::default);
+    unsafe {
+        let len = (bindings().physics_bindings.sweep_multi)(
+            start.into(),
+            end.into(),
+            rotation.into(),
+            params,
+            collision_shape.into(),
+            max_results,
+            hits.as_mut_ptr(),
+        );
+        hits.truncate(len as usize);
+        if len > 0 {
+            Some(
+                hits.into_iter()
+                    .map(|hit| SweepResult {
+                        impact_location: hit.impact_location.into(),
+                        location: hit.location.into(),
+                        normal: hit.normal.into(),
+                        penetration_depth: hit.pentration_depth,
+                        start_penetrating: hit.start_penetrating == 1,
+                        impact_normal: hit.impact_normal.into(),
+                    })
+                    .collect(),
+            )
         } else {
             None
         }

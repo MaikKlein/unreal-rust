@@ -108,8 +108,8 @@ void SetEntityForActor(AActorOpaque* actor, Entity entity)
 		AActor* Actor = ToAActor(actor);
 		UEntityComponent* Component = NewObject<UEntityComponent>(ToAActor(actor), TEXT("EntityComponent"));
 		Component->Id.Id = entity.id;
-		
-		
+
+
 		//Actor->AttachToComponent(Actor->GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
 		Component->CreationMethod = EComponentCreationMethod::Native;
 		ToAActor(actor)->AddOwnedComponent(Component);
@@ -280,7 +280,6 @@ uint32_t OverlapMulti(CollisionShape shape,
 	}
 
 	return IsHit;
-	return 0;
 }
 
 void VisualLogSegment(const AActorOpaque* actor, Vector3 start, Vector3 end, Color color)
@@ -288,25 +287,30 @@ void VisualLogSegment(const AActorOpaque* actor, Vector3 start, Vector3 end, Col
 	UE_VLOG_SEGMENT(ToAActor(actor), RustVisualLog, Log, ToFVector(start), ToFVector(end), ToFColor(color), TEXT(""));
 }
 
-void VisualLogCapsule(const AActorOpaque* owner,
-                      Vector3 position,
-                      Quaternion rotation,
-                      float half_height,
-                      float radius,
-                      Color color)
+void VisualLogCapsule(
+	Utf8Str category,
+	const AActorOpaque* owner,
+	Vector3 position,
+	Quaternion rotation,
+	float half_height,
+	float radius,
+	Color color)
 {
-	DrawDebugCapsule(
-		GetModule().GameMode->GetWorld(),
-		ToFVector(position),
-		half_height,
-		radius,
-		ToFQuat(rotation),
-		ToFColor(color),
-		false,
-		0.0,
-		1,
-		1.0);
-	UE_VLOG_CAPSULE(ToAActor(owner), RustVisualLog, Log, ToFVector(position), half_height, radius, ToFQuat(rotation),
+	//DrawDebugCapsule(
+	//	GetModule().GameMode->GetWorld(),
+	//	ToFVector(position),
+	//	half_height,
+	//	radius,
+	//	ToFQuat(rotation),
+	//	ToFColor(color),
+	//	false,
+	//	0.0,
+	//	1,
+	//	1.0);
+	FString CategoryStr = ToFString(category);
+	auto LogCat = FLogCategory<ELogVerbosity::Log, ELogVerbosity::All>(*CategoryStr);
+	FVector Base = ToFVector(position) - half_height * (ToFQuat(rotation) * FVector::UpVector);
+	UE_VLOG_CAPSULE(ToAActor(owner), LogCat, Log, Base, half_height, radius, ToFQuat(rotation),
 	                ToFColor(color), TEXT(""));
 }
 
@@ -357,10 +361,59 @@ uint32_t Sweep(Vector3 start,
 		result->location = ToVector3(Out.Location);
 		result->normal = ToVector3(Out.Normal);
 		result->impact_location = ToVector3(Out.ImpactPoint);
+		result->impact_normal = ToVector3(Out.ImpactNormal);
 		result->pentration_depth = Out.PenetrationDepth;
+		result->start_penetrating = Out.bStartPenetrating;
 	}
 
 	return IsHit;
+}
+
+uint32_t SweepMulti(Vector3 start,
+                    Vector3 end,
+                    Quaternion rotation,
+                    LineTraceParams params,
+                    CollisionShape collision_shape,
+                    uintptr_t max_results,
+                    HitResult* results)
+{
+	TArray<FHitResult> Out;
+
+	auto CollisionParams = FCollisionQueryParams();
+	for (uintptr_t i = 0; i < params.ignored_actors_len; ++i)
+	{
+		CollisionParams.AddIgnoredActor((AActor*)params.ignored_actors[i]);
+		CollisionParams.bFindInitialOverlaps = true;
+		// TODO: Make configurable
+		CollisionParams.bDebugQuery = true;
+	}
+	bool IsHit = GetModule().GameMode->GetWorld()->SweepMultiByChannel(
+		Out,
+		ToFVector(start),
+		ToFVector(end),
+		ToFQuat(rotation),
+		ECollisionChannel::ECC_MAX,
+		ToFCollisionShape(collision_shape),
+		CollisionParams, FCollisionResponseParams{});
+
+	uintptr_t Length = FGenericPlatformMath::Min(max_results, (uintptr_t)Out.Num());
+	if (IsHit)
+	{
+		for (uintptr_t i = 0; i < Length; ++i)
+		{
+			FHitResult& Hit = Out[i];
+
+			results[i].actor = (AActorOpaque*)Hit.GetActor();
+			results[i].distance = Hit.Distance;
+			results[i].location = ToVector3(Hit.Location);
+			results[i].normal = ToVector3(Hit.Normal);
+			results[i].impact_location = ToVector3(Hit.ImpactPoint);
+			results[i].impact_normal = ToVector3(Hit.ImpactNormal);
+			results[i].pentration_depth = Hit.PenetrationDepth;
+			results[i].start_penetrating = Hit.bStartPenetrating;
+		}
+	}
+	return Length;
 }
 
 void GetRegisteredClasses(UClassOpague** classes, uintptr_t* len)
@@ -398,16 +451,17 @@ void GetActorName(const AActorOpaque* actor, char* data, uintptr_t* len)
 	//}
 }
 
-void SetOwner(AActorOpaque *actor, const AActorOpaque *new_owner)
+void SetOwner(AActorOpaque* actor, const AActorOpaque* new_owner)
 {
 	ToAActor(actor)->SetOwner(ToAActor(new_owner));
 }
-uint32_t GetCollisionShape(const UPrimtiveOpaque *primitive, CollisionShape *out)
+
+uint32_t GetCollisionShape(const UPrimtiveOpaque* primitive, CollisionShape* out)
 {
 	const FCollisionShape UnrealShape = static_cast<const UPrimitiveComponent*>(primitive)->GetCollisionShape();
 
 
-	if(UnrealShape.IsBox())
+	if (UnrealShape.IsBox())
 	{
 		CollisionShape Shape;
 		Shape.ty = CollisionShapeType::Box;
@@ -421,8 +475,8 @@ uint32_t GetCollisionShape(const UPrimtiveOpaque *primitive, CollisionShape *out
 		*out = Shape;
 		return 1;
 	}
-	
-	if(UnrealShape.IsSphere())
+
+	if (UnrealShape.IsSphere())
 	{
 		CollisionShape Shape;
 		Shape.ty = CollisionShapeType::Sphere;
@@ -435,8 +489,8 @@ uint32_t GetCollisionShape(const UPrimtiveOpaque *primitive, CollisionShape *out
 		*out = Shape;
 		return 1;
 	}
-	
-	if(UnrealShape.IsCapsule())
+
+	if (UnrealShape.IsCapsule())
 	{
 		CollisionShape Shape;
 		Shape.ty = CollisionShapeType::Capsule;
@@ -452,4 +506,11 @@ uint32_t GetCollisionShape(const UPrimtiveOpaque *primitive, CollisionShape *out
 	}
 	// TODO: Handle line instead?
 	return 0;
+}
+
+void VisualLogLocation(Utf8Str category, const AActorOpaque* owner, Vector3 position, float radius, Color color)
+{
+	FString CategoryStr = ToFString(category);
+	auto LogCat = FLogCategory<ELogVerbosity::Log, ELogVerbosity::All>(*CategoryStr);
+	UE_VLOG_LOCATION(ToAActor(owner), LogCat, Log, ToFVector(position), radius, ToFColor(color), TEXT(""));
 }

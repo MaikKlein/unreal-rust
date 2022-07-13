@@ -47,6 +47,21 @@ impl Default for CollisionShape {
     }
 }
 
+#[repr(C)]
+pub struct Utf8Str {
+    pub ptr: *const c_char,
+    pub len: usize,
+}
+
+impl<'a> From<&'a str> for Utf8Str {
+    fn from(s: &'a str) -> Self {
+        Self {
+            ptr: s.as_ptr() as *const c_char,
+            len: s.len(),
+        }
+    }
+}
+
 #[repr(u32)]
 #[derive(Copy, Clone)]
 pub enum CollisionShapeType {
@@ -175,8 +190,10 @@ pub struct HitResult {
     pub distance: f32,
     pub normal: Vector3,
     pub location: Vector3,
+    pub impact_normal: Vector3,
     pub impact_location: Vector3,
     pub pentration_depth: f32,
+    pub start_penetrating: u32,
 }
 
 impl Default for HitResult {
@@ -188,7 +205,9 @@ impl Default for HitResult {
             normal: Default::default(),
             location: Default::default(),
             impact_location: Default::default(),
+            impact_normal: Default::default(),
             pentration_depth: Default::default(),
+            start_penetrating: Default::default(),
         }
     }
 }
@@ -199,7 +218,6 @@ pub type AActorOpaque = c_void;
 pub type UPrimtiveOpaque = c_void;
 pub type UCapsuleOpaque = c_void;
 pub type UClassOpague = c_void;
-pub type FCollisionShapeOpague = c_void;
 
 pub type GetSpatialDataFn = extern "C" fn(
     actor: *const AActorOpaque,
@@ -236,6 +254,7 @@ pub type VisualLogSegmentFn =
 pub type GetRootComponentFn =
     unsafe extern "C" fn(actor: *const AActorOpaque, data: *mut ActorComponentPtr);
 pub type VisualLogCapsuleFn = unsafe extern "C" fn(
+    category: Utf8Str,
     owner: *const AActorOpaque,
     position: Vector3,
     rotation: Quaternion,
@@ -253,6 +272,14 @@ pub type GetActorNameFn =
 
 pub type SetOwnerFn =
     unsafe extern "C" fn(actor: *mut AActorOpaque, new_owner: *const AActorOpaque);
+
+pub type VisualLogLocationFn = unsafe extern "C" fn(
+    category: Utf8Str,
+    owner: *const AActorOpaque,
+    position: Vector3,
+    radius: f32,
+    color: Color,
+);
 
 extern "C" {
     pub fn SetOwner(actor: *mut AActorOpaque, new_owner: *const AActorOpaque);
@@ -293,10 +320,18 @@ extern "C" {
 
     pub fn VisualLogSegment(owner: *const AActorOpaque, start: Vector3, end: Vector3, color: Color);
     pub fn VisualLogCapsule(
+        category: Utf8Str,
         owner: *const AActorOpaque,
         position: Vector3,
         rotation: Quaternion,
         half_height: f32,
+        radius: f32,
+        color: Color,
+    );
+    pub fn VisualLogLocation(
+        category: Utf8Str,
+        owner: *const AActorOpaque,
+        position: Vector3,
         radius: f32,
         color: Color,
     );
@@ -321,6 +356,7 @@ pub struct UnrealBindings {
     pub get_actor_components: GetActorComponentsFn,
     pub visual_log_segment: VisualLogSegmentFn,
     pub visual_log_capsule: VisualLogCapsuleFn,
+    pub visual_log_location: VisualLogLocationFn,
     pub physics_bindings: UnrealPhysicsBindings,
     pub get_root_component: GetRootComponentFn,
     pub get_registered_classes: GetRegisteredClassesFn,
@@ -441,7 +477,17 @@ pub type OverlapMultiFn = unsafe extern "C" fn(
 ) -> u32;
 
 pub type GetCollisionShapeFn =
-    extern "C" fn(primitive: *const UPrimtiveOpaque, shape: *mut CollisionShape) -> u32;
+    unsafe extern "C" fn(primitive: *const UPrimtiveOpaque, shape: *mut CollisionShape) -> u32;
+
+pub type SweepMultiFn = unsafe extern "C" fn(
+    start: Vector3,
+    end: Vector3,
+    rotation: Quaternion,
+    params: LineTraceParams,
+    collision_shape: CollisionShape,
+    max_results: usize,
+    results: *mut HitResult,
+) -> u32;
 
 extern "C" {
     pub fn GetVelocity(primitive: *const UPrimtiveOpaque) -> Vector3;
@@ -464,6 +510,15 @@ extern "C" {
         collision_shape: CollisionShape,
         result: &mut HitResult,
     ) -> u32;
+    pub fn SweepMulti(
+        start: Vector3,
+        end: Vector3,
+        rotation: Quaternion,
+        params: LineTraceParams,
+        collision_shape: CollisionShape,
+        max_results: usize,
+        results: *mut HitResult,
+    ) -> u32;
     pub fn OverlapMulti(
         collision_shape: CollisionShape,
         position: Vector3,
@@ -485,6 +540,7 @@ pub struct UnrealPhysicsBindings {
     pub line_trace: LineTraceFn,
     pub get_bounding_box_extent: GetBoundingBoxExtentFn,
     pub sweep: SweepFn,
+    pub sweep_multi: SweepMultiFn,
     pub overlap_multi: OverlapMultiFn,
     pub get_collision_shape: GetCollisionShapeFn,
 }

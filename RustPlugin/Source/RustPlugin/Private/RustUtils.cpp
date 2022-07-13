@@ -14,6 +14,7 @@ UnrealBindings CreateBindings()
 	physics_bindings.line_trace = &LineTrace;
 	physics_bindings.get_bounding_box_extent = &GetBoundingBoxExtent;
 	physics_bindings.sweep = &Sweep;
+	physics_bindings.sweep_multi = &SweepMulti;
 	physics_bindings.get_collision_shape = &GetCollisionShape;
 
 	UnrealBindings b = {};
@@ -31,6 +32,7 @@ UnrealBindings CreateBindings()
 	b.get_actor_components = &GetActorComponents;
 	b.visual_log_segment = &VisualLogSegment;
 	b.visual_log_capsule = &VisualLogCapsule;
+	b.visual_log_location = &VisualLogLocation;
 	b.get_root_component = &GetRootComponent;
 	b.get_registered_classes = &GetRegisteredClasses;
 	b.get_class = &GetClass;
@@ -128,4 +130,9 @@ FCollisionShape ToFCollisionShape(CollisionShape Shape)
 
 	// TODO: Unreal way?
 	abort();
+}
+
+FString ToFString(Utf8Str Str)
+{
+	return FString(Str.len, UTF8_TO_TCHAR(Str.ptr));
 }
