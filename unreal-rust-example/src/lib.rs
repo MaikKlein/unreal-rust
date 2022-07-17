@@ -41,19 +41,6 @@ fn project_onto_plane(dir: Vec3, normal: Vec3) -> Vec3 {
     dir - normal * Vec3::dot(dir, normal)
 }
 
-pub struct WalkingState {}
-pub struct FallingState {}
-
-pub enum MovementState2 {
-    Walking(WalkingState),
-    Falling(FallingState),
-}
-
-pub enum Transition {
-    Walking,
-    Falling,
-}
-
 #[derive(Debug, Copy, Clone)]
 pub enum MovementState {
     Walking,
