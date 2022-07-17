@@ -408,6 +408,55 @@ pub enum CollisionShape {
     Sphere { radius: f32 },
 }
 
+impl CollisionShape {
+    pub fn extent(self) -> Vec3 {
+        match self {
+            CollisionShape::Capsule {
+                half_height,
+                radius,
+            } => Vec3::new(radius, radius, half_height),
+            CollisionShape::Box { half_extent } => half_extent,
+            CollisionShape::Sphere { radius } => Vec3::splat(radius),
+        }
+    }
+
+    pub fn scale(self, amount: f32) -> Self {
+        match self {
+            CollisionShape::Capsule {
+                half_height,
+                radius,
+            } => CollisionShape::Capsule {
+                half_height: half_height * amount,
+                radius: radius * amount,
+            },
+            CollisionShape::Box { half_extent } => CollisionShape::Box {
+                half_extent: half_extent * amount,
+            },
+            CollisionShape::Sphere { radius } => CollisionShape::Sphere {
+                radius: radius * amount,
+            },
+        }
+    }
+
+    pub fn inflate(self, amount: f32) -> Self {
+        match self {
+            CollisionShape::Capsule {
+                half_height,
+                radius,
+            } => CollisionShape::Capsule {
+                half_height: half_height + amount,
+                radius: radius + amount,
+            },
+            CollisionShape::Box { half_extent } => CollisionShape::Box {
+                half_extent: half_extent + amount,
+            },
+            CollisionShape::Sphere { radius } => CollisionShape::Sphere {
+                radius: radius + amount,
+            },
+        }
+    }
+}
+
 impl From<CollisionShape> for ffi::CollisionShape {
     fn from(val: CollisionShape) -> Self {
         match val {

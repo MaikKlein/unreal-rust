@@ -70,7 +70,7 @@ void GetActionState(const char* name, uintptr_t len, ActionState* state)
 	{
 		if (PC->PlayerInput->WasJustPressed(M.Key))
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Pressed %s %s"), *ActionName.ToString(), *M.Key.ToString());
+			UE_LOG(LogTemp, Warning, TEXT("Pressed %i %s %s"), GFrameNumber, *ActionName.ToString(), *M.Key.ToString());
 			*state = ActionState::Pressed;
 			return;
 		}

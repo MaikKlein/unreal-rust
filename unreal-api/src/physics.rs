@@ -11,7 +11,7 @@ pub struct SweepResult {
     pub penetration_depth: f32,
     pub normal: Vec3,
     pub impact_normal: Vec3,
-    pub start_penetrating: bool,
+    pub start_in_penentration: bool,
 }
 
 #[derive(Clone, Default)]
@@ -32,7 +32,7 @@ pub fn line_trace(start: Vec3, end: Vec3, params: SweepParams) -> Option<SweepRe
                 location: hit.location.into(),
                 normal: hit.normal.into(),
                 penetration_depth: hit.pentration_depth,
-                start_penetrating: hit.start_penetrating == 1,
+                start_in_penentration: hit.start_penetrating == 1,
                 impact_normal: hit.impact_normal.into(),
             })
         } else {
@@ -68,7 +68,7 @@ pub fn sweep(
                 location: hit.location.into(),
                 normal: hit.normal.into(),
                 penetration_depth: hit.pentration_depth,
-                start_penetrating: hit.start_penetrating == 1,
+                start_in_penentration: hit.start_penetrating == 1,
                 impact_normal: hit.impact_normal.into(),
             })
         } else {
@@ -109,7 +109,7 @@ pub fn sweep_multi(
                         location: hit.location.into(),
                         normal: hit.normal.into(),
                         penetration_depth: hit.pentration_depth,
-                        start_penetrating: hit.start_penetrating == 1,
+                        start_in_penentration: hit.start_penetrating == 1,
                         impact_normal: hit.impact_normal.into(),
                     })
                     .collect(),
