@@ -11,6 +11,7 @@ unreal-api = { path = "../unreal-api"}
 unreal-reflect = { path = "../unreal-reflect" }
 bevy_ecs = "0.7"
 log = "0.4"
+unreal-movement = { path = "../gameplay-plugins/unreal-movement" }
 
 [lib]
 crate-type = ["cdylib"]   

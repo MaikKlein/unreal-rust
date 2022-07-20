@@ -6,3 +6,8 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
+
+unreal-api = { path = "../../unreal-api"}
+unreal-reflect = { path = "../../unreal-reflect" }
+bevy_ecs = "0.7"
+log = "0.4"
