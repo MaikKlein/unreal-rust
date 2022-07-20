@@ -1,4 +1,4 @@
-use bevy_ecs::prelude::*;
+use bevy_ecs::{prelude::*, query::WorldQuery};
 use unreal_api::{
     core::{ActorComponent, CoreStage, Frame, PhysicsComponent, TransformComponent},
     ffi,
@@ -56,7 +56,6 @@ pub struct CharacterControllerComponent {
     #[reflect(skip)]
     pub movement_state: MovementState,
     pub visual_rotation: Quat,
-    pub fall_time: f32,
 }
 
 #[derive(Debug, Component)]
@@ -217,132 +216,166 @@ pub fn movement_hit(
     }
     None
 }
-fn character_control_system(
-    input: Res<Input>,
-    frame: Res<Frame>,
-    mut query: Query<(
-        &mut TransformComponent,
-        &mut CharacterControllerComponent,
-        &CharacterConfigComponent,
-        &PhysicsComponent,
-        &ActorComponent,
-    )>,
-) {
+fn do_walking(movement: &mut MovementQueryItem, input: &Input) -> Option<MovementState> {
+    if let Some(hit) = find_floor(
+        movement.actor,
+        &movement.transform,
+        movement.physics,
+        movement.config,
+    ) {
+        //transform.position = hit.position;
+        movement.controller.vertical_velocity = Vec3::ZERO;
+        movement.transform.position.z = hit.impact_location.z
+            + movement.physics.get_collision_shape().extent().z
+            + movement.config.walk_offset;
+
+        if input.is_action_pressed(PlayerInput::JUMP) {
+            movement.controller.vertical_velocity.z += movement.config.jump_velocity;
+            return Some(MovementState::Falling);
+        }
+        None
+    } else {
+        Some(MovementState::Falling)
+    }
+}
+
+fn do_falling(
+    movement: &mut MovementQueryItem,
+    input: &Input,
+    dt: f32,
+) -> Option<MovementState> {
+    let is_downwards = movement.controller.vertical_velocity.z < 0.0;
+    if find_floor(
+        movement.actor,
+        &movement.transform,
+        movement.physics,
+        movement.config,
+    )
+    .is_some()
+        && is_downwards
+    {
+        Some(MovementState::Walking)
+    } else if input.is_action_pressed(PlayerInput::JUMP) {
+        Some(MovementState::Gliding)
+    } else {
+        movement.controller.vertical_velocity +=
+            movement.config.gravity_dir * movement.config.gravity_strength * dt;
+        None
+    }
+}
+
+fn do_gliding(
+    movement: &mut MovementQueryItem,
+    input: &Input,
+    dt: f32,
+) -> Option<MovementState> {
+    let is_downwards = movement.controller.vertical_velocity.z < 0.0;
+
+    if find_floor(
+        movement.actor,
+        &movement.transform,
+        movement.physics,
+        movement.config,
+    )
+    .is_some()
+        && is_downwards
+    {
+        Some(MovementState::Walking)
+    } else if input.is_action_pressed(PlayerInput::JUMP) {
+        Some(MovementState::Falling)
+    } else {
+        movement.controller.vertical_velocity += movement.config.gravity_dir
+            * movement.config.gravity_strength
+            * movement.config.gliding_gravity_scale
+            * dt;
+
+        movement.controller.vertical_velocity.z = f32::max(
+            -movement.config.max_gliding_downwards_speed,
+            movement.controller.vertical_velocity.z,
+        );
+
+        None
+    }
+}
+
+#[derive(WorldQuery)]
+#[world_query(mutable)]
+pub struct MovementQuery<'w> {
+    actor: &'w ActorComponent,
+    transform: &'w mut TransformComponent,
+    physics: &'w PhysicsComponent,
+    controller: &'w mut CharacterControllerComponent,
+    config: &'w CharacterConfigComponent,
+}
+
+fn character_control_system(input: Res<Input>, frame: Res<Frame>, mut query: Query<MovementQuery>) {
     let forward = input
         .get_axis_value(PlayerInput::MOVE_FORWARD)
         .unwrap_or(0.0);
     let right = input.get_axis_value(PlayerInput::MOVE_RIGHT).unwrap_or(0.0);
     let player_input = Vec3::new(forward, right, 0.0).normalize_or_zero();
 
-    for (mut transform, mut controller, config, physics, actor) in query.iter_mut() {
-        let mut input_dir = controller.camera_view * player_input;
+    for mut movement in query.iter_mut() {
+        let mut input_dir = movement.controller.camera_view * player_input;
         input_dir.z = 0.0;
-        controller.horizontal_velocity = input_dir.normalize_or_zero() * config.max_movement_speed;
+        movement.controller.horizontal_velocity =
+            input_dir.normalize_or_zero() * movement.config.max_movement_speed;
 
-        if let Some(new_position) = resolve_possible_penetration(actor, &transform, physics) {
-            transform.position = new_position;
+        if let Some(new_position) =
+            resolve_possible_penetration(movement.actor, &movement.transform, movement.physics)
+        {
+            movement.transform.position = new_position;
         }
 
-        let new_state = match controller.movement_state {
-            MovementState::Walking => {
-                controller.fall_time = 0.0;
-                if let Some(hit) = find_floor(actor, &transform, physics, config) {
-                    //transform.position = hit.position;
-                    controller.vertical_velocity = Vec3::ZERO;
-                    transform.position.z = hit.impact_location.z
-                        + physics.get_collision_shape().extent().z
-                        + config.walk_offset;
-
-                    if input.is_action_pressed(PlayerInput::JUMP) {
-                        controller.vertical_velocity.z += config.jump_velocity;
-                        Some(MovementState::Falling)
-                    } else {
-                        None
-                    }
-                } else {
-                    Some(MovementState::Falling)
-                }
-            }
-            MovementState::Falling => {
-                controller.fall_time += frame.dt;
-
-                let is_downwards = controller.vertical_velocity.z < 0.0;
-                if find_floor(actor, &transform, physics, config).is_some() && is_downwards {
-                    Some(MovementState::Walking)
-                } else if input.is_action_pressed(PlayerInput::JUMP) {
-                    Some(MovementState::Gliding)
-                } else {
-                    controller.vertical_velocity +=
-                        config.gravity_dir * config.gravity_strength * frame.dt;
-                    None
-                }
-            }
-            MovementState::Gliding => {
-                let is_downwards = controller.vertical_velocity.z < 0.0;
-
-                //let mut fwd = controller.camera_view * player_input;
-                if find_floor(actor, &transform, physics, config).is_some() && is_downwards {
-                    Some(MovementState::Walking)
-                } else if input.is_action_pressed(PlayerInput::JUMP) {
-                    Some(MovementState::Falling)
-                } else {
-                    controller.vertical_velocity += config.gravity_dir
-                        * config.gravity_strength
-                        * config.gliding_gravity_scale
-                        * frame.dt;
-
-                    controller.vertical_velocity.z = f32::max(
-                        -config.max_gliding_downwards_speed,
-                        controller.vertical_velocity.z,
-                    );
-
-                    None
-                }
-            }
+        let new_state = match movement.controller.movement_state {
+            MovementState::Walking => do_walking(&mut movement, &input),
+            MovementState::Falling => do_falling(&mut movement, &input, frame.dt),
+            MovementState::Gliding => do_gliding(&mut movement, &input, frame.dt),
         };
 
         if let Some(new_state) = new_state {
-            controller.movement_state = new_state;
+            movement.controller.movement_state = new_state;
         }
 
         if let Some(hit) = movement_hit(
-            actor,
-            &transform,
-            physics,
-            config,
-            controller.horizontal_velocity,
+            movement.actor,
+            &movement.transform,
+            movement.physics,
+            movement.config,
+            movement.controller.horizontal_velocity,
             frame.dt,
         ) {
             match hit {
                 MovementHit::Slope { normal } => {
-                    controller.horizontal_velocity =
-                        project_onto_plane(controller.horizontal_velocity, normal)
+                    movement.controller.horizontal_velocity =
+                        project_onto_plane(movement.controller.horizontal_velocity, normal)
                             .normalize_or_zero()
-                            * config.max_movement_speed
+                            * movement.config.max_movement_speed
                 }
                 MovementHit::Wall { normal } => {
                     let is_wall = Vec3::dot(normal, Vec3::Z) < 0.2;
 
                     if is_wall {
                         let mut params = SweepParams::default();
-                        params.ignored_actors.push(actor.actor.0);
+                        params.ignored_actors.push(movement.actor.actor.0);
 
-                        let target_pos = transform.position
-                            + controller.horizontal_velocity.normalize_or_zero() * 5.0
-                            + Vec3::Z * (config.step_size + 10.0);
+                        let target_pos = movement.transform.position
+                            + movement.controller.horizontal_velocity.normalize_or_zero() * 5.0
+                            + Vec3::Z * (movement.config.step_size + 10.0);
 
                         if let Some(step_result) = sweep(
                             target_pos,
                             target_pos - Vec3::Z * 100.0,
-                            transform.rotation,
-                            physics.get_collision_shape(),
+                            movement.transform.rotation,
+                            movement.physics.get_collision_shape(),
                             params,
                         )
                         .and_then(|hit| {
                             if hit.start_in_penentration {
                                 return None;
                             }
-                            if hit.impact_location.z - transform.position.z < config.step_size / 2.0
+                            if hit.impact_location.z - movement.transform.position.z
+                                < movement.config.step_size / 2.0
                             {
                                 Some(StepUpResult {
                                     location: hit.location,
@@ -352,43 +385,45 @@ fn character_control_system(
                                 None
                             }
                         }) {
-                            let shape = physics.get_collision_shape();
+                            let shape = movement.physics.get_collision_shape();
                             unreal_api::log::visual_log_shape(
                                 MovementLog::STEP_UP,
-                                actor.actor,
-                                transform.position,
-                                transform.rotation,
+                                movement.actor.actor,
+                                movement.transform.position,
+                                movement.transform.rotation,
                                 shape,
                                 ffi::Color::BLUE,
                             );
 
                             unreal_api::log::visual_log_shape(
                                 MovementLog::STEP_UP,
-                                actor.actor,
+                                movement.actor.actor,
                                 step_result.location,
-                                transform.rotation,
+                                movement.transform.rotation,
                                 shape,
                                 ffi::Color::RED,
                             );
                             unreal_api::log::visual_log_location(
                                 MovementLog::STEP_UP,
-                                actor.actor,
+                                movement.actor.actor,
                                 step_result.impact_location,
                                 5.0,
                                 ffi::Color::GREEN,
                             );
-                            transform.position = step_result.location + Vec3::Z * 2.0;
+                            movement.transform.position = step_result.location + Vec3::Z * 2.0;
                         } else {
                             let wall_normal = normal.xy().extend(0.0).normalize_or_zero();
 
-                            controller.horizontal_velocity =
-                                project_onto_plane(controller.horizontal_velocity, wall_normal)
+                            movement.controller.horizontal_velocity = project_onto_plane(
+                                movement.controller.horizontal_velocity,
+                                wall_normal,
+                            )
                         }
                     } else {
                         let wall_normal = normal.xy().extend(0.0).normalize_or_zero();
 
-                        controller.horizontal_velocity =
-                            project_onto_plane(controller.horizontal_velocity, wall_normal)
+                        movement.controller.horizontal_velocity =
+                            project_onto_plane(movement.controller.horizontal_velocity, wall_normal)
                     }
                 }
             }
@@ -396,27 +431,29 @@ fn character_control_system(
         {
             let mut params = SweepParams::default();
 
-            params.ignored_actors.push(actor.actor.0);
+            params.ignored_actors.push(movement.actor.actor.0);
             if let Some(hit) = sweep(
-                transform.position,
-                transform.position + controller.vertical_velocity * frame.dt,
-                transform.rotation,
-                physics.get_collision_shape(),
+                movement.transform.position,
+                movement.transform.position + movement.controller.vertical_velocity * frame.dt,
+                movement.transform.rotation,
+                movement.physics.get_collision_shape(),
                 params,
             ) {
                 // Lazy: lets just set the vertical_velocity to zero if we hit something
                 if !hit.start_in_penentration {
-                    controller.vertical_velocity = Vec3::ZERO;
+                    movement.controller.vertical_velocity = Vec3::ZERO;
                 }
             }
         }
-        transform.position +=
-            (controller.horizontal_velocity + controller.vertical_velocity) * frame.dt;
+        movement.transform.position += (movement.controller.horizontal_velocity
+            + movement.controller.vertical_velocity)
+            * frame.dt;
 
-        if controller.horizontal_velocity.length() > 0.2 {
-            let velocity_dir = controller.horizontal_velocity.normalize_or_zero();
+        if movement.controller.horizontal_velocity.length() > 0.2 {
+            let velocity_dir = movement.controller.horizontal_velocity.normalize_or_zero();
             let target_rot = Quat::from_rotation_z(f32::atan2(velocity_dir.y, velocity_dir.x));
-            transform.rotation = Quat::lerp(transform.rotation, target_rot, frame.dt * 10.0);
+            movement.transform.rotation =
+                Quat::lerp(movement.transform.rotation, target_rot, frame.dt * 10.0);
         }
     }
 }
