@@ -3,15 +3,6 @@ use bevy_ecs::{entity::Entity, prelude::World};
 use glam::{Quat, Vec3};
 use std::collections::{HashMap, HashSet};
 
-#[macro_export]
-macro_rules! register_components {
-    ($($ty: ty,)* => $registry: expr) => {
-        $(
-            $registry.register::<$ty>();
-        )*
-    };
-}
-
 #[derive(Default)]
 pub struct ReflectionRegistry {
     pub uuid_set: HashSet<uuid::Uuid>,

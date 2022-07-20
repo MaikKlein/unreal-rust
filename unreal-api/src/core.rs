@@ -8,7 +8,7 @@ use crate::{
     math::{Quat, Vec3},
     module::{bindings, Module, UserModule},
     plugin::Plugin,
-    register_components2,
+    register_components,
 };
 
 #[derive(Debug)]
@@ -28,7 +28,7 @@ pub struct CorePlugin;
 
 impl Plugin for CorePlugin {
     fn build(module: &mut Module) {
-        register_components2! {
+        register_components! {
             TransformComponent,
             ActorComponent,
             PlayerInputComponent,

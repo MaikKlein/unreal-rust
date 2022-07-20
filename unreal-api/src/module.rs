@@ -26,7 +26,7 @@ pub trait InitUserModule {
 
 pub type EmptySystem = &'static dyn System<In = (), Out = ()>;
 #[macro_export]
-macro_rules! register_components2 {
+macro_rules! register_components {
     ($($ty: ty,)* => $module: expr) => {
         $(
             $module.register_component::<$ty>();

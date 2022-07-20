@@ -12,7 +12,7 @@ use unreal_api::{
     math::{Quat, Vec3, Vec3Swizzles},
     module::{bindings, InitUserModule, Module, UserModule},
     physics::{sweep, SweepParams},
-    register_components2,
+    register_components,
 };
 use unreal_reflect::Component;
 
@@ -661,7 +661,7 @@ impl InitUserModule for MyModule {
 }
 impl UserModule for MyModule {
     fn initialize(&self, module: &mut Module) {
-        register_components2! {
+        register_components! {
             CameraComponent,
             MovementComponent,
             CharacterConfigComponent,
