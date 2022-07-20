@@ -5,6 +5,7 @@ members = [
     "unreal-reflect",
     "unreal-reflect-derive",
     "unreal-rust-example",
+    "gameplay-plugins/unreal-movement",
 ]
 #[profile.release]
 #debug = true

@@ -1,7 +1,18 @@
-use bevy_ecs::schedule::Schedule;
-use unreal_reflect::registry::ReflectionRegistry;
+use bevy_ecs::{
+    prelude::System,
+    schedule::{Schedule, StageLabel, SystemSet, SystemStage},
+    system::Resource,
+};
+use unreal_reflect::{
+    registry::{InsertReflectionStruct, ReflectionRegistry},
+    TypeUuid, World,
+};
 
-use crate::{core::UnrealCore, ffi::UnrealBindings};
+use crate::{
+    core::{StartupStage, UnrealCore},
+    ffi::UnrealBindings,
+    plugin::Plugin,
+};
 
 pub static mut MODULE: Option<Global> = None;
 pub struct Global {
@@ -12,9 +23,98 @@ pub struct Global {
 pub trait InitUserModule {
     fn initialize() -> Self;
 }
+
+pub type EmptySystem = &'static dyn System<In = (), Out = ()>;
+#[macro_export]
+macro_rules! register_components2 {
+    ($($ty: ty,)* => $module: expr) => {
+        $(
+            $module.register_component::<$ty>();
+        )*
+    };
+}
+
+pub struct Module {
+    pub(crate) schedule: Schedule,
+    pub(crate) startup: Schedule,
+    pub(crate) reflection_registry: ReflectionRegistry,
+    pub(crate) world: World,
+}
+
+impl Module {
+    pub fn new() -> Self {
+        let mut startup = Schedule::default();
+        startup.add_stage(StartupStage, SystemStage::single_threaded());
+
+        Self {
+            schedule: Schedule::default(),
+            startup,
+            reflection_registry: ReflectionRegistry::default(),
+            world: World::new(),
+        }
+    }
+    pub fn insert_resource(&mut self, resource: impl Resource) -> &mut Self {
+        self.world.insert_resource(resource);
+        self
+    }
+
+    pub fn add_stage(&mut self, label: impl StageLabel) -> &mut Self {
+        self.schedule
+            .add_stage(label, SystemStage::single_threaded());
+        self
+    }
+
+    pub fn add_stage_after(
+        &mut self,
+        label: impl StageLabel,
+        insert: impl StageLabel,
+    ) -> &mut Self {
+        self.schedule
+            .add_stage_after(label, insert, SystemStage::single_threaded());
+        self
+    }
+
+    pub fn add_stage_before(
+        &mut self,
+        label: impl StageLabel,
+        insert: impl StageLabel,
+    ) -> &mut Self {
+        self.schedule
+            .add_stage_before(label, insert, SystemStage::single_threaded());
+        self
+    }
+
+    pub fn add_system_set_to_stage(&mut self, label: impl StageLabel, set: SystemSet) -> &mut Self {
+        self.schedule.add_system_set_to_stage(label, set);
+        self
+    }
+
+    pub fn register_component<T>(&mut self)
+    where
+        T: InsertReflectionStruct + TypeUuid + 'static,
+    {
+        self.reflection_registry.register::<T>();
+    }
+
+    pub fn add_plugin<P: Plugin>(&mut self) {
+        P::build(self);
+    }
+
+    pub fn add_startup_system_set(&mut self, system_set: SystemSet) -> &mut Self {
+        self.startup
+            .add_system_set_to_stage(StartupStage, system_set);
+        self
+    }
+}
+
+impl Default for Module {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 pub trait UserModule {
-    fn register(&self, registry: &mut ReflectionRegistry);
-    fn systems(&self, startup: &mut Schedule, update: &mut Schedule);
+    fn initialize(&self, module: &mut Module);
 }
 pub static mut BINDINGS: Option<UnrealBindings> = None;
 

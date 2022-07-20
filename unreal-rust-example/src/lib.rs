@@ -10,10 +10,11 @@ use unreal_api::{
     input::Input,
     log::LogCategory,
     math::{Quat, Vec3, Vec3Swizzles},
-    module::{bindings, InitUserModule, UserModule},
+    module::{bindings, InitUserModule, Module, UserModule},
     physics::{sweep, SweepParams},
+    register_components2,
 };
-use unreal_reflect::{register_components, registry::ReflectionRegistry, Component};
+use unreal_reflect::Component;
 
 #[repr(u32)]
 #[derive(Copy, Clone)]
@@ -414,7 +415,7 @@ fn character_control_system(
                 }
             }
             MovementState::Gliding => {
-                let is_downwards = controller.horizontal_velocity.z < 0.0;
+                let is_downwards = controller.vertical_velocity.z < 0.0;
 
                 //let mut fwd = controller.camera_view * player_input;
                 if find_floor(actor, &transform, physics, config).is_some() && is_downwards {
@@ -659,29 +660,32 @@ impl InitUserModule for MyModule {
     }
 }
 impl UserModule for MyModule {
-    fn register(&self, registry: &mut ReflectionRegistry) {
-        register_components! {
+    fn initialize(&self, module: &mut Module) {
+        register_components2! {
             CameraComponent,
             MovementComponent,
             CharacterConfigComponent,
-            => registry
-        }
-    }
+            => module
+        };
 
-    fn systems(&self, startup: &mut Schedule, update: &mut Schedule) {
-        startup.add_system_to_stage(CoreStage::Startup, register_class_resource);
-        startup.add_system_to_stage(CoreStage::Startup, register_player_input);
-        update.add_system_to_stage(CoreStage::Update, spawn_class);
-        update.add_system_to_stage(CoreStage::Update, spawn_camera);
-        update.add_system_to_stage(CoreStage::Update, character_control_system);
-        update.add_system_to_stage(CoreStage::Update, update_controller_view);
-        update.add_system_to_stage(
-            CoreStage::Update,
-            update_movement_component.after(character_control_system),
-        );
-        update.add_system_to_stage(CoreStage::Update, rotate_camera);
-        update.add_system_to_stage(CoreStage::Update, update_camera.after(rotate_camera));
-        update.add_system_to_stage(CoreStage::Update, toggle_camera);
+        module
+            .add_startup_system_set(
+                SystemSet::new()
+                    .with_system(register_class_resource)
+                    .with_system(register_player_input),
+            )
+            .add_system_set_to_stage(
+                CoreStage::Update,
+                SystemSet::new()
+                    .with_system(spawn_class)
+                    .with_system(spawn_camera)
+                    .with_system(character_control_system)
+                    .with_system(update_controller_view)
+                    .with_system(update_movement_component.after(character_control_system))
+                    .with_system(rotate_camera)
+                    .with_system(update_camera.after(rotate_camera))
+                    .with_system(toggle_camera),
+            );
     }
 }
 

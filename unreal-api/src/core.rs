@@ -6,7 +6,9 @@ use crate::{
     ffi::{self, AActorOpaque},
     input::Input,
     math::{Quat, Vec3},
-    module::{bindings, UserModule},
+    module::{bindings, Module, UserModule},
+    plugin::Plugin,
+    register_components2,
 };
 
 #[derive(Debug)]
@@ -18,52 +20,58 @@ unsafe impl Send for UnrealEvent {}
 unsafe impl Sync for UnrealEvent {}
 
 pub struct UnrealCore {
-    world: World,
-    schedule: Schedule,
-    reflection_registry: ReflectionRegistry,
+    module: Module,
     unreal_events: Vec<UnrealEvent>,
 }
 
-impl UnrealCore {
-    pub fn new(module: &dyn UserModule) -> Self {
-        let mut reflection_registry = ReflectionRegistry::default();
-        register_core_components(&mut reflection_registry);
-        module.register(&mut reflection_registry);
+pub struct CorePlugin;
 
-        let mut world = World::new();
+impl Plugin for CorePlugin {
+    fn build(module: &mut Module) {
+        register_components2! {
+            TransformComponent,
+            ActorComponent,
+            PlayerInputComponent,
+            ParentComponent,
+            PhysicsComponent,
+            => module
+        };
 
-        world.insert_resource(Frame::default());
-        world.insert_resource(Time::default());
-        world.insert_resource(Input::default());
-        world.insert_resource(ActorRegistration::default());
-
-        let mut schedule = Schedule::default();
-        schedule
-            .add_stage(CoreStage::PreUpdate, SystemStage::single_threaded())
-            .add_stage_after(
+        module
+            .insert_resource(Frame::default())
+            .insert_resource(Time::default())
+            .insert_resource(Input::default())
+            .insert_resource(ActorRegistration::default())
+            .add_stage(CoreStage::PreUpdate)
+            .add_stage_after(CoreStage::PreUpdate, CoreStage::Update)
+            .add_stage_after(CoreStage::Update, CoreStage::PostUpdate)
+            .add_system_set_to_stage(
                 CoreStage::PreUpdate,
-                CoreStage::Update,
-                SystemStage::single_threaded(),
+                SystemSet::new()
+                    .with_system(update_input)
+                    .with_system(download_transform_from_unreal),
             )
-            .add_stage_after(
-                CoreStage::Update,
+            .add_system_set_to_stage(
                 CoreStage::PostUpdate,
-                SystemStage::single_threaded(),
+                SystemSet::new()
+                    .with_system(upload_transform_to_unreal)
+                    .with_system(process_unreal_events),
             );
+    }
+}
 
-        schedule.add_system_to_stage(CoreStage::PreUpdate, update_input);
-        schedule.add_system_to_stage(CoreStage::PreUpdate, download_transform_from_unreal);
-        schedule.add_system_to_stage(CoreStage::PostUpdate, upload_transform_to_unreal);
-        schedule.add_system_to_stage(CoreStage::PostUpdate, process_unreal_events);
+impl UnrealCore {
+    pub fn new(user_module: &dyn UserModule) -> Self {
+        let mut module = Module::new();
+        module.add_plugin::<CorePlugin>();
+        user_module.initialize(&mut module);
         Self {
-            world,
-            schedule,
-            reflection_registry,
+            module,
             unreal_events: Vec::new(),
         }
     }
 
-    pub fn begin_play(&mut self, module: &dyn UserModule) {
+    pub fn begin_play(&mut self, user_module: &dyn UserModule) {
         std::panic::set_hook(Box::new(|panic_info| {
             if let Some(s) = panic_info.payload().downcast_ref::<&str>() {
                 let location = panic_info.location().map_or("".to_string(), |loc| {
@@ -74,37 +82,31 @@ impl UnrealCore {
                 log::error!("panic occurred");
             }
         }));
-        *self = Self::new(module);
+        *self = Self::new(user_module);
 
-        let mut startup = Schedule::default();
-        startup.add_stage(CoreStage::Startup, SystemStage::single_threaded());
-
-        module.systems(&mut startup, &mut self.schedule);
-
-        startup.run_once(&mut self.world);
-
-        log::info!("BeginPlay Rust");
+        self.module.startup.run_once(&mut self.module.world);
     }
     pub fn tick(&mut self, dt: f32) {
-        if let Some(mut frame) = self.world.get_resource_mut::<Frame>() {
+        if let Some(mut frame) = self.module.world.get_resource_mut::<Frame>() {
             frame.dt = dt;
         }
-        if let Some(mut time) = self.world.get_resource_mut::<Time>() {
+        if let Some(mut time) = self.module.world.get_resource_mut::<Time>() {
             time.time += dt as f64;
         }
-        self.schedule.run_once(&mut self.world);
-        self.world.clear_trackers();
+        self.module.schedule.run_once(&mut self.module.world);
+        self.module.world.clear_trackers();
     }
 }
 
 pub unsafe extern "C" fn retrieve_uuids(ptr: *mut ffi::Uuid, len: *mut usize) {
     if let Some(global) = crate::module::MODULE.as_mut() {
         if ptr.is_null() {
-            *len = global.core.reflection_registry.uuid_set.len();
+            *len = global.core.module.reflection_registry.uuid_set.len();
         } else {
             let slice = std::ptr::slice_from_raw_parts_mut(ptr, *len);
             for (idx, uuid) in global
                 .core
+                .module
                 .reflection_registry
                 .uuid_set
                 .iter()
@@ -208,10 +210,10 @@ fn get_field_value(uuid: ffi::Uuid, entity: ffi::Entity, idx: u32) -> Option<Ref
     let uuid = from_ffi_uuid(uuid);
     unsafe {
         let global = crate::module::MODULE.as_mut()?;
-        let reflect = global.core.reflection_registry.reflect.get(&uuid)?;
+        let reflect = global.core.module.reflection_registry.reflect.get(&uuid)?;
 
         let entity = Entity::from_bits(entity.id);
-        reflect.get_field_value(&global.core.world, entity, idx)
+        reflect.get_field_value(&global.core.module.world, entity, idx)
     }
 }
 
@@ -219,7 +221,7 @@ unsafe extern "C" fn number_of_fields(uuid: ffi::Uuid, out: *mut u32) -> u32 {
     fn get_number_fields(uuid: ffi::Uuid) -> Option<u32> {
         let global = unsafe { crate::module::MODULE.as_mut() }?;
         let uuid = from_ffi_uuid(uuid);
-        let reflect = global.core.reflection_registry.reflect.get(&uuid)?;
+        let reflect = global.core.module.reflection_registry.reflect.get(&uuid)?;
         Some(reflect.number_of_fields() as u32)
     }
     let result = std::panic::catch_unwind(|| {
@@ -240,7 +242,7 @@ unsafe extern "C" fn get_type_name(
     fn get_type_name(uuid: ffi::Uuid) -> Option<&'static str> {
         let global = unsafe { crate::module::MODULE.as_mut() }?;
         let uuid = from_ffi_uuid(uuid);
-        let reflect = global.core.reflection_registry.reflect.get(&uuid)?;
+        let reflect = global.core.module.reflection_registry.reflect.get(&uuid)?;
         Some(reflect.name())
     }
     let result = std::panic::catch_unwind(|| {
@@ -264,7 +266,7 @@ unsafe extern "C" fn get_field_name(
     fn get_field_name(uuid: ffi::Uuid, idx: u32) -> Option<&'static str> {
         let global = unsafe { crate::module::MODULE.as_mut() }?;
         let uuid = from_ffi_uuid(uuid);
-        let reflect = global.core.reflection_registry.reflect.get(&uuid)?;
+        let reflect = global.core.module.reflection_registry.reflect.get(&uuid)?;
         reflect.get_field_name(idx)
     }
     let result = std::panic::catch_unwind(|| {
@@ -286,7 +288,7 @@ unsafe extern "C" fn get_field_type(
     fn get_field_type(uuid: ffi::Uuid, idx: u32) -> Option<ffi::ReflectionType> {
         let global = unsafe { crate::module::MODULE.as_mut() }?;
         let uuid = from_ffi_uuid(uuid);
-        let reflect = global.core.reflection_registry.reflect.get(&uuid)?;
+        let reflect = global.core.module.reflection_registry.reflect.get(&uuid)?;
         let ty = reflect.get_field_type(idx)?;
         Some(match ty {
             ReflectType::Bool => ffi::ReflectionType::Bool,
@@ -366,6 +368,9 @@ use unreal_reflect::{
     registry::{ReflectType, ReflectValue, ReflectionRegistry},
     Component, Uuid,
 };
+#[derive(Debug, Hash, PartialEq, Eq, Clone, StageLabel)]
+pub struct StartupStage;
+
 #[derive(Debug, Hash, PartialEq, Eq, Clone, StageLabel)]
 pub enum CoreStage {
     Startup,

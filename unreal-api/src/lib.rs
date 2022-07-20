@@ -5,6 +5,7 @@ pub mod input;
 pub mod log;
 pub mod module;
 pub mod physics;
+pub mod plugin;
 
 pub use bevy_ecs as ecs;
 pub use glam as math;

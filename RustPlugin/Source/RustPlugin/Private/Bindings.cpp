@@ -66,6 +66,9 @@ void GetActionState(const char* name, uintptr_t len, ActionState* state)
 
 	FName ActionName((int32)len, name);
 
+	// TODO: I think this logic is broken. I think we can have both a pressed and a released event
+	// at the same time. If that happens we will only process the `Pressed` event.
+	
 	for (auto M : PC->PlayerInput->GetKeysForAction(ActionName))
 	{
 		if (PC->PlayerInput->WasJustPressed(M.Key))
