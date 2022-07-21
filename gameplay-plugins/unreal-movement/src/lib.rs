@@ -107,123 +107,13 @@ pub struct FloorHit {
     pub impact_location: Vec3,
 }
 
-pub fn resolve_possible_penetration(
-    actor: &ActorComponent,
-    transform: &TransformComponent,
-    physics: &PhysicsComponent,
-) -> Option<Vec3> {
-    let mut params = SweepParams::default();
-    params.ignored_actors.push(actor.actor.0);
-    let shape = physics.get_collision_shape();
-    sweep(
-        transform.position,
-        transform.position + Vec3::Z * 10.0,
-        transform.rotation,
-        shape,
-        params.clone(),
-    )
-    .and_then(|hit| {
-        if hit.start_in_penentration {
-            let new_location = hit.location + hit.normal * (hit.penetration_depth + 2.0);
-            unreal_api::log::visual_log_location(
-                MovementLog::PENETRATION,
-                actor.actor,
-                hit.location,
-                10.0,
-                ffi::Color::RED,
-            );
-            unreal_api::log::visual_log_location(
-                MovementLog::PENETRATION,
-                actor.actor,
-                new_location,
-                10.0,
-                ffi::Color::GREEN,
-            );
-
-            Some(new_location)
-        } else {
-            None
-        }
-    })
-}
 pub struct StepUpResult {
     location: Vec3,
     impact_location: Vec3,
 }
 
-pub fn find_floor(
-    actor: &ActorComponent,
-    transform: &TransformComponent,
-    physics: &PhysicsComponent,
-    config: &CharacterConfigComponent,
-) -> Option<FloorHit> {
-    let mut params = SweepParams::default();
-    params.ignored_actors.push(actor.actor.0);
-    let shape = physics.get_collision_shape();
-    sweep(
-        transform.position,
-        transform.position + config.gravity_dir * 500.0,
-        transform.rotation,
-        // we scale the physics shape down to avoid collision with nearby walls
-        shape.scale(0.9),
-        params,
-    )
-    .and_then(|hit| {
-        let is_walkable = config.is_walkable(hit.impact_normal);
-
-        let is_within_range =
-            config.step_size + hit.impact_location.z >= transform.position.z - shape.extent().z;
-        if is_walkable && is_within_range {
-            Some(FloorHit {
-                impact_location: hit.impact_location,
-            })
-        } else {
-            None
-        }
-    })
-}
-
-pub fn movement_hit(
-    actor: &ActorComponent,
-    transform: &TransformComponent,
-    physics: &PhysicsComponent,
-    config: &CharacterConfigComponent,
-    velocity: Vec3,
-    dt: f32,
-) -> Option<MovementHit> {
-    let mut params = SweepParams::default();
-
-    params.ignored_actors.push(actor.actor.0);
-    if let Some(hit) = sweep(
-        transform.position,
-        transform.position + velocity * dt,
-        transform.rotation,
-        physics.get_collision_shape(),
-        params,
-    ) {
-        let is_moving_against = Vec3::dot(hit.impact_normal, velocity) < 0.0;
-
-        let is_walkable = config.is_walkable(hit.impact_normal);
-        if is_walkable && is_moving_against {
-            return Some(MovementHit::Slope {
-                normal: hit.impact_normal,
-            });
-        } else {
-            return Some(MovementHit::Wall {
-                normal: hit.impact_normal,
-            });
-        }
-    }
-    None
-}
 fn do_walking(movement: &mut MovementQueryItem, input: &Input) -> Option<MovementState> {
-    if let Some(hit) = find_floor(
-        movement.actor,
-        &movement.transform,
-        movement.physics,
-        movement.config,
-    ) {
-        //transform.position = hit.position;
+    if let Some(hit) = movement.find_floor() {
         movement.controller.vertical_velocity = Vec3::ZERO;
         movement.transform.position.z = hit.impact_location.z
             + movement.physics.get_collision_shape().extent().z
@@ -239,21 +129,9 @@ fn do_walking(movement: &mut MovementQueryItem, input: &Input) -> Option<Movemen
     }
 }
 
-fn do_falling(
-    movement: &mut MovementQueryItem,
-    input: &Input,
-    dt: f32,
-) -> Option<MovementState> {
+fn do_falling(movement: &mut MovementQueryItem, input: &Input, dt: f32) -> Option<MovementState> {
     let is_downwards = movement.controller.vertical_velocity.z < 0.0;
-    if find_floor(
-        movement.actor,
-        &movement.transform,
-        movement.physics,
-        movement.config,
-    )
-    .is_some()
-        && is_downwards
-    {
+    if movement.find_floor().is_some() && is_downwards {
         Some(MovementState::Walking)
     } else if input.is_action_pressed(PlayerInput::JUMP) {
         Some(MovementState::Gliding)
@@ -264,22 +142,10 @@ fn do_falling(
     }
 }
 
-fn do_gliding(
-    movement: &mut MovementQueryItem,
-    input: &Input,
-    dt: f32,
-) -> Option<MovementState> {
+fn do_gliding(movement: &mut MovementQueryItem, input: &Input, dt: f32) -> Option<MovementState> {
     let is_downwards = movement.controller.vertical_velocity.z < 0.0;
 
-    if find_floor(
-        movement.actor,
-        &movement.transform,
-        movement.physics,
-        movement.config,
-    )
-    .is_some()
-        && is_downwards
-    {
+    if movement.find_floor().is_some() && is_downwards {
         Some(MovementState::Walking)
     } else if input.is_action_pressed(PlayerInput::JUMP) {
         Some(MovementState::Falling)
@@ -307,6 +173,97 @@ pub struct MovementQuery<'w> {
     controller: &'w mut CharacterControllerComponent,
     config: &'w CharacterConfigComponent,
 }
+impl<'w> MovementQueryItem<'w> {
+    pub fn resolve_possible_penetration(&self) -> Option<Vec3> {
+        let mut params = SweepParams::default();
+        params.ignored_actors.push(self.actor.actor.0);
+        let shape = self.physics.get_collision_shape();
+        sweep(
+            self.transform.position,
+            self.transform.position + Vec3::Z * 10.0,
+            self.transform.rotation,
+            shape,
+            params.clone(),
+        )
+        .and_then(|hit| {
+            if hit.start_in_penentration {
+                let new_location = hit.location + hit.normal * (hit.penetration_depth + 2.0);
+                unreal_api::log::visual_log_location(
+                    MovementLog::PENETRATION,
+                    self.actor.actor,
+                    hit.location,
+                    10.0,
+                    ffi::Color::RED,
+                );
+                unreal_api::log::visual_log_location(
+                    MovementLog::PENETRATION,
+                    self.actor.actor,
+                    new_location,
+                    10.0,
+                    ffi::Color::GREEN,
+                );
+
+                Some(new_location)
+            } else {
+                None
+            }
+        })
+    }
+
+    pub fn movement_hit(&self, velocity: Vec3, dt: f32) -> Option<MovementHit> {
+        let mut params = SweepParams::default();
+
+        params.ignored_actors.push(self.actor.actor.0);
+        if let Some(hit) = sweep(
+            self.transform.position,
+            self.transform.position + velocity * dt,
+            self.transform.rotation,
+            self.physics.get_collision_shape(),
+            params,
+        ) {
+            let is_moving_against = Vec3::dot(hit.impact_normal, velocity) < 0.0;
+
+            let is_walkable = self.config.is_walkable(hit.impact_normal);
+            if is_walkable && is_moving_against {
+                return Some(MovementHit::Slope {
+                    normal: hit.impact_normal,
+                });
+            } else {
+                return Some(MovementHit::Wall {
+                    normal: hit.impact_normal,
+                });
+            }
+        }
+        None
+    }
+
+    pub fn find_floor(&self) -> Option<FloorHit> {
+        let mut params = SweepParams::default();
+        params.ignored_actors.push(self.actor.actor.0);
+        let shape = self.physics.get_collision_shape();
+        sweep(
+            self.transform.position,
+            self.transform.position + self.config.gravity_dir * 500.0,
+            self.transform.rotation,
+            // we scale the physics shape down to avoid collision with nearby walls
+            shape.scale(0.9),
+            params,
+        )
+        .and_then(|hit| {
+            let is_walkable = self.config.is_walkable(hit.impact_normal);
+
+            let is_within_range = self.config.step_size + hit.impact_location.z
+                >= self.transform.position.z - shape.extent().z;
+            if is_walkable && is_within_range {
+                Some(FloorHit {
+                    impact_location: hit.impact_location,
+                })
+            } else {
+                None
+            }
+        })
+    }
+}
 
 fn character_control_system(input: Res<Input>, frame: Res<Frame>, mut query: Query<MovementQuery>) {
     let forward = input
@@ -321,9 +278,7 @@ fn character_control_system(input: Res<Input>, frame: Res<Frame>, mut query: Que
         movement.controller.horizontal_velocity =
             input_dir.normalize_or_zero() * movement.config.max_movement_speed;
 
-        if let Some(new_position) =
-            resolve_possible_penetration(movement.actor, &movement.transform, movement.physics)
-        {
+        if let Some(new_position) = movement.resolve_possible_penetration() {
             movement.transform.position = new_position;
         }
 
@@ -337,14 +292,8 @@ fn character_control_system(input: Res<Input>, frame: Res<Frame>, mut query: Que
             movement.controller.movement_state = new_state;
         }
 
-        if let Some(hit) = movement_hit(
-            movement.actor,
-            &movement.transform,
-            movement.physics,
-            movement.config,
-            movement.controller.horizontal_velocity,
-            frame.dt,
-        ) {
+        if let Some(hit) = movement.movement_hit(movement.controller.horizontal_velocity, frame.dt)
+        {
             match hit {
                 MovementHit::Slope { normal } => {
                     movement.controller.horizontal_velocity =

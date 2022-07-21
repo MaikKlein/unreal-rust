@@ -51,7 +51,6 @@ public:
 	void PluginButtonClicked();
 	
 	FPlugin Plugin;
-	bool ShouldReloadPlugin;
 	ARustGameModeBase* GameMode;
 	void Exit();
 private:

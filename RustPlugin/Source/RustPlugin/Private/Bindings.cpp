@@ -43,8 +43,8 @@ void GetSpatialData(const AActorOpaque* actor,
 void Log(const char* s, int32 len)
 {
 	// TODO: Can we get rid of that allocation?
-	FString logString = FString(len, UTF8_TO_TCHAR(s));
-	UE_LOG(LogTemp, Warning, TEXT("%s"), *logString);
+	FString LogString = FString(len, UTF8_TO_TCHAR(s));
+	UE_LOG(LogTemp, Warning, TEXT("%s"), *LogString);
 }
 
 void IterateActors(AActorOpaque** array, uint64_t* len)
@@ -73,13 +73,11 @@ void GetActionState(const char* name, uintptr_t len, ActionState* state)
 	{
 		if (PC->PlayerInput->WasJustPressed(M.Key))
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Pressed %i %s %s"), GFrameNumber, *ActionName.ToString(), *M.Key.ToString());
 			*state = ActionState::Pressed;
 			return;
 		}
 		if (PC->PlayerInput->WasJustReleased(M.Key))
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Released %s %s"), *ActionName.ToString(), *M.Key.ToString());
 			*state = ActionState::Released;
 			return;
 		}
@@ -103,7 +101,6 @@ void SetEntityForActor(AActorOpaque* actor, Entity entity)
 	ARustActor* RustActor = Cast<ARustActor>(ToAActor(actor));
 	if (RustActor != nullptr && RustActor->EntityComponent != nullptr)
 	{
-		UE_LOG(LogTemp, Warning, TEXT("Entity with %i"), entity.id);
 		RustActor->EntityComponent->Id.Id = entity.id;
 	}
 	else
@@ -128,16 +125,16 @@ AActorOpaque* SpawnActor(ActorClass class_,
                          Quaternion rotation,
                          Vector3 scale)
 {
-	for (TObjectIterator<UClass> It; It; ++It)
-	{
-		UClass* Class = *It;
+	//for (TObjectIterator<UClass> It; It; ++It)
+	//{
+	//	UClass* Class = *It;
 
-		FName Name = Class->ClassConfigName;
-		if (Cast<ARustActor>(Class->GetDefaultObject(false)) != nullptr)
-		{
-			UE_LOG(LogTemp, Warning, TEXT("Class %s"), *Class->GetDesc());
-		}
-	}
+	//	FName Name = Class->ClassConfigName;
+	//	if (Cast<ARustActor>(Class->GetDefaultObject(false)) != nullptr)
+	//	{
+	//		UE_LOG(LogTemp, Warning, TEXT("Class %s"), *Class->GetDesc());
+	//	}
+	//}
 
 	UClass* Class;
 	switch (class_)
