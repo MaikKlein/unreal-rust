@@ -71,3 +71,20 @@ void URustReflectionLibrary::K2_GetReflectionFloat(UUuid* Id, FEntity EntityId, 
 		Out = Result;
 	}
 }
+
+bool URustReflectionLibrary::K2_HasComponent(UUuid* Id, FEntity EntityId)
+{
+	if (Id == nullptr)
+		return false;
+
+	Entity E;
+	E.id = EntityId.Id;
+
+	auto Module = GetModule();
+	if (Module.Plugin.IsLoaded())
+	{
+		return Module.Plugin.Rust.reflection_fns.has_component(E, Id->Id) > 0;
+	}
+	
+	return false;
+}

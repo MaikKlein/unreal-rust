@@ -17,5 +17,7 @@ public:
 	static void K2_GetReflectionQuat(UUuid* Id, FEntity EntityId, int32 Index, FQuat &Out);
 	UFUNCTION(BlueprintCallable)
 	static void K2_GetReflectionFloat(UUuid* Id, FEntity EntityId, int32 Index, float &Out);
+	UFUNCTION(BlueprintCallable)
+	static bool K2_HasComponent(UUuid* Id, FEntity EntityId);
 };
 

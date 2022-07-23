@@ -259,6 +259,17 @@ unsafe extern "C" fn get_type_name(
     });
     result.unwrap_or(0)
 }
+unsafe extern "C" fn has_component(entity: ffi::Entity, uuid: ffi::Uuid) -> u32 {
+    fn has_component(entity: ffi::Entity, uuid: ffi::Uuid) -> Option<u32> {
+        let global = unsafe { crate::module::MODULE.as_ref() }?;
+        let uuid = from_ffi_uuid(uuid);
+        let reflect = global.core.module.reflection_registry.reflect.get(&uuid)?;
+        let entity = Entity::from_bits(entity.id);
+        Some(reflect.has_component(&global.core.module.world, entity) as u32)
+    }
+    let result = std::panic::catch_unwind(|| has_component(entity, uuid).unwrap_or(0));
+    result.unwrap_or(0)
+}
 
 unsafe extern "C" fn get_field_name(
     uuid: ffi::Uuid,
@@ -327,6 +338,7 @@ pub fn to_ffi_uuid(uuid: Uuid) -> ffi::Uuid {
 
 pub fn create_reflection_fns() -> ffi::ReflectionFns {
     ffi::ReflectionFns {
+        has_component,
         get_field_bool_value,
         get_field_float_value,
         get_field_quat_value,

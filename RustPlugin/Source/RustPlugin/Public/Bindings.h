@@ -253,6 +253,8 @@ using UnrealEventFn = void(*)(const EventType *ty, const void *data);
 
 using NumberOfFieldsFn = uint32_t(*)(Uuid uuid, uint32_t *out);
 
+using HasComponentFn = uint32_t(*)(Entity entity, Uuid uuid);
+
 using GetTypeNameFn = uint32_t(*)(Uuid uuid, const char **name, uintptr_t *len);
 
 using GetFieldTypeFn = uint32_t(*)(Uuid uuid, uint32_t field_idx, ReflectionType *ty);
@@ -269,6 +271,7 @@ using GetFieldQuatValueFn = uint32_t(*)(Uuid uuid, Entity entity, uint32_t field
 
 struct ReflectionFns {
   NumberOfFieldsFn number_of_fields;
+  HasComponentFn has_component;
   GetTypeNameFn get_type_name;
   GetFieldTypeFn get_field_type;
   GetFieldNameFn get_field_name;

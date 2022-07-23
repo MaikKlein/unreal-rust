@@ -57,6 +57,9 @@ pub trait ReflectDyn {
     fn get_field_type(&self, _idx: u32) -> Option<ReflectType> {
         None
     }
+    fn has_component(&self, _world: &World, _entity: Entity) -> bool {
+        false
+    }
     fn get_field_value(&self, _world: &World, _entity: Entity, _idx: u32) -> Option<ReflectValue> {
         None
     }

@@ -5,6 +5,7 @@
 #include "BlueprintNodeSpawner.h"
 #include "EntityComponent.h"
 #include "K2Node_CallFunction.h"
+#include "K2Node_IfThenElse.h"
 #include "KismetCompiler.h"
 #include "RustPlugin.h"
 #include "RustUtils.h"
@@ -27,6 +28,7 @@ void UK2Node_GetComponentRust::AllocateDefaultPins()
 	IndexPins.Empty();
 	CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Exec, UEdGraphSchema_K2::PN_Execute);
 	CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Exec, UEdGraphSchema_K2::PN_Then);
+	CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Exec, UEdGraphSchema_K2::PN_Else);
 	const auto ElementPin = CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Struct, FEntity::StaticStruct(),
 	                                  EntityParamName);
 
@@ -96,7 +98,33 @@ void UK2Node_GetComponentRust::ExpandNode(class FKismetCompilerContext& Compiler
 	UEdGraphPin* EntityPin = FindPinChecked(EntityParamName, EGPD_Input);
 	UEdGraphPin* ThenPin = FindPinChecked(UEdGraphSchema_K2::PN_Then, EGPD_Output);
 
-	UEdGraphPin* PrevExecPin = GetExecPin();
+	UFunction* HasComponent = GetDefault<URustReflectionLibrary>()->FindFunctionChecked(
+		GET_FUNCTION_NAME_CHECKED(URustReflectionLibrary, K2_HasComponent));
+	UK2Node_CallFunction* HasComponentFunction = CompilerContext.SpawnIntermediateNode<
+		UK2Node_CallFunction>(this, SourceGraph);
+	HasComponentFunction->SetFromFunction(HasComponent);
+	HasComponentFunction->AllocateDefaultPins();
+
+	UEdGraphPin* CallUUid = HasComponentFunction->FindPinChecked(ReflectUuidParamName, EGPD_Input);
+	UEdGraphPin* CallEntity = HasComponentFunction->FindPinChecked(ReflectEntityParamName, EGPD_Input);
+
+	CompilerContext.MovePinLinksToIntermediate(*GetExecPin(), *HasComponentFunction->GetExecPin());
+	CompilerContext.CopyPinLinksToIntermediate(*UuidPin, *CallUUid);
+	CompilerContext.CopyPinLinksToIntermediate(*EntityPin, *CallEntity);
+
+	UK2Node_IfThenElse* HasComponentBranch = CompilerContext.SpawnIntermediateNode<UK2Node_IfThenElse>(
+		this, SourceGraph);
+	HasComponentBranch->AllocateDefaultPins();
+
+
+	HasComponentFunction->GetThenPin()->MakeLinkTo(HasComponentBranch->GetExecPin());
+	HasComponentFunction->GetReturnValuePin()->MakeLinkTo(HasComponentBranch->GetConditionPin());
+
+	CompilerContext.MovePinLinksToIntermediate(*FindPinChecked(UEdGraphSchema_K2::PN_Else, EGPD_Output),
+	                                           *HasComponentBranch->GetElsePin());
+
+	UEdGraphPin* PrevExecPin = HasComponentBranch->GetThenPin();
+
 	for (uint32_t Idx = 0; Idx < NumberOfFields; Idx++)
 	{
 		const char* Name = nullptr;
@@ -105,6 +133,7 @@ void UK2Node_GetComponentRust::ExpandNode(class FKismetCompilerContext& Compiler
 		{
 			FString IdxName = FString::FromInt(Idx);
 			auto InputIdxPin = FindPinChecked(*IdxName);
+
 
 			ReflectionType Type = ReflectionType::Bool;
 			if (Module.Plugin.Rust.reflection_fns.get_field_type(Id, Idx, &Type))
@@ -236,14 +265,8 @@ UEdGraphPin* UK2Node_GetComponentRust::CallReflection(class FKismetCompilerConte
 	UEdGraphPin* CallIndex = CallFunctionNode->FindPinChecked(ReflectIndexParamName, EGPD_Input);
 	UEdGraphPin* CallOut = CallFunctionNode->FindPinChecked(ReflectOutputParamName, EGPD_Output);
 
-	if (PrevExecPin == GetExecPin())
-	{
-		CompilerContext.MovePinLinksToIntermediate(*PrevExecPin, *CallExecPin);
-	}
-	else
-	{
-		CompilerContext.GetSchema()->TryCreateConnection(PrevExecPin, CallExecPin);
-	}
+	PrevExecPin->MakeLinkTo(CallExecPin);
+	
 	CompilerContext.CopyPinLinksToIntermediate(*UuidPin, *CallUUid);
 	CompilerContext.CopyPinLinksToIntermediate(*EntityIdPin, *CallEntity);
 	CompilerContext.MovePinLinksToIntermediate(*InputIdxPin, *CallIndex);

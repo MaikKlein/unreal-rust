@@ -580,9 +580,12 @@ pub type GetFieldBoolValueFn =
     unsafe extern "C" fn(uuid: Uuid, entity: Entity, field_idx: u32, out: *mut u32) -> u32;
 pub type GetFieldQuatValueFn =
     unsafe extern "C" fn(uuid: Uuid, entity: Entity, field_idx: u32, out: *mut Quaternion) -> u32;
+pub type HasComponentFn = unsafe extern "C" fn(entity: Entity, uuid: Uuid) -> u32;
+
 #[repr(C)]
 pub struct ReflectionFns {
     pub number_of_fields: NumberOfFieldsFn,
+    pub has_component: HasComponentFn,
     pub get_type_name: GetTypeNameFn,
     pub get_field_type: GetFieldTypeFn,
     pub get_field_name: GetFieldNameFn,
