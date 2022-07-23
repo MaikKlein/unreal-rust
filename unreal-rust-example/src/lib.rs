@@ -255,7 +255,7 @@ impl UserModule for MyModule {
         };
 
         module
-            .add_plugin::<MovementPlugin>()
+            .add_plugin(MovementPlugin)
             .add_startup_system_set(
                 SystemSet::new()
                     .with_system(register_class_resource)

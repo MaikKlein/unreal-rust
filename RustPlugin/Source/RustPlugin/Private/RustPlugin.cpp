@@ -62,19 +62,29 @@ bool FPlugin::TryLoad()
 	if (this->IsLoaded())
 	{
 		FPlatformProcess::FreeDllHandle(this->Handle);
-		if(!FPlatformFileManager::Get().GetPlatformFile().DeleteFile(*this->TargetPath))
+		this->Handle = nullptr;
+		// This is leaky. If we close the editor this will not delete the file
+		if (!FPlatformFileManager::Get().GetPlatformFile().DeleteFile(*this->TargetPath))
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Unable to delete File %s"), *this->TargetPath);
 		}
 	}
 
-	UE_LOG(LogTemp, Warning, TEXT("Copy From %s to %s"), *Path, *LocalTargetPath);
-	FPlatformFileManager::Get().GetPlatformFile().CopyFile(*LocalTargetPath, *Path);
-	void* LocalHandle = FPlatformProcess::GetDllHandle(*LocalTargetPath);
-	ensure(LocalHandle);
-	this->Handle = LocalHandle;
-	if (this->Handle == nullptr)
+	//UE_LOG(LogTemp, Warning, TEXT("Copy From %s to %s"), *Path, *LocalTargetPath);
+	if (!FPlatformFileManager::Get().GetPlatformFile().CopyFile(*LocalTargetPath, *Path))
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Unable to copy File from %s to %s"), *Path, *LocalTargetPath);
 		return false;
+	}
+	void* LocalHandle = FPlatformProcess::GetDllHandle(*LocalTargetPath);
+
+	if(LocalHandle == nullptr)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Dll open failed"));
+		return false;
+	}
+		
+	this->Handle = LocalHandle;
 
 	void* LocalBindings = FPlatformProcess::GetDllExport(LocalHandle, TEXT("register_unreal_bindings\0"));
 	ensure(LocalBindings);
@@ -169,9 +179,11 @@ void FRustPluginModule::OnProjectDirectoryChanged(const TArray<FFileChangeData>&
 			// Only show notifications when we are in playmode otherwise notifications are a bit too spamy
 			if (GEditor != nullptr && GEditor->IsPlaySessionInProgress())
 			{
-				FNotificationInfo Info(LOCTEXT("SpawnNotification_Notification", "Hotreload: Rust"));
-				Info.ExpireDuration = 1.0f;
-				FSlateNotificationManager::Get().AddNotification(Info);
+				// Still too spamy
+				
+				//FNotificationInfo Info(LOCTEXT("SpawnNotification_Notification", "Hotreload: Rust"));
+				//Info.ExpireDuration = 1.0f;
+				//FSlateNotificationManager::Get().AddNotification(Info);
 			}
 
 			UE_LOG(LogTemp, Display, TEXT("Hotreload: Rust"));

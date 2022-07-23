@@ -7,6 +7,7 @@ use crate::{
     input::Input,
     math::{Quat, Vec3},
     module::{bindings, Module, UserModule},
+    physics::PhysicsComponent,
     plugin::Plugin,
     register_components,
 };
@@ -27,7 +28,7 @@ pub struct UnrealCore {
 pub struct CorePlugin;
 
 impl Plugin for CorePlugin {
-    fn build(module: &mut Module) {
+    fn build(&self, module: &mut Module) {
         register_components! {
             TransformComponent,
             ActorComponent,
@@ -49,12 +50,14 @@ impl Plugin for CorePlugin {
                 CoreStage::PreUpdate,
                 SystemSet::new()
                     .with_system(update_input)
-                    .with_system(download_transform_from_unreal),
+                    .with_system(download_transform_from_unreal)
+                    .with_system(download_physics_from_unreal),
             )
             .add_system_set_to_stage(
                 CoreStage::PostUpdate,
                 SystemSet::new()
                     .with_system(upload_transform_to_unreal)
+                    .with_system(upload_physics_to_unreal)
                     .with_system(process_unreal_events),
             );
     }
@@ -63,7 +66,7 @@ impl Plugin for CorePlugin {
 impl UnrealCore {
     pub fn new(user_module: &dyn UserModule) -> Self {
         let mut module = Module::new();
-        module.add_plugin::<CorePlugin>();
+        module.add_plugin(CorePlugin);
         user_module.initialize(&mut module);
         Self {
             module,
@@ -406,166 +409,6 @@ impl ActorComponent {
     }
 }
 
-#[derive(Copy, Clone)]
-pub enum CollisionShape {
-    Capsule { half_height: f32, radius: f32 },
-    Box { half_extent: Vec3 },
-    Sphere { radius: f32 },
-}
-
-impl CollisionShape {
-    pub fn extent(self) -> Vec3 {
-        match self {
-            CollisionShape::Capsule {
-                half_height,
-                radius,
-            } => Vec3::new(radius, radius, half_height),
-            CollisionShape::Box { half_extent } => half_extent,
-            CollisionShape::Sphere { radius } => Vec3::splat(radius),
-        }
-    }
-
-    pub fn scale(self, amount: f32) -> Self {
-        match self {
-            CollisionShape::Capsule {
-                half_height,
-                radius,
-            } => CollisionShape::Capsule {
-                half_height: half_height * amount,
-                radius: radius * amount,
-            },
-            CollisionShape::Box { half_extent } => CollisionShape::Box {
-                half_extent: half_extent * amount,
-            },
-            CollisionShape::Sphere { radius } => CollisionShape::Sphere {
-                radius: radius * amount,
-            },
-        }
-    }
-
-    pub fn inflate(self, amount: f32) -> Self {
-        match self {
-            CollisionShape::Capsule {
-                half_height,
-                radius,
-            } => CollisionShape::Capsule {
-                half_height: half_height + amount,
-                radius: radius + amount,
-            },
-            CollisionShape::Box { half_extent } => CollisionShape::Box {
-                half_extent: half_extent + amount,
-            },
-            CollisionShape::Sphere { radius } => CollisionShape::Sphere {
-                radius: radius + amount,
-            },
-        }
-    }
-}
-
-impl From<CollisionShape> for ffi::CollisionShape {
-    fn from(val: CollisionShape) -> Self {
-        match val {
-            CollisionShape::Box { half_extent } => ffi::CollisionShape {
-                ty: ffi::CollisionShapeType::Box,
-                data: ffi::CollisionShapeUnion {
-                    collision_box: ffi::CollisionBox {
-                        half_extent_x: half_extent.x,
-                        half_extent_y: half_extent.y,
-                        half_extent_z: half_extent.z,
-                    },
-                },
-            },
-            CollisionShape::Capsule {
-                half_height,
-                radius,
-            } => ffi::CollisionShape {
-                data: ffi::CollisionShapeUnion {
-                    capsule: ffi::CollisionCapsule {
-                        radius,
-                        half_height,
-                    },
-                },
-                ty: ffi::CollisionShapeType::Capsule,
-            },
-            CollisionShape::Sphere { radius } => ffi::CollisionShape {
-                data: ffi::CollisionShapeUnion {
-                    sphere: ffi::CollisionSphere { radius },
-                },
-                ty: ffi::CollisionShapeType::Sphere,
-            },
-        }
-    }
-}
-
-#[derive(Default, Component)]
-#[uuid = "ffc10b5c-635c-43ce-8288-e3c6f6d67e36"]
-pub struct PhysicsComponent {
-    #[reflect(skip)]
-    pub ptr: UnrealPtr<Primitive>,
-    pub is_simulating: bool,
-    pub velocity: Vec3,
-}
-
-impl PhysicsComponent {
-    pub fn new(ptr: UnrealPtr<Primitive>) -> Self {
-        let mut p = Self {
-            ptr,
-            ..Default::default()
-        };
-        p.download_state();
-        p
-    }
-
-    pub fn get_collision_shape(&self) -> CollisionShape {
-        unsafe {
-            let mut shape = ffi::CollisionShape::default();
-            assert!(
-                (bindings().physics_bindings.get_collision_shape)(self.ptr.ptr, &mut shape) == 1
-            );
-            match shape.ty {
-                ffi::CollisionShapeType::Capsule => CollisionShape::Capsule {
-                    half_height: shape.data.capsule.half_height,
-                    radius: shape.data.capsule.radius,
-                },
-                ffi::CollisionShapeType::Box => CollisionShape::Box {
-                    half_extent: Vec3::new(
-                        shape.data.collision_box.half_extent_x,
-                        shape.data.collision_box.half_extent_y,
-                        shape.data.collision_box.half_extent_y,
-                    ),
-                },
-                ffi::CollisionShapeType::Sphere => CollisionShape::Sphere {
-                    radius: shape.data.sphere.radius,
-                },
-            }
-        }
-    }
-    pub fn download_state(&mut self) {
-        unsafe {
-            self.is_simulating = (bindings().physics_bindings.is_simulating)(self.ptr.ptr) == 1;
-            self.velocity = (bindings().physics_bindings.get_velocity)(self.ptr.ptr).into();
-        }
-    }
-
-    pub fn upload_state(&mut self) {
-        unsafe {
-            (bindings().physics_bindings.set_velocity)(self.ptr.ptr, self.velocity.into());
-        }
-    }
-
-    pub fn add_impulse(&mut self, impulse: Vec3) {
-        unsafe {
-            (bindings().physics_bindings.add_impulse)(self.ptr.ptr, impulse.into());
-        }
-    }
-
-    pub fn add_force(&mut self, force: Vec3) {
-        unsafe {
-            (bindings().physics_bindings.add_force)(self.ptr.ptr, force.into());
-        }
-    }
-}
-
 #[derive(Default, Debug, Component, Clone)]
 #[uuid = "b8738d9e-ab21-47db-8587-4019b38e35a6"]
 pub struct TransformComponent {
@@ -663,6 +506,16 @@ pub enum Capsule {}
 #[derive(Debug)]
 pub enum Primitive {}
 
+fn download_physics_from_unreal(mut query: Query<&mut PhysicsComponent>) {
+    for mut physics in query.iter_mut() {
+        physics.download_state();
+    }
+}
+fn upload_physics_to_unreal(mut query: Query<&mut PhysicsComponent>) {
+    for mut physics in query.iter_mut() {
+        physics.download_state();
+    }
+}
 fn download_transform_from_unreal(mut query: Query<(&ActorComponent, &mut TransformComponent)>) {
     for (actor, mut transform) in query.iter_mut() {
         let mut position = ffi::Vector3::default();

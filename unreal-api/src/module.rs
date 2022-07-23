@@ -96,8 +96,8 @@ impl Module {
         self.reflection_registry.register::<T>();
     }
 
-    pub fn add_plugin<P: Plugin>(&mut self) -> &mut Self {
-        P::build(self);
+    pub fn add_plugin<P: Plugin>(&mut self, plugin: P) -> &mut Self {
+        plugin.build(self);
         self
     }
 

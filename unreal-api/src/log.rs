@@ -3,10 +3,7 @@ use log::{set_boxed_logger, set_max_level, LevelFilter, Metadata, Record, SetLog
 use unreal_ffi as ffi;
 use unreal_ffi::Color;
 
-use crate::{
-    core::{ActorPtr, CollisionShape},
-    module::bindings,
-};
+use crate::{core::ActorPtr, module::bindings, physics::CollisionShape};
 struct UnrealLogger;
 
 impl log::Log for UnrealLogger {
