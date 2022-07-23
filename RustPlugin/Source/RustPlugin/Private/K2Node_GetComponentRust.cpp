@@ -7,6 +7,7 @@
 #include "K2Node_CallFunction.h"
 #include "KismetCompiler.h"
 #include "RustPlugin.h"
+#include "RustUtils.h"
 #include "SGraphNodeGetComponent.h"
 #include "URustReflectionLibrary.h"
 
@@ -49,7 +50,7 @@ void UK2Node_GetComponentRust::AllocateDefaultPins()
 			ReflectionType Type = ReflectionType::Bool;
 			if (Module.Plugin.Rust.reflection_fns.get_field_type(ToUuid(Id), Idx, &Type))
 			{
-				if(Type == ReflectionType::Composite)
+				if (Type == ReflectionType::Composite)
 					// TODO: Implement composite types
 					continue;
 				FString VarName = FString(Len, UTF8_TO_TCHAR(Name));
@@ -65,7 +66,7 @@ void UK2Node_GetComponentRust::AllocateDefaultPins()
 				}
 				if (Type == ReflectionType::Float)
 				{
-					CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Float,
+					CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Real, UEdGraphSchema_K2::PC_Float,
 					          *VarName);
 				}
 				if (Type == ReflectionType::Quaternion)
@@ -108,7 +109,7 @@ void UK2Node_GetComponentRust::ExpandNode(class FKismetCompilerContext& Compiler
 			ReflectionType Type = ReflectionType::Bool;
 			if (Module.Plugin.Rust.reflection_fns.get_field_type(Id, Idx, &Type))
 			{
-				if(Type == ReflectionType::Composite)
+				if (Type == ReflectionType::Composite)
 					// TODO: Implement composite types
 					continue;
 				//UE_LOG(LogTemp, Warning, TEXT("Type"));
