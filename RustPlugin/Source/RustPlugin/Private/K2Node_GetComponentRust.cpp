@@ -202,8 +202,12 @@ FText UK2Node_GetComponentRust::GetNodeTitle(ENodeTitleType::Type TitleType) con
 
 TSharedPtr<SGraphNode> UK2Node_GetComponentRust::CreateVisualWidget()
 {
-	//SNew(SGraphNodeGetComponent, this);
+	
+	FText NewText = FText::FromString(SelectedNode.Name);
 	return SNew(SGraphNodeGetComponent, this)
+		// TODO: This doesn't seem to work. `NewText` here is always empty.
+		//       Maybe `CreateVisualWidget` is called before `SelectedNode` is ready. 
+		.SelectedComponentText(NewText)
 		.OnUuidPickedDelegate(
 			FOnUuidPicked::CreateUObject(this, &UK2Node_GetComponentRust::OnUuidPicked));
 }

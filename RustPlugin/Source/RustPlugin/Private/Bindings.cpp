@@ -10,9 +10,7 @@
 #include "GameFramework/PlayerInput.h"
 #include "EntityComponent.h"
 #include "Camera/CameraActor.h"
-#include "UObject/UObjectIterator.h"
 #include "VisualLogger/VisualLogger.h"
-#include "DrawDebugHelpers.h"
 
 DEFINE_LOG_CATEGORY(RustVisualLog);
 
