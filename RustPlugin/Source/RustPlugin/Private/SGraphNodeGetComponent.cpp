@@ -129,4 +129,4 @@ void SGraphNodeGetComponent::OnClassViewerSelectionChanged(TSharedPtr<FUuidViewN
 		}
 	}
 }
-#undef LOCTEXT
+#undef LOCTEXT_NAMESPACE

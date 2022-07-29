@@ -47,7 +47,6 @@ public class RustPlugin : ModuleRules
 				"GraphEditor",
 				"KismetWidgets",
 				"KismetCompiler"
-				// ... add private dependencies that you statically link with here ...	
 			}
 			);
 		

@@ -3,6 +3,7 @@
 #include "RustPlugin.h"
 #include "RustPluginStyle.h"
 #include "RustPluginCommands.h"
+#include "FRustDetailCustomization.h"
 #include "LevelEditor.h"
 #include "Widgets/Docking/SDockTab.h"
 #include "Widgets/Layout/SBox.h"
@@ -75,12 +76,12 @@ bool FPlugin::TryLoad()
 	}
 	void* LocalHandle = FPlatformProcess::GetDllHandle(*LocalTargetPath);
 
-	if(LocalHandle == nullptr)
+	if (LocalHandle == nullptr)
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Dll open failed"));
 		return false;
 	}
-		
+
 	this->Handle = LocalHandle;
 
 	void* LocalBindings = FPlatformProcess::GetDllExport(LocalHandle, TEXT("register_unreal_bindings\0"));
@@ -158,6 +159,18 @@ void FRustPluginModule::StartupModule()
 
 	TSharedPtr<FUuidGraphPanelPinFactory> UuidFactory = MakeShareable(new FUuidGraphPanelPinFactory());
 	FEdGraphUtilities::RegisterVisualPinFactory(UuidFactory);
+
+	// Register detail customizations
+	{
+		auto& PropertyModule = FModuleManager::LoadModuleChecked<FPropertyEditorModule>("PropertyEditor");
+
+		PropertyModule.RegisterCustomClassLayout(
+			"EntityComponent",
+			FOnGetDetailCustomizationInstance::CreateStatic(&FRustDetailCustomization::MakeInstance)
+		);
+
+		PropertyModule.NotifyCustomizationModuleChanged();
+	}
 }
 
 void FRustPluginModule::OnProjectDirectoryChanged(const TArray<FFileChangeData>& Data)
@@ -177,7 +190,7 @@ void FRustPluginModule::OnProjectDirectoryChanged(const TArray<FFileChangeData>&
 			if (GEditor != nullptr && GEditor->IsPlaySessionInProgress())
 			{
 				// Still too spamy
-				
+
 				//FNotificationInfo Info(LOCTEXT("SpawnNotification_Notification", "Hotreload: Rust"));
 				//Info.ExpireDuration = 1.0f;
 				//FSlateNotificationManager::Get().AddNotification(Info);

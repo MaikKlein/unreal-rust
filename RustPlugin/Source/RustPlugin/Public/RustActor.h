@@ -5,7 +5,6 @@
 #include "CoreMinimal.h"
 #include "EntityComponent.h"
 #include "GameFramework/Actor.h"
-#include "Misc/Guid.h"
 #include "RustActor.generated.h"
 
 UCLASS()
@@ -17,8 +16,6 @@ public:
 	uint64 Entity;
 	// Sets default values for this actor's properties
 	ARustActor();
-	UPROPERTY(Category=Rust, EditAnywhere)
-	TArray<FGuid> Components;
 	UPROPERTY(Category=Rust, EditAnywhere)
 	UEntityComponent* EntityComponent;
 
