@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Bindings.h"
+#include "DetailWidgetRow.h"
 #include "EntityComponent.generated.h"
 
 
@@ -31,14 +32,34 @@ public:
 	UPROPERTY()
 	bool Data;
 };
+UCLASS()
+class URustPropertyFloat : public URustProperty
+{
+	GENERATED_BODY()
+public:
+	UPROPERTY()
+	float Data;
+};
+UCLASS()
+class URustPropertyQuaternion : public URustProperty
+{
+	GENERATED_BODY()
+public:
+	UPROPERTY()
+	FQuat Data;
+};
 
 UCLASS()
 class UDynamicRustComponent : public UObject
 {
 	GENERATED_BODY()
 public:
+	void Initialize(FGuid Guid);
 	UPROPERTY()
-	TMap<FString, URustProperty*> Fields;
+	TMap<FString, TObjectPtr<URustProperty>> Fields;
+	UPROPERTY()
+	FString Name;
+	void Render(TSharedRef<SVerticalBox> Box);
 };
 
 USTRUCT(BlueprintType)
@@ -74,7 +95,9 @@ public:
 	UEntityComponent();
 	FEntity Id;
 	UPROPERTY(Category=Rust, EditAnywhere)
-	TMap<FGuid, UDynamicRustComponent*> Components;
+	TMap<FGuid, TObjectPtr<UDynamicRustComponent>> Components;
+	UPROPERTY(Category=Rust, EditAnywhere)
+	TArray<TObjectPtr<UDynamicRustComponent>> Components2;
 
 public:
 	// Called every frame

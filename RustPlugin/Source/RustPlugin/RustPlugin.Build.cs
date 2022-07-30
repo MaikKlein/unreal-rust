@@ -46,7 +46,8 @@ public class RustPlugin : ModuleRules
 				"BlueprintGraph",
 				"GraphEditor",
 				"KismetWidgets",
-				"KismetCompiler"
+				"KismetCompiler",
+				"PropertyEditor"
 			}
 			);
 		

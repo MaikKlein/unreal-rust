@@ -40,33 +40,31 @@ void SRustDropdownList::Construct(const FArguments& InArgs)
 	SAssignNew(SearchBox, SSearchBox)
 		.OnTextChanged(this, &SRustDropdownList::OnFilterTextChanged)
 		.HintText(LOCTEXT("ArrayAddElementSearchBoxHint", "Search Elements"));
-	SNew(SScrollBox)
-		+ SScrollBox::Slot()
-		[
-			SNew(SComboButton)
-			//.ButtonContent()[
-			//	SAssignNew(Selected, STextBlock)
-			//	.Text(SelectedComponentText)
-			//]
-			.MenuContent()[
-				SNew(SListViewSelectorDropdownMenu<TSharedPtr<FUuidViewNode>>, SearchBox, ListViewWidget)
+	ChildSlot[
+		SNew(SComboButton)
+		//.ButtonContent()[
+		//	SNew(STextBlock)
+		//	.Text(LOCTEXT("ASD", "Foo"))
+		//]
+		.MenuContent()[
+			SNew(SListViewSelectorDropdownMenu<TSharedPtr<FUuidViewNode>>, SearchBox, ListViewWidget)
+			[
+				SNew(SVerticalBox)
+				+ SVerticalBox::Slot()
+				  .AutoHeight()
+				  .Padding(4.f, 4.f, 4.f, 4.f)
 				[
-					SNew(SVerticalBox)
-					+ SVerticalBox::Slot()
-					  .AutoHeight()
-					  .Padding(4.f, 4.f, 4.f, 4.f)
-					[
-						SearchBox.ToSharedRef()
-					]
-					+ SVerticalBox::Slot()
-					  .AutoHeight()
-					  .Padding(4.f, 4.f, 4.f, 4.f)
-					[
-						ListViewWidget.ToSharedRef()
-					]
+					SearchBox.ToSharedRef()
+				]
+				+ SVerticalBox::Slot()
+				  .AutoHeight()
+				  .Padding(4.f, 4.f, 4.f, 4.f)
+				[
+					ListViewWidget.ToSharedRef()
 				]
 			]
-		];
+		]
+	];
 }
 
 TSharedRef<ITableRow> SRustDropdownList::OnGenerateRowForList(TSharedPtr<FUuidViewNode> Item,

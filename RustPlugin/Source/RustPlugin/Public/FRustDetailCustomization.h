@@ -2,6 +2,7 @@
 #pragma once
 
 #include "IDetailCustomization.h"
+#include "SRustDropdownList.h"
 
 class FRustDetailCustomization: public IDetailCustomization
 {
