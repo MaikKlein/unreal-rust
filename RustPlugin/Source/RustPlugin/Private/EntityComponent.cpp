@@ -159,7 +159,7 @@ void UDynamicRustComponent::Render(IDetailCategoryBuilder& DetailBuilder)
 			};
 			auto OnZChanged = [=](double Val)
 			{
-				VectorProp->Data.Y = Val;
+				VectorProp->Data.Z = Val;
 			};
 			W.ValueContent()
 			 .MinDesiredWidth(125.0f * 3.0f)

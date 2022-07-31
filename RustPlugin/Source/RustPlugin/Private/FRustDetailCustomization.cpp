@@ -53,7 +53,8 @@ void FRustDetailCustomization::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 			continue;
 		Elem.Value->Render(RustCategory);
 	}
-	Box->AddSlot()[
+	
+	RustCategory.AddCustomRow(LOCTEXT("Picker", "Picker")).WholeRowContent()[
 		SNew(SRustDropdownList).OnUuidPickedDelegate(FOnUuidPicked::CreateLambda(OnPicked))
 	];
 }
