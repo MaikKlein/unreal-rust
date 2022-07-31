@@ -36,7 +36,7 @@ void FRustDetailCustomization::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 
 
 	IDetailCategoryBuilder& RustCategory = DetailBuilder.EditCategory(TEXT("Rust"));
-	auto OnPicked = [Component](FUuidViewNode* Node)
+	auto OnPicked = [Component, &DetailBuilder](FUuidViewNode* Node)
 	{
 		if (Node == nullptr || Component == nullptr)
 			return;
@@ -44,19 +44,17 @@ void FRustDetailCustomization::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 		auto DynRust = NewObject<UDynamicRustComponent>(Component->GetPackage());
 		DynRust->Initialize(Node->Id);
 		Component->Components.Add(Node->Id, DynRust);
+		DetailBuilder.ForceRefreshDetails();
 	};
 	auto Box = SNew(SVerticalBox);
 	for (auto& Elem : Component->Components)
 	{
 		if (Elem.Value == nullptr)
 			continue;
-		Elem.Value->Render(Box);
+		Elem.Value->Render(RustCategory);
 	}
 	Box->AddSlot()[
 		SNew(SRustDropdownList).OnUuidPickedDelegate(FOnUuidPicked::CreateLambda(OnPicked))
-	];
-	RustCategory.AddCustomRow(LOCTEXT("RustCategory", "Components")).WholeRowContent()[
-		Box
 	];
 }
 

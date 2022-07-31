@@ -8,21 +8,25 @@
 #include "RustUtils.h"
 #include "Widgets/Input/SRotatorInputBox.h"
 #include "Widgets/Input/SVectorInputBox.h"
+#include "Widgets/Input/NumericTypeInterface.h"
+#include "Widgets/Input/NumericUnitTypeInterface.inl"
 
-void UDynamicRustComponent::Render(TSharedRef<SVerticalBox> Box)
+#define LOCTEXT_NAMESPACE "RustDetailCustomization"
+
+void UDynamicRustComponent::Render(IDetailCategoryBuilder& DetailBuilder)
 {
-	Box->AddSlot()[
+	auto RowText = LOCTEXT("RustCategory", "Components");
+	DetailBuilder.AddCustomRow(RowText).WholeRowContent()[
 		SNew(SBorder)
 				.BorderBackgroundColor(FSlateColor(FColor(0.0, 0.0, 0.0, 1.0)))
 				.Padding(0)
 		[
-			SNew(SVerticalBox)
-			+ SVerticalBox::Slot()[
-				SNew(SHorizontalBox) +
-				SHorizontalBox::Slot()[
-					SNew(STextBlock).Text(FText::FromString(Name))
-				]
-			]]];
+			SNew(SHorizontalBox) +
+			SHorizontalBox::Slot()[
+				SNew(STextBlock).Text(FText::FromString(Name))
+			]
+		]
+	];
 	for (auto& Elem : Fields)
 	{
 		auto BoolProp = Cast<URustPropertyBool>(Elem.Value);
@@ -34,19 +38,101 @@ void UDynamicRustComponent::Render(TSharedRef<SVerticalBox> Box)
 			UE_LOG(LogTemp, Warning, TEXT("Noooopppppe"));
 
 		TSharedRef<SWidget> Widget = SNew(SCheckBox);
+
+		auto& W = DetailBuilder.AddCustomRow(RowText).NameContent()
+		[
+			SNew(STextBlock).Text(FText::FromString(Elem.Key))
+		];
 		if (BoolProp != nullptr)
 		{
-			Widget = SNew(SCheckBox);
+			auto Value = [=]() -> ECheckBoxState
+			{
+				if (BoolProp->Data)
+				{
+					return ECheckBoxState::Checked;
+				}
+				else
+				{
+					return ECheckBoxState::Unchecked;
+				}
+			};
+			auto OnChanged = [=](ECheckBoxState Changed)
+			{
+				if (Changed == ECheckBoxState::Checked)
+				{
+					BoolProp->Data = true;
+					return;
+				}
+				BoolProp->Data = false;
+			};
+			W.ValueContent()[
+				SNew(SCheckBox).IsChecked_Lambda(Value).OnCheckStateChanged_Lambda(OnChanged)
+			];
 		}
 		if (FloatProp != nullptr)
 		{
-			Widget = SNew(SNumericEntryBox<float>);
+			auto OnChanged = [=](float Val)
+			{
+				FloatProp->Data = Val;
+			};
+			auto Value = [=]() -> float
+			{
+				return FloatProp->Data;
+			};
+			W.ValueContent()[
+				SNew(SNumericEntryBox<float>).OnValueChanged_Lambda(OnChanged).Value_Lambda(Value)
+			];
 		}
 		if (QuatProp != nullptr)
 		{
-			Widget = SNew(SNumericRotatorInputBox<float>);
+			auto Roll = [=]() -> TOptional<FRotator::FReal>
+			{
+				return QuatProp->Data.Rotator().Roll;
+			};
+			auto Yaw = [=]() -> TOptional<FRotator::FReal>
+			{
+				return QuatProp->Data.Rotator().Yaw;
+			};
+			auto Pitch = [=]() -> TOptional<FRotator::FReal>
+			{
+				return QuatProp->Data.Rotator().Pitch;
+			};
+			auto OnRollChanged = [=](FRotator::FReal Val)
+			{
+				FRotator R = QuatProp->Data.Rotator();
+				R.Roll = Val;
+				QuatProp->Data = R.Quaternion();
+			};
+			auto OnYawChanged = [=](FRotator::FReal Val)
+			{
+				FRotator R = QuatProp->Data.Rotator();
+				R.Yaw = Val;
+				QuatProp->Data = R.Quaternion();
+			};
+			auto OnPitchChanged = [=](FRotator::FReal Val)
+			{
+				FRotator R = QuatProp->Data.Rotator();
+				R.Pitch = Val;
+				QuatProp->Data = R.Quaternion();
+			};
+			TSharedPtr<TNumericUnitTypeInterface<FRotator::FReal>> DegreesTypeInterface =
+				MakeShareable(new TNumericUnitTypeInterface<FRotator::FReal>(EUnit::Degrees));
+			W.ValueContent()
+			 .MinDesiredWidth(125.0f * 3.0f)
+			 .MaxDesiredWidth(125.0f * 3.0f)
+			 .VAlign(VAlign_Center)
+			[
+				SNew(SNumericRotatorInputBox<FRotator::FReal>)
+				.TypeInterface(DegreesTypeInterface)
+				.AllowSpin(true).bColorAxisLabels(true)
+				.Pitch_Lambda(Pitch)
+				.Yaw_Lambda(Yaw)
+				.Roll_Lambda(Roll)
+				.OnRollChanged_Lambda(OnRollChanged)
+				.OnPitchChanged_Lambda(OnPitchChanged)
+				.OnYawChanged_Lambda(OnYawChanged)
+			];
 		}
-
 		if (VectorProp != nullptr)
 		{
 			auto SetVector = [=](FVector V)
@@ -63,42 +149,34 @@ void UDynamicRustComponent::Render(TSharedRef<SVerticalBox> Box)
 			{
 				return TOptional(VectorProp->Data);
 			};
-			Widget = SNew(SNumericVectorInputBox<FVector::FReal>)
-			.Vector_Lambda(GetValue)
-			.OnVectorChanged_Lambda(SetVector)
-			.OnXChanged_Lambda([=](double Val)
-			                                                     {
-				                                                     VectorProp->Data.X = Val;
-				                                                     UE_LOG(LogTemp, Warning, TEXT("Commit X %s"),
-				                                                            *VectorProp->Data.ToString());
-			                                                     })
-			.OnVectorCommitted_Lambda(SetVectorCommitted)
-			.bColorAxisLabels(true);
-		}
-		Box->AddSlot()[
-			SNew(SBorder)
-				.BorderImage(FAppStyle::Get().GetBrush("DetailsView.CategoryMiddle"))
-				.BorderBackgroundColor(FSlateColor(FColor(0.0, 0.0, 0.0, 1.0)))
-				.Padding(0)
+			auto OnXChanged = [=](double Val)
+			{
+				VectorProp->Data.X = Val;
+			};
+			auto OnYChanged = [=](double Val)
+			{
+				VectorProp->Data.Y = Val;
+			};
+			auto OnZChanged = [=](double Val)
+			{
+				VectorProp->Data.Y = Val;
+			};
+			W.ValueContent()
+			 .MinDesiredWidth(125.0f * 3.0f)
+			 .MaxDesiredWidth(125.0f * 3.0f)
+			 .VAlign(VAlign_Center)
 			[
-				SNew(SHorizontalBox) +
-				SHorizontalBox::Slot()[
-					SNew(SSplitter)
-					+ SSplitter::Slot().Value(0.3f)[
-						SNew(SHorizontalBox) +
-						SHorizontalBox::Slot()[
-							SNew(STextBlock).Text(FText::FromString(Elem.Key))
-						]
-					]
-					+ SSplitter::Slot().Value(0.7f)[
-						SNew(SHorizontalBox) +
-						SHorizontalBox::Slot()[
-							Widget
-						]
-					]
-				]
-			]
-		];
+				SNew(SNumericVectorInputBox<FVector::FReal>)
+				.AllowSpin(true)
+				.Vector_Lambda(GetValue)
+				.OnVectorChanged_Lambda(SetVector)
+				.OnXChanged_Lambda(OnXChanged)
+				.OnYChanged_Lambda(OnYChanged)
+				.OnZChanged_Lambda(OnZChanged)
+			.OnVectorCommitted_Lambda(SetVectorCommitted)
+			.bColorAxisLabels(true)
+			];
+		}
 	}
 }
 
@@ -163,3 +241,4 @@ void UEntityComponent::TickComponent(float DeltaTime, ELevelTick TickType,
                                      FActorComponentTickFunction* ThisTickFunction)
 {
 }
+#undef LOCTEXT_NAMESPACE

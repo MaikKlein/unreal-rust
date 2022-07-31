@@ -59,7 +59,7 @@ public:
 	TMap<FString, TObjectPtr<URustProperty>> Fields;
 	UPROPERTY()
 	FString Name;
-	void Render(TSharedRef<SVerticalBox> Box);
+	void Render(IDetailCategoryBuilder& DetailBuilder);
 };
 
 USTRUCT(BlueprintType)
