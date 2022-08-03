@@ -136,6 +136,13 @@ struct OverlapResult {
   UPrimtiveOpaque *primtive;
 };
 
+struct Uuid {
+  uint32_t a;
+  uint32_t b;
+  uint32_t c;
+  uint32_t d;
+};
+
 using GetSpatialDataFn = void(*)(const AActorOpaque *actor, Vector3 *position, Quaternion *rotation, Vector3 *scale);
 
 using SetSpatialDataFn = void(*)(AActorOpaque *actor, Vector3 position, Quaternion rotation, Vector3 scale);
@@ -212,6 +219,24 @@ using GetActorNameFn = void(*)(const AActorOpaque *actor, char *data, uintptr_t 
 
 using SetOwnerFn = void(*)(AActorOpaque *actor, const AActorOpaque *new_owner);
 
+using GetEditorComponentUuidsFn = uint32_t(*)(const AActorOpaque *actor, Uuid *data, uintptr_t *len);
+
+using GetEditorComponentQuatFn = uint32_t(*)(const AActorOpaque *actor, Uuid uuid, Utf8Str field, Quaternion *out);
+
+using GetEditorComponentVectorFn = uint32_t(*)(const AActorOpaque *actor, Uuid uuid, Utf8Str field, Vector3 *out);
+
+using GetEditorComponentBoolFn = uint32_t(*)(const AActorOpaque *actor, Uuid uuid, Utf8Str field, uint32_t *out);
+
+using GetEditorComponentFloatFn = uint32_t(*)(const AActorOpaque *actor, Uuid uuid, Utf8Str field, float *out);
+
+struct EditorComponentFns {
+  GetEditorComponentUuidsFn get_editor_components;
+  GetEditorComponentQuatFn get_editor_component_quat;
+  GetEditorComponentVectorFn get_editor_component_vector;
+  GetEditorComponentBoolFn get_editor_component_bool;
+  GetEditorComponentFloatFn get_editor_component_float;
+};
+
 struct UnrealBindings {
   GetSpatialDataFn get_spatial_data;
   SetSpatialDataFn set_spatial_data;
@@ -234,13 +259,7 @@ struct UnrealBindings {
   IsMoveableFn is_moveable;
   GetActorNameFn get_actor_name;
   SetOwnerFn set_owner;
-};
-
-struct Uuid {
-  uint32_t a;
-  uint32_t b;
-  uint32_t c;
-  uint32_t d;
+  EditorComponentFns editor_component_fns;
 };
 
 using RetrieveUuids = void(*)(Uuid *ptr, uintptr_t *len);
@@ -395,5 +414,27 @@ extern uint32_t OverlapMulti(CollisionShape collision_shape,
                              OverlapResult **result);
 
 extern uint32_t GetCollisionShape(const UPrimtiveOpaque *primitive, CollisionShape *shape);
+
+extern uint32_t GetEditorComponentUuids(const AActorOpaque *actor, Uuid *data, uintptr_t *len);
+
+extern uint32_t GetEditorComponentVector(const AActorOpaque *actor,
+                                         Uuid uuid,
+                                         Utf8Str field,
+                                         Vector3 *out);
+
+extern uint32_t GetEditorComponentFloat(const AActorOpaque *actor,
+                                        Uuid uuid,
+                                        Utf8Str field,
+                                        float *out);
+
+extern uint32_t GetEditorComponentBool(const AActorOpaque *actor,
+                                       Uuid uuid,
+                                       Utf8Str field,
+                                       uint32_t *out);
+
+extern uint32_t GetEditorComponentQuat(const AActorOpaque *actor,
+                                       Uuid uuid,
+                                       Utf8Str field,
+                                       Quaternion *out);
 
 } // extern "C"

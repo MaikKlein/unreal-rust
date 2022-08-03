@@ -9,6 +9,8 @@
 #include "EntityComponent.generated.h"
 
 
+DECLARE_DELEGATE_RetVal(FReply, FOnComponentRemoved);
+
 UCLASS()
 class URustProperty : public UObject
 {
@@ -32,6 +34,7 @@ public:
 	UPROPERTY()
 	bool Data;
 };
+
 UCLASS()
 class URustPropertyFloat : public URustProperty
 {
@@ -40,6 +43,7 @@ public:
 	UPROPERTY()
 	float Data;
 };
+
 UCLASS()
 class URustPropertyQuaternion : public URustProperty
 {
@@ -59,7 +63,7 @@ public:
 	TMap<FString, TObjectPtr<URustProperty>> Fields;
 	UPROPERTY()
 	FString Name;
-	void Render(IDetailCategoryBuilder& DetailBuilder);
+	void Render(IDetailCategoryBuilder& DetailBuilder, FOnComponentRemoved OnComponentRemoved);
 };
 
 USTRUCT(BlueprintType)
@@ -85,6 +89,7 @@ public:
 	Uuid Id;
 };
 
+
 UCLASS(Blueprintable, meta=(BlueprintSpawnableComponent))
 class RUSTPLUGIN_API UEntityComponent : public UActorComponent
 {
@@ -94,15 +99,10 @@ public:
 	// Sets default values for this component's properties
 	UEntityComponent();
 	FEntity Id;
-	UPROPERTY(Category=Rust, EditAnywhere)
+	UPROPERTY()
 	TMap<FGuid, TObjectPtr<UDynamicRustComponent>> Components;
-	UPROPERTY(Category=Rust, EditAnywhere)
-	TArray<TObjectPtr<UDynamicRustComponent>> Components2;
 
 public:
-	// Called every frame
-	virtual void TickComponent(float DeltaTime, ELevelTick TickType,
-	                           FActorComponentTickFunction* ThisTickFunction) override;
 	UFUNCTION(BlueprintCallable, Category="Rust|Utilities", meta=(Keywords = "entity"))
 	virtual FEntity GetEntity();
 };

@@ -1,6 +1,7 @@
 use crate::TypeUuid;
-use bevy_ecs::{entity::Entity, prelude::World};
+use bevy_ecs::{entity::Entity, prelude::World, system::EntityCommands};
 use glam::{Quat, Vec3};
+use uuid::Uuid;
 use std::collections::{HashMap, HashSet};
 
 #[derive(Default)]
@@ -44,6 +45,15 @@ pub enum ReflectType {
     Bool,
     Quat,
     Composite,
+}
+
+
+pub trait InsertEditorComponent {
+    /// # Safety
+    unsafe fn insert_component(
+        uuid: Uuid,
+        commands: &mut EntityCommands<'_,'_,'_>
+        );
 }
 
 pub trait ReflectDyn {

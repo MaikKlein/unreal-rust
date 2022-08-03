@@ -13,7 +13,7 @@
 
 #define LOCTEXT_NAMESPACE "RustDetailCustomization"
 
-void UDynamicRustComponent::Render(IDetailCategoryBuilder& DetailBuilder)
+void UDynamicRustComponent::Render(IDetailCategoryBuilder& DetailBuilder, FOnComponentRemoved OnComponentRemoved)
 {
 	auto RowText = LOCTEXT("RustCategory", "Components");
 	DetailBuilder.AddCustomRow(RowText).WholeRowContent()[
@@ -24,6 +24,24 @@ void UDynamicRustComponent::Render(IDetailCategoryBuilder& DetailBuilder)
 			SNew(SHorizontalBox) +
 			SHorizontalBox::Slot()[
 				SNew(STextBlock).Text(FText::FromString(Name))
+			]
+			+ SHorizontalBox::Slot()[
+				SNew(SBox)
+				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Center)
+				.WidthOverride(22)
+				.HeightOverride(22)[
+					SNew(SButton)
+					.ButtonStyle(FAppStyle::Get(), "SimpleButton")
+					.OnClicked(OnComponentRemoved)
+					.ContentPadding(0)
+					//.IsFocusable(InArgs._IsFocusable)
+					[
+						SNew(SImage)
+						.Image(FEditorStyle::GetBrush("Icons.Delete"))
+						.ColorAndOpacity(FSlateColor::UseForeground())
+					]
+				]
 			]
 		]
 	];
@@ -195,19 +213,18 @@ FEntity UEntityComponent::GetEntity()
 void UDynamicRustComponent::Initialize(FGuid Guid)
 {
 	auto Fns = &GetModule().Plugin.Rust.reflection_fns;
+	Uuid Id = ToUuid(Guid);
+
+	const char* TypeNamePtr = nullptr;
+	uintptr_t TypeNameLen = 0;
+	Fns->get_type_name(Id, &TypeNamePtr, &TypeNameLen);
+	Name = FString(TypeNameLen, UTF8_TO_TCHAR(TypeNamePtr));
 
 	uint32_t NumberOfFields = 0;
-	Uuid Id = ToUuid(Guid);
 	Fns->number_of_fields(Id, &NumberOfFields);
 
 	for (uint32_t Idx = 0; Idx < NumberOfFields; ++Idx)
 	{
-		const char* TypeNamePtr = nullptr;
-		uintptr_t TypeNameLen = 0;
-		Fns->get_type_name(Id, &TypeNamePtr, &TypeNameLen);
-		Name = FString(TypeNameLen, UTF8_TO_TCHAR(TypeNamePtr));
-
-
 		const char* NamePtr = nullptr;
 		uintptr_t Len = 0;
 		Fns->get_field_name(Id, Idx, &NamePtr, &Len);
@@ -236,9 +253,4 @@ void UDynamicRustComponent::Initialize(FGuid Guid)
 	}
 }
 
-// Called every frame
-void UEntityComponent::TickComponent(float DeltaTime, ELevelTick TickType,
-                                     FActorComponentTickFunction* ThisTickFunction)
-{
-}
 #undef LOCTEXT_NAMESPACE

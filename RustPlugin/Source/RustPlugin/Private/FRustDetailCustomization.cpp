@@ -18,22 +18,10 @@ void FRustDetailCustomization::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 	TArray<TWeakObjectPtr<UObject>> Objects;
 	DetailBuilder.GetObjectsBeingCustomized(Objects);
 
-	UE_LOG(LogTemp, Warning, TEXT("Objects %i"), Objects.Num());
 	if (Objects.IsEmpty())
 		return;
 
-	for (UObject* Owner = Objects[0].Get(); Owner; Owner = Owner->GetOuter())
-	{
-		if (Owner == nullptr)
-			break;
-		UE_LOG(LogTemp, Warning, TEXT("%s"), *Owner->GetClass()->GetName());
-	}
 	TWeakObjectPtr<UEntityComponent> Component = Cast<UEntityComponent>(Objects[0]);
-
-	if (Component == nullptr)
-		return;
-	UE_LOG(LogTemp, Warning, TEXT("Is Rust Actor"));
-
 
 	IDetailCategoryBuilder& RustCategory = DetailBuilder.EditCategory(TEXT("Rust"));
 	auto OnPicked = [Component, &DetailBuilder](FUuidViewNode* Node)
@@ -46,14 +34,23 @@ void FRustDetailCustomization::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 		Component->Components.Add(Node->Id, DynRust);
 		DetailBuilder.ForceRefreshDetails();
 	};
-	auto Box = SNew(SVerticalBox);
+	
 	for (auto& Elem : Component->Components)
 	{
 		if (Elem.Value == nullptr)
 			continue;
-		Elem.Value->Render(RustCategory);
+
+		FGuid Guid = Elem.Key;
+		auto OnRemoved = FOnComponentRemoved::CreateLambda([Component, &DetailBuilder, Guid]() -> FReply
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Removed clicked"));
+			Component->Components.Remove(Guid);
+			DetailBuilder.ForceRefreshDetails();
+			return FReply::Handled();
+		});
+		Elem.Value->Render(RustCategory, OnRemoved);
 	}
-	
+
 	RustCategory.AddCustomRow(LOCTEXT("Picker", "Picker")).WholeRowContent()[
 		SNew(SRustDropdownList).OnUuidPickedDelegate(FOnUuidPicked::CreateLambda(OnPicked))
 	];

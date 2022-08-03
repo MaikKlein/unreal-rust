@@ -370,6 +370,7 @@ pub struct UnrealBindings {
     pub is_moveable: IsMoveableFn,
     pub get_actor_name: GetActorNameFn,
     pub set_owner: SetOwnerFn,
+    pub editor_component_fns: EditorComponentFns,
 }
 unsafe impl Sync for UnrealBindings {}
 unsafe impl Send for UnrealBindings {}
@@ -593,4 +594,77 @@ pub struct ReflectionFns {
     pub get_field_bool_value: GetFieldBoolValueFn,
     pub get_field_float_value: GetFieldFloatValueFn,
     pub get_field_quat_value: GetFieldQuatValueFn,
+}
+
+extern "C" {
+    pub fn GetEditorComponentUuids(
+        actor: *const AActorOpaque,
+        data: *mut Uuid,
+        len: *mut usize,
+    ) -> u32;
+
+    pub fn GetEditorComponentVector(
+        actor: *const AActorOpaque,
+        uuid: Uuid,
+        field: Utf8Str,
+        out: *mut Vector3,
+    ) -> u32;
+    pub fn GetEditorComponentFloat(
+        actor: *const AActorOpaque,
+        uuid: Uuid,
+        field: Utf8Str,
+        out: *mut f32,
+    ) -> u32;
+    pub fn GetEditorComponentBool(
+        actor: *const AActorOpaque,
+        uuid: Uuid,
+        field: Utf8Str,
+        out: *mut u32,
+    ) -> u32;
+    pub fn GetEditorComponentQuat(
+        actor: *const AActorOpaque,
+        uuid: Uuid,
+        field: Utf8Str,
+        out: *mut Quaternion,
+    ) -> u32;
+}
+
+pub type GetEditorComponentUuidsFn =
+    unsafe extern "C" fn(actor: *const AActorOpaque, data: *mut Uuid, len: *mut usize) -> u32;
+
+pub type GetEditorComponentQuatFn = unsafe extern "C" fn(
+    actor: *const AActorOpaque,
+    uuid: Uuid,
+    field: Utf8Str,
+    out: *mut Quaternion,
+) -> u32;
+
+pub type GetEditorComponentVectorFn = unsafe extern "C" fn(
+    actor: *const AActorOpaque,
+    uuid: Uuid,
+    field: Utf8Str,
+    out: *mut Vector3,
+) -> u32;
+
+pub type GetEditorComponentFloatFn = unsafe extern "C" fn(
+    actor: *const AActorOpaque,
+    uuid: Uuid,
+    field: Utf8Str,
+    out: *mut f32,
+) -> u32;
+
+pub type GetEditorComponentBoolFn = unsafe extern "C" fn(
+    actor: *const AActorOpaque,
+    uuid: Uuid,
+    field: Utf8Str,
+    out: *mut u32,
+) -> u32;
+
+#[repr(C)]
+pub struct EditorComponentFns {
+    pub get_editor_components: GetEditorComponentUuidsFn,
+    pub get_editor_component_quat: GetEditorComponentQuatFn,
+    pub get_editor_component_vector: GetEditorComponentVectorFn,
+    pub get_editor_component_bool: GetEditorComponentBoolFn,
+    pub get_editor_component_float: GetEditorComponentFloatFn,
 }
