@@ -18,6 +18,8 @@ pub fn reflect_derive(ast: &DeriveInput) -> proc_macro2::TokenStream {
     if let Data::Struct(data) = &ast.data {
         let literal_name = LitStr::new(&ast.ident.to_string(), Span::call_site());
         let reflect_struct_ident = Ident::new(&format!("{}Reflect", ast.ident), Span::call_site());
+        let insert_struct_ident =
+            Ident::new(&format!("{}InsertComponent", ast.ident), Span::call_site());
         let struct_ident = &ast.ident;
 
         let fields: Vec<ReflectField> = data
@@ -89,6 +91,41 @@ pub fn reflect_derive(ast: &DeriveInput) -> proc_macro2::TokenStream {
         } else {
             quote!()
         };
+
+        let has_skip = fields.len() != reflect_fields.len();
+        let insert_component = if !has_skip {
+            quote! {
+                impl unreal_api::editor_component::InsertEditorComponent for #insert_struct_ident {
+                    unsafe fn insert_component(
+                        &self,
+                        actor: *const unreal_api::ffi::AActorOpaque,
+                        uuid: unreal_api::uuid::Uuid,
+                        commands: &mut unreal_api::ecs::system::EntityCommands<'_, '_, '_>,
+                    ) {
+                        use unreal_api::editor_component::GetEditorComponentValue;
+                        let component = #struct_ident {
+                            #(
+                                #field_idents: #field_types::get(actor, uuid, #field_names).unwrap(),
+                            )*
+                        };
+                        commands.insert(component);
+                    }
+                }
+            }
+        } else {
+            // TODO: Workaround for non constructible components
+            quote! {
+                impl unreal_api::editor_component::InsertEditorComponent for #insert_struct_ident {
+                    unsafe fn insert_component(
+                        &self,
+                        _actor: *const unreal_api::ffi::AActorOpaque,
+                        _uuid: unreal_api::uuid::Uuid,
+                        _commands: &mut unreal_api::ecs::system::EntityCommands<'_, '_, '_>,
+                    ) {
+                    }
+                }
+            }
+        };
         quote! {
             pub struct #reflect_struct_ident;
 
@@ -114,11 +151,18 @@ pub fn reflect_derive(ast: &DeriveInput) -> proc_macro2::TokenStream {
             impl unreal_api::ecs::component::Component for #struct_ident {
                 type Storage = unreal_api::ecs::component::TableStorage;
             }
-            impl unreal_api::registry::InsertReflectionStruct for #struct_ident {
-                fn insert(registry: &mut unreal_api::registry::ReflectionRegistry) {
+            pub struct #insert_struct_ident;
+            #insert_component
+
+            impl unreal_api::module::InsertReflectionStruct for #struct_ident {
+                fn insert(registry: &mut unreal_api::module::ReflectionRegistry) {
                     registry.reflect.insert(
                         <#struct_ident as unreal_api::TypeUuid>::TYPE_UUID,
                         Box::new(#reflect_struct_ident),
+                    );
+                    registry.insert_editor_component.insert(
+                        <#struct_ident as unreal_api::TypeUuid>::TYPE_UUID,
+                        Box::new(#insert_struct_ident),
                     );
 
                 }

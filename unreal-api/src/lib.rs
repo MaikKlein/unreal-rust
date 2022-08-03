@@ -12,9 +12,9 @@ pub mod plugin;
 pub use unreal_api_derive::Component;
 
 // TODO: Here for the unreal_api_derive macro. Lets restructure this
-pub use unreal_reflect::*;
 pub use bevy_ecs as ecs;
 pub use glam as math;
+pub use unreal_reflect::*;
 
 pub use uuid;
 

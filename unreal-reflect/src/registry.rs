@@ -1,35 +1,5 @@
-use crate::TypeUuid;
-use bevy_ecs::{entity::Entity, prelude::World, system::EntityCommands};
+use bevy_ecs::{entity::Entity, prelude::World};
 use glam::{Quat, Vec3};
-use std::collections::{HashMap, HashSet};
-use uuid::Uuid;
-
-#[derive(Default)]
-pub struct ReflectionRegistry {
-    pub uuid_set: HashSet<uuid::Uuid>,
-    pub reflect: HashMap<uuid::Uuid, Box<dyn ReflectDyn>>,
-}
-
-impl ReflectionRegistry {
-    pub fn register<T>(&mut self)
-    where
-        T: InsertReflectionStruct + TypeUuid + 'static,
-    {
-        if self.uuid_set.contains(&T::TYPE_UUID) {
-            panic!(
-                "Duplicated UUID {} for {}",
-                T::TYPE_UUID,
-                std::any::type_name::<T>()
-            );
-        }
-        T::insert(self);
-        self.uuid_set.insert(T::TYPE_UUID);
-    }
-}
-
-pub trait InsertReflectionStruct {
-    fn insert(registry: &mut ReflectionRegistry);
-}
 
 pub enum ReflectValue {
     Float(f32),
@@ -45,11 +15,6 @@ pub enum ReflectType {
     Bool,
     Quat,
     Composite,
-}
-
-pub trait InsertEditorComponent {
-    /// # Safety
-    unsafe fn insert_component(uuid: Uuid, commands: &mut EntityCommands<'_, '_, '_>);
 }
 
 pub trait ReflectDyn {

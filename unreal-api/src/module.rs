@@ -1,15 +1,15 @@
+use std::collections::{HashMap, HashSet};
+
 use bevy_ecs::{
     prelude::System,
     schedule::{Schedule, StageLabel, SystemSet, SystemStage},
     system::Resource,
 };
-use unreal_reflect::{
-    registry::{InsertReflectionStruct, ReflectionRegistry},
-    TypeUuid, World,
-};
+use unreal_reflect::{registry::ReflectDyn, uuid, TypeUuid, World};
 
 use crate::{
     core::{StartupStage, UnrealCore},
+    editor_component::InsertEditorComponent,
     ffi::UnrealBindings,
     plugin::Plugin,
 };
@@ -32,6 +32,33 @@ macro_rules! register_components {
             $module.register_component::<$ty>();
         )*
     };
+}
+pub trait InsertReflectionStruct {
+    fn insert(registry: &mut ReflectionRegistry);
+}
+
+#[derive(Default)]
+pub struct ReflectionRegistry {
+    pub uuid_set: HashSet<uuid::Uuid>,
+    pub reflect: HashMap<uuid::Uuid, Box<dyn ReflectDyn>>,
+    pub insert_editor_component: HashMap<uuid::Uuid, Box<dyn InsertEditorComponent>>,
+}
+
+impl ReflectionRegistry {
+    pub fn register<T>(&mut self)
+    where
+        T: InsertReflectionStruct + TypeUuid + 'static,
+    {
+        if self.uuid_set.contains(&T::TYPE_UUID) {
+            panic!(
+                "Duplicated UUID {} for {}",
+                T::TYPE_UUID,
+                std::any::type_name::<T>()
+            );
+        }
+        T::insert(self);
+        self.uuid_set.insert(T::TYPE_UUID);
+    }
 }
 
 pub struct Module {
