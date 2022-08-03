@@ -1,6 +1,7 @@
 use std::collections::HashMap;
 
 use bevy_ecs::prelude::*;
+use unreal_api::Component;
 use unreal_api::{
     core::{ActorComponent, ActorPtr, CoreStage, ParentComponent, TransformComponent},
     ffi::{self, UClassOpague},
@@ -12,7 +13,6 @@ use unreal_api::{
 use unreal_movement::{
     CharacterConfigComponent, CharacterControllerComponent, MovementComponent, MovementPlugin,
 };
-use unreal_reflect::Component;
 
 #[repr(u32)]
 #[derive(Copy, Clone)]

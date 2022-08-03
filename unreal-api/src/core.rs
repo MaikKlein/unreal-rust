@@ -379,9 +379,10 @@ pub fn register_core_components(registry: &mut ReflectionRegistry) {
     registry.register::<PhysicsComponent>();
 }
 
+use unreal_api::Component;
 use unreal_reflect::{
     registry::{ReflectType, ReflectValue, ReflectionRegistry},
-    Component, Uuid,
+    Uuid,
 };
 #[derive(Debug, Hash, PartialEq, Eq, Clone, StageLabel)]
 pub struct StartupStage;

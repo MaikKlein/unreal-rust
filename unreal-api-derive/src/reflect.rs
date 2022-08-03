@@ -50,10 +50,10 @@ pub fn reflect_derive(ast: &DeriveInput) -> proc_macro2::TokenStream {
 
         let field_methods = if number_of_fields > 0 {
             quote! {
-                fn get_field_type(&self, idx: u32) -> Option<unreal_reflect::registry::ReflectType> {
+                fn get_field_type(&self, idx: u32) -> Option<unreal_api::registry::ReflectType> {
                     match idx {
                         #(
-                            #field_indices => Some(<#field_types as unreal_reflect::registry::ReflectStatic>::TYPE),
+                            #field_indices => Some(<#field_types as unreal_api::registry::ReflectStatic>::TYPE),
                             )*
                             _ => None
                     }
@@ -66,12 +66,12 @@ pub fn reflect_derive(ast: &DeriveInput) -> proc_macro2::TokenStream {
                         _ => None
                     }
                 }
-                fn has_component(&self, world: &unreal_reflect::World, entity: unreal_reflect::Entity) -> bool {
+                fn has_component(&self, world: &unreal_api::World, entity: unreal_api::Entity) -> bool {
                     world
                         .get_entity(entity)
                         .and_then(|entity_ref| entity_ref.get::<#self_ty>()).is_some()
                 }
-                fn get_field_value(&self, world: &unreal_reflect::World, entity: unreal_reflect::Entity, idx: u32) -> Option<unreal_reflect::registry::ReflectValue> {
+                fn get_field_value(&self, world: &unreal_api::World, entity: unreal_api::Entity, idx: u32) -> Option<unreal_api::registry::ReflectValue> {
                     world
                         .get_entity(entity)
                         .and_then(|entity_ref| entity_ref.get::<#self_ty>())
@@ -92,7 +92,7 @@ pub fn reflect_derive(ast: &DeriveInput) -> proc_macro2::TokenStream {
         quote! {
             pub struct #reflect_struct_ident;
 
-            impl unreal_reflect::registry::ReflectDyn for #reflect_struct_ident {
+            impl unreal_api::registry::ReflectDyn for #reflect_struct_ident {
                 fn name(&self) -> &'static str {
                     #literal_name
                 }
@@ -103,21 +103,21 @@ pub fn reflect_derive(ast: &DeriveInput) -> proc_macro2::TokenStream {
 
                 #field_methods
 
-                fn get_value(&self) -> unreal_reflect::registry::ReflectValue {
-                    unreal_reflect::registry::ReflectValue::Composite
+                fn get_value(&self) -> unreal_api::registry::ReflectValue {
+                    unreal_api::registry::ReflectValue::Composite
                 }
 
             }
-            impl unreal_reflect::registry::ReflectStatic for #reflect_struct_ident {
-                const TYPE: unreal_reflect::registry::ReflectType = unreal_reflect::registry::ReflectType::Composite;
+            impl unreal_api::registry::ReflectStatic for #reflect_struct_ident {
+                const TYPE: unreal_api::registry::ReflectType = unreal_api::registry::ReflectType::Composite;
             }
-            impl unreal_reflect::ecs::component::Component for #struct_ident {
-                type Storage = unreal_reflect::ecs::component::TableStorage;
+            impl unreal_api::ecs::component::Component for #struct_ident {
+                type Storage = unreal_api::ecs::component::TableStorage;
             }
-            impl unreal_reflect::registry::InsertReflectionStruct for #struct_ident {
-                fn insert(registry: &mut unreal_reflect::registry::ReflectionRegistry) {
+            impl unreal_api::registry::InsertReflectionStruct for #struct_ident {
+                fn insert(registry: &mut unreal_api::registry::ReflectionRegistry) {
                     registry.reflect.insert(
-                        <#struct_ident as unreal_reflect::TypeUuid>::TYPE_UUID,
+                        <#struct_ident as unreal_api::TypeUuid>::TYPE_UUID,
                         Box::new(#reflect_struct_ident),
                     );
 
@@ -125,6 +125,6 @@ pub fn reflect_derive(ast: &DeriveInput) -> proc_macro2::TokenStream {
             }
         }
     } else {
-        panic!("Only structs are currently supported in `unreal_reflect`")
+        panic!("Only structs are currently supported in `unreal_api_derive`")
     }
 }

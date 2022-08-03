@@ -1,4 +1,5 @@
 use bevy_ecs::{prelude::*, query::WorldQuery};
+use unreal_api::Component;
 use unreal_api::{
     core::{ActorComponent, ActorPtr, ActorRegistration, CoreStage, Frame, TransformComponent},
     ffi,
@@ -10,7 +11,6 @@ use unreal_api::{
     plugin::Plugin,
     register_components,
 };
-use unreal_reflect::Component;
 fn project_onto_plane(dir: Vec3, normal: Vec3) -> Vec3 {
     dir - normal * Vec3::dot(dir, normal)
 }

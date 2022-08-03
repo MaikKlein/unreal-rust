@@ -1,7 +1,7 @@
+use crate::Component;
 use ffi::AActorOpaque;
 use glam::{Quat, Vec3};
 use unreal_ffi as ffi;
-use unreal_reflect::Component;
 
 use crate::{
     core::{ActorPtr, Primitive, UnrealPtr},

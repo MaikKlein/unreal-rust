@@ -9,7 +9,6 @@ license = "MIT OR Apache-2.0"
 [dependencies]
 
 uuid = { version = "0.8", features = ["v4", "serde"] }
-unreal-reflect-derive = { path = "../unreal-reflect-derive" }
 unreal-ffi = { path = "../unreal-ffi" }
 bevy_ecs = "0.7"
 log = "0.4"

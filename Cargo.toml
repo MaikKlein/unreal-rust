@@ -3,7 +3,7 @@ members = [
     "unreal-api",
     "unreal-ffi",
     "unreal-reflect",
-    "unreal-reflect-derive",
+    "unreal-api-derive",
     "unreal-rust-example",
     "gameplay-plugins/unreal-movement",
 ]

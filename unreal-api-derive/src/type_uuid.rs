@@ -50,8 +50,8 @@ pub fn type_uuid_derive(ast: &DeriveInput) -> proc_macro2::TokenStream {
         .map(|byte_str| syn::parse_str::<LitInt>(&byte_str).unwrap());
 
     quote! {
-        impl unreal_reflect::TypeUuid for #name {
-            const TYPE_UUID: unreal_reflect::uuid::Uuid = unreal_reflect::uuid::Uuid::from_bytes([
+        impl unreal_api::TypeUuid for #name {
+            const TYPE_UUID: unreal_api::uuid::Uuid = unreal_api::uuid::Uuid::from_bytes([
                 #( #bytes ),*
             ]);
         }

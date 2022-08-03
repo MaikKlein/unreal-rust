@@ -8,5 +8,6 @@ license = "MIT OR Apache-2.0"
 bevy_ecs = "0.7"
 glam = "0.20.2"
 log = { version = "0.4.14", features =["std"] }
+unreal-api-derive= { path = "../unreal-api-derive" }
 unreal-reflect= { path = "../unreal-reflect" }
 unreal-ffi= { path = "../unreal-ffi" }
