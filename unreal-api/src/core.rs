@@ -571,8 +571,37 @@ fn process_unreal_events(mut actor_register: ResMut<ActorRegistration>, mut comm
             for event in global.core.unreal_events.drain(..) {
                 match event {
                     UnrealEvent::ActorAdded(actor) => {
-                        let entity = commands
-                            .spawn()
+                        let mut entity_cmds = commands.spawn();
+
+                        let mut len = 0;
+                        (bindings().editor_component_fns.get_editor_components)(
+                            actor,
+                            std::ptr::null_mut(),
+                            &mut len,
+                        );
+
+                        let mut uuids = vec![ffi::Uuid::default(); len];
+                        (bindings().editor_component_fns.get_editor_components)(
+                            actor,
+                            uuids.as_mut_ptr(),
+                            &mut len,
+                        );
+
+                        for uuid in uuids {
+                            let uuid = from_ffi_uuid(uuid);
+                            if let Some(insert) = global
+                                .core
+                                .module
+                                .reflection_registry
+                                .insert_editor_component
+                                .get(&uuid)
+                            {
+                                log::info!("{uuid:?}");
+                                insert.insert_component(actor, uuid, &mut entity_cmds);
+                            }
+                        }
+
+                        let entity = entity_cmds
                             .insert_bundle((
                                 ActorComponent {
                                     actor: ActorPtr(actor),

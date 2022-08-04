@@ -2,9 +2,18 @@
 #include "Modules/ModuleManager.h"
 #include "RustPlugin.h"
 #include "EngineUtils.h"
+#include "RustActor.h"
 
 UnrealBindings CreateBindings()
 {
+	
+	EditorComponentFns editor_component_fns;
+	editor_component_fns.get_editor_component_bool = &GetEditorComponentBool;
+	editor_component_fns.get_editor_component_float = &GetEditorComponentFloat;
+	editor_component_fns.get_editor_component_quat = &GetEditorComponentQuat;
+	editor_component_fns.get_editor_component_vector = &GetEditorComponentVector;
+	editor_component_fns.get_editor_components = &GetEditorComponentUuids;
+	
 	UnrealPhysicsBindings physics_bindings = {};
 	physics_bindings.add_force = &AddForce;
 	physics_bindings.add_impulse = &AddImpulse;
@@ -19,6 +28,7 @@ UnrealBindings CreateBindings()
 
 	UnrealBindings b = {};
 	b.physics_bindings = physics_bindings;
+	b.editor_component_fns = editor_component_fns;
 	b.get_spatial_data = &GetSpatialData;
 	b.set_spatial_data = &SetSpatialData;
 	b.log = &Log;
@@ -135,4 +145,23 @@ FCollisionShape ToFCollisionShape(CollisionShape Shape)
 FString ToFString(Utf8Str Str)
 {
 	return FString(Str.len, UTF8_TO_TCHAR(Str.ptr));
+}
+
+URustProperty* GetRustProperty(const AActorOpaque* actor, Uuid uuid, Utf8Str field)
+{
+	ARustActor* Actor = Cast<ARustActor>(ToAActor(actor));
+	if(Actor == nullptr)
+	{
+		return nullptr;
+	}
+	FString FieldName = ToFString(field);
+
+	TObjectPtr<UDynamicRustComponent>* Comp = Actor->EntityComponent->Components.Find(ToFGuid(uuid));
+	if(Comp == nullptr || *Comp == nullptr)
+		return nullptr;
+	TObjectPtr<URustProperty>* Prop = Comp->Get()->Fields.Find(FieldName);
+	if(Prop == nullptr)
+		return nullptr;
+
+	return Prop->Get();
 }

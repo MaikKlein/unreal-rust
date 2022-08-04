@@ -419,12 +419,14 @@ impl Default for ActorComponentPtr {
 }
 
 #[repr(C)]
+#[derive(Default, Clone, Copy)]
 pub struct Uuid {
     pub a: u32,
     pub b: u32,
     pub c: u32,
     pub d: u32,
 }
+
 
 pub type EntryUnrealBindingsFn = unsafe extern "C" fn(bindings: UnrealBindings) -> RustBindings;
 pub type BeginPlayFn = unsafe extern "C" fn() -> ResultCode;

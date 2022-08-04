@@ -66,7 +66,7 @@ void GetActionState(const char* name, uintptr_t len, ActionState* state)
 
 	// TODO: I think this logic is broken. I think we can have both a pressed and a released event
 	// at the same time. If that happens we will only process the `Pressed` event.
-	
+
 	for (auto M : PC->PlayerInput->GetKeysForAction(ActionName))
 	{
 		if (PC->PlayerInput->WasJustPressed(M.Key))
@@ -511,4 +511,87 @@ void VisualLogLocation(Utf8Str category, const AActorOpaque* owner, Vector3 posi
 	FString CategoryStr = ToFString(category);
 	auto LogCat = FLogCategory<ELogVerbosity::Log, ELogVerbosity::All>(*CategoryStr);
 	UE_VLOG_LOCATION(ToAActor(owner), LogCat, Log, ToFVector(position), radius, ToFColor(color), TEXT(""));
+}
+
+uint32_t GetEditorComponentUuids(const AActorOpaque* actor, Uuid* data, uintptr_t* len)
+{
+	ARustActor* Actor = Cast<ARustActor>(ToAActor(actor));
+	if (Actor == nullptr)
+	{
+		return 0;
+	}
+
+	if (data == nullptr)
+	{
+		*len = Actor->EntityComponent->Components.Num();
+		return 1;
+	}
+	uintptr_t Count = *len;
+	uintptr_t Idx = 0;
+	for (auto& Elem : Actor->EntityComponent->Components)
+	{
+		if (Idx == Count)
+			return 1;
+		data[Idx] = ToUuid(Elem.Key);
+	}
+
+	// We have only partially written to data
+	*len = Idx;
+	return 1;
+}
+
+uint32_t GetEditorComponentVector(const AActorOpaque* actor, Uuid uuid, Utf8Str field, Vector3* out)
+{
+	URustProperty* Prop = GetRustProperty(actor, uuid, field);
+	if (Prop == nullptr)
+		return 0;
+
+	URustPropertyVector* VecProp = Cast<URustPropertyVector>(Prop);
+	if (VecProp == nullptr)
+		return 0;
+
+	*out = ToVector3(VecProp->Data);
+	return 1;
+}
+
+uint32_t GetEditorComponentFloat(const AActorOpaque* actor, Uuid uuid, Utf8Str field, float* out)
+{
+	URustProperty* Prop = GetRustProperty(actor, uuid, field);
+	if (Prop == nullptr)
+		return 0;
+
+	URustPropertyFloat* FloatProp = Cast<URustPropertyFloat>(Prop);
+	if (FloatProp == nullptr)
+		return 0;
+
+	*out = FloatProp->Data;
+	return 1;
+}
+
+uint32_t GetEditorComponentBool(const AActorOpaque* actor, Uuid uuid, Utf8Str field, uint32_t* out)
+{
+	URustProperty* Prop = GetRustProperty(actor, uuid, field);
+	if (Prop == nullptr)
+		return 0;
+
+	URustPropertyBool* BoolProp = Cast<URustPropertyBool>(Prop);
+	if (BoolProp == nullptr)
+		return 0;
+
+	*out = BoolProp->Data == 1;
+	return 1;
+}
+
+uint32_t GetEditorComponentQuat(const AActorOpaque* actor, Uuid uuid, Utf8Str field, Quaternion* out)
+{
+	URustProperty* Prop = GetRustProperty(actor, uuid, field);
+	if (Prop == nullptr)
+		return 0;
+
+	URustPropertyQuaternion* QuatProp = Cast<URustPropertyQuaternion>(Prop);
+	if (QuatProp == nullptr)
+		return 0;
+
+	*out = ToQuaternion(QuatProp->Data);
+	return 1;
 }

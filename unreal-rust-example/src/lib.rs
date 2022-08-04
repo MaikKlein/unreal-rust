@@ -63,6 +63,12 @@ pub struct CameraComponent {
     pub mode: CameraMode,
 }
 
+#[derive(Default, Debug, Component)]
+#[uuid = "c7f85b63-fbf0-4b14-a2f7-bbe994173b5a"]
+pub struct FooComponent {
+    pub n: f32,
+}
+
 pub struct PlayerInput;
 impl PlayerInput {
     pub const MOVE_FORWARD: &'static str = "MoveForward";
@@ -155,6 +161,11 @@ fn update_controller_view(
         {
             movement.camera_view = spatial.rotation;
         }
+    }
+}
+fn foo(query: Query<&FooComponent>) {
+    for foo in query.iter() {
+        log::info!("{}", foo.n);
     }
 }
 
@@ -251,7 +262,9 @@ impl UserModule for MyModule {
     fn initialize(&self, module: &mut Module) {
         register_components! {
             CameraComponent,
+            FooComponent,
             => module
+
         };
 
         module
@@ -269,7 +282,8 @@ impl UserModule for MyModule {
                     .with_system(update_controller_view)
                     .with_system(rotate_camera)
                     .with_system(update_camera.after(rotate_camera))
-                    .with_system(toggle_camera),
+                    .with_system(toggle_camera)
+                    .with_system(foo),
             );
     }
 }

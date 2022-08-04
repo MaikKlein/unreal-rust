@@ -14,6 +14,7 @@
 #include "Framework/Notifications/NotificationManager.h"
 
 #include "Editor.h"
+#include "RustUtils.h"
 
 #define LOCTEXT_NAMESPACE "FRustPluginModule"
 
