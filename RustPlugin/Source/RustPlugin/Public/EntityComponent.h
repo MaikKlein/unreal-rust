@@ -58,8 +58,8 @@ class UDynamicRustComponent : public UObject
 {
 	GENERATED_BODY()
 public:
-	void Initialize(FGuid Guid);
-	UPROPERTY()
+	void Initialize(FGuid Guid, UObject* Owner);
+	UPROPERTY(VisibleAnywhere)
 	TMap<FString, TObjectPtr<URustProperty>> Fields;
 	UPROPERTY()
 	FString Name;
@@ -96,10 +96,9 @@ class RUSTPLUGIN_API UEntityComponent : public UActorComponent
 	GENERATED_BODY()
 
 public:
-	// Sets default values for this component's properties
 	UEntityComponent();
 	FEntity Id;
-	UPROPERTY()
+	UPROPERTY(EditAnywhere)
 	TMap<FGuid, TObjectPtr<UDynamicRustComponent>> Components;
 
 public:

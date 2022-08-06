@@ -210,7 +210,7 @@ FEntity UEntityComponent::GetEntity()
 }
 
 
-void UDynamicRustComponent::Initialize(FGuid Guid)
+void UDynamicRustComponent::Initialize(FGuid Guid, UObject* Owner)
 {
 	auto Fns = &GetModule().Plugin.Rust.reflection_fns;
 	Uuid Id = ToUuid(Guid);
@@ -233,22 +233,23 @@ void UDynamicRustComponent::Initialize(FGuid Guid)
 		ReflectionType Type;
 		Fns->get_field_type(Id, Idx, &Type);
 
+
 		if (Type == ReflectionType::Vector3)
 		{
-			Fields.Add(FieldName, NewObject<URustPropertyVector>(GetPackage()));
+			Fields.Add(FieldName, NewObject<URustPropertyVector>(Owner));
 		}
 
 		if (Type == ReflectionType::Bool)
 		{
-			Fields.Add(FieldName, NewObject<URustPropertyBool>(GetPackage()));
+			Fields.Add(FieldName, NewObject<URustPropertyBool>(Owner));
 		}
 		if (Type == ReflectionType::Float)
 		{
-			Fields.Add(FieldName, NewObject<URustPropertyFloat>(GetPackage()));
+			Fields.Add(FieldName, NewObject<URustPropertyFloat>(Owner));
 		}
 		if (Type == ReflectionType::Quaternion)
 		{
-			Fields.Add(FieldName, NewObject<URustPropertyQuaternion>(GetPackage()));
+			Fields.Add(FieldName, NewObject<URustPropertyQuaternion>(Owner));
 		}
 	}
 }
