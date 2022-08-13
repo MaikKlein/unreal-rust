@@ -17,7 +17,7 @@ public:
 	// Sets default values for this actor's properties
 	ARustActor();
 	UPROPERTY(Category=Rust, EditAnywhere)
-	UEntityComponent* EntityComponent;
+	TObjectPtr<UEntityComponent> EntityComponent;
 
 protected:
 	// Called when the game starts or when spawned

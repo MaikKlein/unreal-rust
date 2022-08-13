@@ -1,6 +1,7 @@
 #include "Bindings.h"
 #include "GameFramework/Actor.h"
 #include "RustUtils.h"
+#include "RustProperty.h"
 #include "Containers/UnrealString.h"
 #include "RustActor.h"
 #include "EngineUtils.h"
@@ -103,19 +104,13 @@ void SetEntityForActor(AActorOpaque* actor, Entity entity)
 	}
 	else
 	{
-		AActor* Actor = ToAActor(actor);
 		UEntityComponent* Component = NewObject<UEntityComponent>(ToAActor(actor), TEXT("EntityComponent"));
 		Component->Id.Id = entity.id;
 
-
-		//Actor->AttachToComponent(Actor->GetRootComponent(), FAttachmentTransformRules::KeepRelativeTransform);
 		Component->CreationMethod = EComponentCreationMethod::Native;
 		ToAActor(actor)->AddOwnedComponent(Component);
 		Component->RegisterComponent();
-		////Component->RegisterComponent();
 	}
-	// auto id = ((UEntityComponent*)ToAActor(actor)->GetComponentByClass(UEntityComponent::StaticClass()))->Id;
-	//UE_LOG(LogTemp, Warning, TEXT("Entity with %i"), entity.id);
 }
 
 AActorOpaque* SpawnActor(ActorClass class_,
@@ -515,24 +510,32 @@ void VisualLogLocation(Utf8Str category, const AActorOpaque* owner, Vector3 posi
 
 uint32_t GetEditorComponentUuids(const AActorOpaque* actor, Uuid* data, uintptr_t* len)
 {
-	ARustActor* Actor = Cast<ARustActor>(ToAActor(actor));
+	AActor* Actor = ToAActor(actor);
 	if (Actor == nullptr)
+	{
+		return 0;
+	}
+	UEntityComponent* EntityComponent = Actor->FindComponentByClass<UEntityComponent>();
+	if (EntityComponent == nullptr)
 	{
 		return 0;
 	}
 
 	if (data == nullptr)
 	{
-		*len = Actor->EntityComponent->Components.Num();
+		*len = EntityComponent->Components.Num();
 		return 1;
 	}
 	uintptr_t Count = *len;
 	uintptr_t Idx = 0;
-	for (auto& Elem : Actor->EntityComponent->Components)
+	for (auto& Elem : EntityComponent->Components)
 	{
 		if (Idx == Count)
 			return 1;
-		data[Idx] = ToUuid(Elem.Key);
+		FGuid Guid;
+		FGuid::Parse(Elem.Key, Guid);
+		data[Idx] = ToUuid(Guid);
+		Idx += 1;
 	}
 
 	// We have only partially written to data
@@ -542,56 +545,70 @@ uint32_t GetEditorComponentUuids(const AActorOpaque* actor, Uuid* data, uintptr_
 
 uint32_t GetEditorComponentVector(const AActorOpaque* actor, Uuid uuid, Utf8Str field, Vector3* out)
 {
-	URustProperty* Prop = GetRustProperty(actor, uuid, field);
+	FRustProperty2* Prop = GetRustProperty(actor, uuid, field);
 	if (Prop == nullptr)
 		return 0;
 
-	URustPropertyVector* VecProp = Cast<URustPropertyVector>(Prop);
-	if (VecProp == nullptr)
+	if(Prop->Tag != ERustPropertyTag::Vector)
 		return 0;
 
-	*out = ToVector3(VecProp->Data);
+	*out = ToVector3(Prop->Vector);
 	return 1;
 }
 
 uint32_t GetEditorComponentFloat(const AActorOpaque* actor, Uuid uuid, Utf8Str field, float* out)
 {
-	URustProperty* Prop = GetRustProperty(actor, uuid, field);
+	FRustProperty2* Prop = GetRustProperty(actor, uuid, field);
 	if (Prop == nullptr)
 		return 0;
 
-	URustPropertyFloat* FloatProp = Cast<URustPropertyFloat>(Prop);
-	if (FloatProp == nullptr)
+	if(Prop->Tag != ERustPropertyTag::Float)
 		return 0;
 
-	*out = FloatProp->Data;
+	*out = Prop->Float;
 	return 1;
 }
 
 uint32_t GetEditorComponentBool(const AActorOpaque* actor, Uuid uuid, Utf8Str field, uint32_t* out)
 {
-	URustProperty* Prop = GetRustProperty(actor, uuid, field);
+	FRustProperty2* Prop = GetRustProperty(actor, uuid, field);
 	if (Prop == nullptr)
 		return 0;
 
-	URustPropertyBool* BoolProp = Cast<URustPropertyBool>(Prop);
-	if (BoolProp == nullptr)
+	if(Prop->Tag != ERustPropertyTag::Bool)
 		return 0;
 
-	*out = BoolProp->Data == 1;
+	*out = Prop->Bool == 1;
 	return 1;
 }
 
 uint32_t GetEditorComponentQuat(const AActorOpaque* actor, Uuid uuid, Utf8Str field, Quaternion* out)
 {
-	URustProperty* Prop = GetRustProperty(actor, uuid, field);
+	FRustProperty2* Prop = GetRustProperty(actor, uuid, field);
 	if (Prop == nullptr)
 		return 0;
 
-	URustPropertyQuaternion* QuatProp = Cast<URustPropertyQuaternion>(Prop);
-	if (QuatProp == nullptr)
+	if(Prop->Tag != ERustPropertyTag::Quat)
 		return 0;
 
-	*out = ToQuaternion(QuatProp->Data);
+	*out = ToQuaternion(Prop->Rotation);
 	return 1;
+}
+
+uint32_t GetEditorComponentUObject(const AActorOpaque* actor, Uuid uuid, Utf8Str field, UObjectType ty,
+                                   UObjectOpague** out)
+{
+	FRustProperty2* Prop = GetRustProperty(actor, uuid, field);
+	if (Prop == nullptr)
+		return 0;
+
+	if(Prop->Tag != ERustPropertyTag::Class)
+		return 0;
+
+	if (Prop->Class != nullptr)
+	{
+		*out = static_cast<UObjectOpague*>(Prop->Class);
+		return 1;
+	}
+	return 0;
 }

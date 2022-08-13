@@ -1,11 +1,21 @@
 use bevy_ecs::{entity::Entity, prelude::World};
 use glam::{Quat, Vec3};
+use unreal_ffi as ffi;
+
+
+#[derive(Copy, Clone, Debug)]
+pub struct UClass {
+    pub ptr: *mut ffi::UObjectOpague,
+}
+unsafe impl Send for UClass{}
+unsafe impl Sync for UClass{}
 
 pub enum ReflectValue {
     Float(f32),
     Vector3(Vec3),
     Bool(bool),
     Quat(Quat),
+    UClass(UClass),
     Composite,
 }
 
@@ -14,6 +24,7 @@ pub enum ReflectType {
     Vector3,
     Bool,
     Quat,
+    UClass,
     Composite,
 }
 
@@ -35,6 +46,19 @@ pub trait ReflectDyn {
         None
     }
     fn get_value(&self) -> ReflectValue;
+}
+
+impl ReflectDyn for UClass {
+    fn name(&self) -> &'static str {
+        "UClass"
+    }
+
+    fn get_value(&self) -> ReflectValue {
+        ReflectValue::UClass(*self)
+    }
+}
+impl ReflectStatic for UClass {
+    const TYPE: ReflectType = ReflectType::UClass;
 }
 
 impl ReflectDyn for Vec3 {

@@ -36,4 +36,4 @@ FCollisionShape ToFCollisionShape(CollisionShape Shape);
 
 
 FString ToFString(Utf8Str Str);
-class URustProperty* GetRustProperty(const AActorOpaque* actor, Uuid uuid, Utf8Str field);
+struct FRustProperty2* GetRustProperty(const AActorOpaque* actor, Uuid uuid, Utf8Str field);

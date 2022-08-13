@@ -5,67 +5,11 @@
 #include "CoreMinimal.h"
 #include "Components/ActorComponent.h"
 #include "Bindings.h"
-#include "DetailWidgetRow.h"
+#include "RustProperty.h"
 #include "EntityComponent.generated.h"
 
 
-DECLARE_DELEGATE_RetVal(FReply, FOnComponentRemoved);
-
-UCLASS()
-class URustProperty : public UObject
-{
-	GENERATED_BODY()
-};
-
-UCLASS()
-class URustPropertyVector : public URustProperty
-{
-	GENERATED_BODY()
-public:
-	UPROPERTY()
-	FVector Data;
-};
-
-UCLASS()
-class URustPropertyBool : public URustProperty
-{
-	GENERATED_BODY()
-public:
-	UPROPERTY()
-	bool Data;
-};
-
-UCLASS()
-class URustPropertyFloat : public URustProperty
-{
-	GENERATED_BODY()
-public:
-	UPROPERTY()
-	float Data;
-};
-
-UCLASS()
-class URustPropertyQuaternion : public URustProperty
-{
-	GENERATED_BODY()
-public:
-	UPROPERTY()
-	FQuat Data;
-};
-
-UCLASS()
-class UDynamicRustComponent : public UObject
-{
-	GENERATED_BODY()
-public:
-	void Initialize(FGuid Guid, UObject* Owner);
-	UPROPERTY(VisibleAnywhere)
-	TMap<FString, TObjectPtr<URustProperty>> Fields;
-	UPROPERTY()
-	FString Name;
-	void Render(IDetailCategoryBuilder& DetailBuilder, FOnComponentRemoved OnComponentRemoved);
-};
-
+class UDynamicRustComponent;
 USTRUCT(BlueprintType)
 struct FEntity
 {
@@ -99,7 +43,7 @@ public:
 	UEntityComponent();
 	FEntity Id;
 	UPROPERTY(EditAnywhere)
-	TMap<FGuid, TObjectPtr<UDynamicRustComponent>> Components;
+	TMap<FString, FDynamicRustComponent2> Components;
 
 public:
 	UFUNCTION(BlueprintCallable, Category="Rust|Utilities", meta=(Keywords = "entity"))

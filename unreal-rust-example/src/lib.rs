@@ -2,6 +2,7 @@ use std::collections::HashMap;
 
 use bevy_ecs::prelude::*;
 use unreal_api::Component;
+use unreal_api::registry::UClass;
 use unreal_api::{
     core::{ActorComponent, ActorPtr, CoreStage, ParentComponent, TransformComponent},
     ffi::{self, UClassOpague},
@@ -63,10 +64,11 @@ pub struct CameraComponent {
     pub mode: CameraMode,
 }
 
-#[derive(Default, Debug, Component)]
+#[derive(Debug, Component)]
 #[uuid = "c7f85b63-fbf0-4b14-a2f7-bbe994173b5a"]
 pub struct FooComponent {
     pub n: f32,
+    pub class: UClass,
 }
 
 pub struct PlayerInput;

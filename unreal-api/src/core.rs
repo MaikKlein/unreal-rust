@@ -309,6 +309,7 @@ unsafe extern "C" fn get_field_type(
             ReflectType::Float => ffi::ReflectionType::Float,
             ReflectType::Vector3 => ffi::ReflectionType::Vector3,
             ReflectType::Quat => ffi::ReflectionType::Quaternion,
+            ReflectType::UClass => ffi::ReflectionType::UClass,
             ReflectType::Composite => ffi::ReflectionType::Composite,
         })
     }
@@ -586,6 +587,7 @@ fn process_unreal_events(mut actor_register: ResMut<ActorRegistration>, mut comm
                             uuids.as_mut_ptr(),
                             &mut len,
                         );
+                        uuids.set_len(len);
 
                         for uuid in uuids {
                             let uuid = from_ffi_uuid(uuid);

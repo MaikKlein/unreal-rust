@@ -12,6 +12,7 @@ UnrealBindings CreateBindings()
 	editor_component_fns.get_editor_component_float = &GetEditorComponentFloat;
 	editor_component_fns.get_editor_component_quat = &GetEditorComponentQuat;
 	editor_component_fns.get_editor_component_vector = &GetEditorComponentVector;
+	editor_component_fns.get_editor_component_uobject = &GetEditorComponentUObject;
 	editor_component_fns.get_editor_components = &GetEditorComponentUuids;
 	
 	UnrealPhysicsBindings physics_bindings = {};
@@ -147,21 +148,17 @@ FString ToFString(Utf8Str Str)
 	return FString(Str.len, UTF8_TO_TCHAR(Str.ptr));
 }
 
-URustProperty* GetRustProperty(const AActorOpaque* actor, Uuid uuid, Utf8Str field)
+FRustProperty2* GetRustProperty(const AActorOpaque* actor, Uuid uuid, Utf8Str field)
 {
-	ARustActor* Actor = Cast<ARustActor>(ToAActor(actor));
-	if(Actor == nullptr)
+	UEntityComponent* EntityComponent = ToAActor(actor)->FindComponentByClass<UEntityComponent>();
+	if(EntityComponent == nullptr)
 	{
 		return nullptr;
 	}
 	FString FieldName = ToFString(field);
 
-	TObjectPtr<UDynamicRustComponent>* Comp = Actor->EntityComponent->Components.Find(ToFGuid(uuid));
-	if(Comp == nullptr || *Comp == nullptr)
+	FDynamicRustComponent2* Comp = EntityComponent->Components.Find(ToFGuid(uuid).ToString());
+	if(Comp == nullptr)
 		return nullptr;
-	TObjectPtr<URustProperty>* Prop = Comp->Get()->Fields.Find(FieldName);
-	if(Prop == nullptr)
-		return nullptr;
-
-	return Prop->Get();
+	return Comp->Fields.Find(FieldName);
 }

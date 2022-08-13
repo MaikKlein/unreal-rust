@@ -1,7 +1,7 @@
 use bevy_ecs::system::EntityCommands;
 use glam::{Quat, Vec3};
 use unreal_ffi as ffi;
-use unreal_reflect::Uuid;
+use unreal_reflect::{registry::UClass, Uuid};
 
 use crate::{core::to_ffi_uuid, module::bindings};
 
@@ -97,6 +97,27 @@ impl GetEditorComponentValue for bool {
         );
         if code == 1 {
             Some(data == 1)
+        } else {
+            None
+        }
+    }
+}
+impl GetEditorComponentValue for UClass {
+    unsafe fn get(
+        actor: *const ffi::AActorOpaque,
+        uuid: Uuid,
+        field: &'static str,
+    ) -> Option<Self> {
+        let mut data: *mut ffi::UObjectOpague = std::ptr::null_mut();
+        let code = (bindings().editor_component_fns.get_editor_component_uobject)(
+            actor,
+            to_ffi_uuid(uuid),
+            ffi::Utf8Str::from(field),
+            ffi::UObjectType::UClass,
+            &mut data,
+        );
+        if code == 1 {
+            Some(UClass { ptr: data })
         } else {
             None
         }

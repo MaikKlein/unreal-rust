@@ -47,7 +47,9 @@ public class RustPlugin : ModuleRules
 				"GraphEditor",
 				"KismetWidgets",
 				"KismetCompiler",
-				"PropertyEditor"
+				"PropertyEditor",
+				"EditorWidgets",
+				"ClassViewer"
 			}
 			);
 		

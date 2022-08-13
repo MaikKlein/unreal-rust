@@ -7,6 +7,11 @@ pub enum ResultCode {
     Success = 0,
     Panic = 1,
 }
+#[repr(u32)]
+#[derive(Copy, Clone)]
+pub enum UObjectType {
+    UClass,
+}
 
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -224,6 +229,7 @@ pub type AActorOpaque = c_void;
 pub type UPrimtiveOpaque = c_void;
 pub type UCapsuleOpaque = c_void;
 pub type UClassOpague = c_void;
+pub type UObjectOpague = c_void;
 
 pub type GetSpatialDataFn = extern "C" fn(
     actor: *const AActorOpaque,
@@ -427,7 +433,6 @@ pub struct Uuid {
     pub d: u32,
 }
 
-
 pub type EntryUnrealBindingsFn = unsafe extern "C" fn(bindings: UnrealBindings) -> RustBindings;
 pub type BeginPlayFn = unsafe extern "C" fn() -> ResultCode;
 pub type TickFn = unsafe extern "C" fn(dt: f32) -> ResultCode;
@@ -560,6 +565,7 @@ pub enum ReflectionType {
     Vector3,
     Bool,
     Quaternion,
+    UClass,
     Composite,
 }
 
@@ -629,6 +635,13 @@ extern "C" {
         field: Utf8Str,
         out: *mut Quaternion,
     ) -> u32;
+    pub fn GetEditorComponentUObject(
+        actor: *const AActorOpaque,
+        uuid: Uuid,
+        field: Utf8Str,
+        ty: UObjectType,
+        out: *mut *mut UObjectOpague,
+    ) -> u32;
 }
 
 pub type GetEditorComponentUuidsFn =
@@ -661,6 +674,13 @@ pub type GetEditorComponentBoolFn = unsafe extern "C" fn(
     field: Utf8Str,
     out: *mut u32,
 ) -> u32;
+pub type GetEditorComponentUObjectFn = unsafe extern "C" fn(
+    actor: *const AActorOpaque,
+    uuid: Uuid,
+    field: Utf8Str,
+    ty: UObjectType,
+    out: *mut *mut UObjectOpague,
+) -> u32;
 
 #[repr(C)]
 pub struct EditorComponentFns {
@@ -669,4 +689,5 @@ pub struct EditorComponentFns {
     pub get_editor_component_vector: GetEditorComponentVectorFn,
     pub get_editor_component_bool: GetEditorComponentBoolFn,
     pub get_editor_component_float: GetEditorComponentFloatFn,
+    pub get_editor_component_uobject: GetEditorComponentUObjectFn,
 }

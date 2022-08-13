@@ -37,12 +37,17 @@ enum class ReflectionType : uint32_t {
   Vector3,
   Bool,
   Quaternion,
+  UClass,
   Composite,
 };
 
 enum class ResultCode : uint8_t {
   Success = 0,
   Panic = 1,
+};
+
+enum class UObjectType : uint32_t {
+  UClass,
 };
 
 using AActorOpaque = void;
@@ -143,6 +148,8 @@ struct Uuid {
   uint32_t d;
 };
 
+using UObjectOpague = void;
+
 using GetSpatialDataFn = void(*)(const AActorOpaque *actor, Vector3 *position, Quaternion *rotation, Vector3 *scale);
 
 using SetSpatialDataFn = void(*)(AActorOpaque *actor, Vector3 position, Quaternion rotation, Vector3 scale);
@@ -229,12 +236,15 @@ using GetEditorComponentBoolFn = uint32_t(*)(const AActorOpaque *actor, Uuid uui
 
 using GetEditorComponentFloatFn = uint32_t(*)(const AActorOpaque *actor, Uuid uuid, Utf8Str field, float *out);
 
+using GetEditorComponentUObjectFn = uint32_t(*)(const AActorOpaque *actor, Uuid uuid, Utf8Str field, UObjectType ty, UObjectOpague **out);
+
 struct EditorComponentFns {
   GetEditorComponentUuidsFn get_editor_components;
   GetEditorComponentQuatFn get_editor_component_quat;
   GetEditorComponentVectorFn get_editor_component_vector;
   GetEditorComponentBoolFn get_editor_component_bool;
   GetEditorComponentFloatFn get_editor_component_float;
+  GetEditorComponentUObjectFn get_editor_component_uobject;
 };
 
 struct UnrealBindings {
@@ -436,5 +446,11 @@ extern uint32_t GetEditorComponentQuat(const AActorOpaque *actor,
                                        Uuid uuid,
                                        Utf8Str field,
                                        Quaternion *out);
+
+extern uint32_t GetEditorComponentUObject(const AActorOpaque *actor,
+                                          Uuid uuid,
+                                          Utf8Str field,
+                                          UObjectType ty,
+                                          UObjectOpague **out);
 
 } // extern "C"
