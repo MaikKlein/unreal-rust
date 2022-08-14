@@ -2,13 +2,19 @@ use bevy_ecs::{entity::Entity, prelude::World};
 use glam::{Quat, Vec3};
 use unreal_ffi as ffi;
 
-
 #[derive(Copy, Clone, Debug)]
 pub struct UClass {
     pub ptr: *mut ffi::UObjectOpague,
 }
-unsafe impl Send for UClass{}
-unsafe impl Sync for UClass{}
+unsafe impl Send for UClass {}
+unsafe impl Sync for UClass {}
+
+#[derive(Copy, Clone, Debug)]
+pub struct USound {
+    pub ptr: *mut ffi::UObjectOpague,
+}
+unsafe impl Send for USound {}
+unsafe impl Sync for USound {}
 
 pub enum ReflectValue {
     Float(f32),
@@ -16,6 +22,7 @@ pub enum ReflectValue {
     Bool(bool),
     Quat(Quat),
     UClass(UClass),
+    USound(USound),
     Composite,
 }
 
@@ -25,6 +32,7 @@ pub enum ReflectType {
     Bool,
     Quat,
     UClass,
+    USound,
     Composite,
 }
 
@@ -59,6 +67,19 @@ impl ReflectDyn for UClass {
 }
 impl ReflectStatic for UClass {
     const TYPE: ReflectType = ReflectType::UClass;
+}
+impl ReflectDyn for USound {
+    fn name(&self) -> &'static str {
+        "USound"
+    }
+
+    fn get_value(&self) -> ReflectValue {
+        ReflectValue::USound(*self)
+    }
+}
+
+impl ReflectStatic for USound {
+    const TYPE: ReflectType = ReflectType::USound;
 }
 
 impl ReflectDyn for Vec3 {

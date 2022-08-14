@@ -566,6 +566,7 @@ pub enum ReflectionType {
     Bool,
     Quaternion,
     UClass,
+    USound,
     Composite,
 }
 

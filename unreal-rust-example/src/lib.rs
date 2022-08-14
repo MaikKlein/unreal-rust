@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use bevy_ecs::prelude::*;
 use unreal_api::Component;
-use unreal_api::registry::UClass;
+use unreal_api::registry::{UClass, USound};
 use unreal_api::{
     core::{ActorComponent, ActorPtr, CoreStage, ParentComponent, TransformComponent},
     ffi::{self, UClassOpague},
@@ -69,6 +69,7 @@ pub struct CameraComponent {
 pub struct FooComponent {
     pub n: f32,
     pub class: UClass,
+    pub sound: USound,
 }
 
 pub struct PlayerInput;

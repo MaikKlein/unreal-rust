@@ -43,7 +43,7 @@ public:
 	UEntityComponent();
 	FEntity Id;
 	UPROPERTY(EditAnywhere)
-	TMap<FString, FDynamicRustComponent2> Components;
+	TMap<FString, FDynamicRustComponent> Components;
 
 public:
 	UFUNCTION(BlueprintCallable, Category="Rust|Utilities", meta=(Keywords = "entity"))

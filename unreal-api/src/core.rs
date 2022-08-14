@@ -310,6 +310,7 @@ unsafe extern "C" fn get_field_type(
             ReflectType::Vector3 => ffi::ReflectionType::Vector3,
             ReflectType::Quat => ffi::ReflectionType::Quaternion,
             ReflectType::UClass => ffi::ReflectionType::UClass,
+            ReflectType::USound => ffi::ReflectionType::USound,
             ReflectType::Composite => ffi::ReflectionType::Composite,
         })
     }

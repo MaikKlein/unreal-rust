@@ -545,11 +545,11 @@ uint32_t GetEditorComponentUuids(const AActorOpaque* actor, Uuid* data, uintptr_
 
 uint32_t GetEditorComponentVector(const AActorOpaque* actor, Uuid uuid, Utf8Str field, Vector3* out)
 {
-	FRustProperty2* Prop = GetRustProperty(actor, uuid, field);
+	FRustProperty* Prop = GetRustProperty(actor, uuid, field);
 	if (Prop == nullptr)
 		return 0;
 
-	if(Prop->Tag != ERustPropertyTag::Vector)
+	if (Prop->Tag != ERustPropertyTag::Vector)
 		return 0;
 
 	*out = ToVector3(Prop->Vector);
@@ -558,11 +558,11 @@ uint32_t GetEditorComponentVector(const AActorOpaque* actor, Uuid uuid, Utf8Str 
 
 uint32_t GetEditorComponentFloat(const AActorOpaque* actor, Uuid uuid, Utf8Str field, float* out)
 {
-	FRustProperty2* Prop = GetRustProperty(actor, uuid, field);
+	FRustProperty* Prop = GetRustProperty(actor, uuid, field);
 	if (Prop == nullptr)
 		return 0;
 
-	if(Prop->Tag != ERustPropertyTag::Float)
+	if (Prop->Tag != ERustPropertyTag::Float)
 		return 0;
 
 	*out = Prop->Float;
@@ -571,11 +571,11 @@ uint32_t GetEditorComponentFloat(const AActorOpaque* actor, Uuid uuid, Utf8Str f
 
 uint32_t GetEditorComponentBool(const AActorOpaque* actor, Uuid uuid, Utf8Str field, uint32_t* out)
 {
-	FRustProperty2* Prop = GetRustProperty(actor, uuid, field);
+	FRustProperty* Prop = GetRustProperty(actor, uuid, field);
 	if (Prop == nullptr)
 		return 0;
 
-	if(Prop->Tag != ERustPropertyTag::Bool)
+	if (Prop->Tag != ERustPropertyTag::Bool)
 		return 0;
 
 	*out = Prop->Bool == 1;
@@ -584,31 +584,27 @@ uint32_t GetEditorComponentBool(const AActorOpaque* actor, Uuid uuid, Utf8Str fi
 
 uint32_t GetEditorComponentQuat(const AActorOpaque* actor, Uuid uuid, Utf8Str field, Quaternion* out)
 {
-	FRustProperty2* Prop = GetRustProperty(actor, uuid, field);
+	FRustProperty* Prop = GetRustProperty(actor, uuid, field);
 	if (Prop == nullptr)
 		return 0;
 
-	if(Prop->Tag != ERustPropertyTag::Quat)
+	if (Prop->Tag != ERustPropertyTag::Quat)
 		return 0;
 
-	*out = ToQuaternion(Prop->Rotation);
+	*out = ToQuaternion(Prop->Rotation.Quaternion());
 	return 1;
 }
 
 uint32_t GetEditorComponentUObject(const AActorOpaque* actor, Uuid uuid, Utf8Str field, UObjectType ty,
                                    UObjectOpague** out)
 {
-	FRustProperty2* Prop = GetRustProperty(actor, uuid, field);
+	FRustProperty* Prop = GetRustProperty(actor, uuid, field);
 	if (Prop == nullptr)
 		return 0;
 
-	if(Prop->Tag != ERustPropertyTag::Class)
+	if (Prop->Tag != ERustPropertyTag::Class)
 		return 0;
 
-	if (Prop->Class != nullptr)
-	{
-		*out = static_cast<UObjectOpague*>(Prop->Class);
-		return 1;
-	}
-	return 0;
+	*out = static_cast<UObjectOpague*>(Prop->Class.Get());
+	return 1;
 }

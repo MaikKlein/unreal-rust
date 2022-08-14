@@ -38,6 +38,7 @@ enum class ReflectionType : uint32_t {
   Bool,
   Quaternion,
   UClass,
+  USound,
   Composite,
 };
 
