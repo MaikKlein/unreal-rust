@@ -285,11 +285,11 @@ using NumberOfFieldsFn = uint32_t(*)(Uuid uuid, uint32_t *out);
 
 using HasComponentFn = uint32_t(*)(Entity entity, Uuid uuid);
 
-using GetTypeNameFn = uint32_t(*)(Uuid uuid, const char **name, uintptr_t *len);
+using GetTypeNameFn = uint32_t(*)(Uuid uuid, Utf8Str *name);
 
 using GetFieldTypeFn = uint32_t(*)(Uuid uuid, uint32_t field_idx, ReflectionType *ty);
 
-using GetFieldNameFn = uint32_t(*)(Uuid uuid, uint32_t field_idx, const char **name, uintptr_t *len);
+using GetFieldNameFn = uint32_t(*)(Uuid uuid, uint32_t field_idx, Utf8Str *name);
 
 using GetFieldVector3ValueFn = uint32_t(*)(Uuid uuid, Entity entity, uint32_t field_idx, Vector3 *out);
 

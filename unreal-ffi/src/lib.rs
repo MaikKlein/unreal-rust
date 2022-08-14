@@ -572,12 +572,11 @@ pub enum ReflectionType {
 
 pub type NumberOfFieldsFn = unsafe extern "C" fn(uuid: Uuid, out: *mut u32) -> u32;
 pub type GetTypeNameFn =
-    unsafe extern "C" fn(uuid: Uuid, name: *mut *const c_char, len: *mut usize) -> u32;
+    unsafe extern "C" fn(uuid: Uuid, name: *mut Utf8Str) -> u32;
 pub type GetFieldNameFn = unsafe extern "C" fn(
     uuid: Uuid,
     field_idx: u32,
-    name: *mut *const c_char,
-    len: *mut usize,
+    name: *mut Utf8Str,
 ) -> u32;
 pub type GetFieldTypeFn =
     unsafe extern "C" fn(uuid: Uuid, field_idx: u32, ty: *mut ReflectionType) -> u32;

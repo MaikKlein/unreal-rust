@@ -239,8 +239,7 @@ unsafe extern "C" fn number_of_fields(uuid: ffi::Uuid, out: *mut u32) -> u32 {
 }
 unsafe extern "C" fn get_type_name(
     uuid: ffi::Uuid,
-    out: *mut *const c_char,
-    len: *mut usize,
+    out: *mut ffi::Utf8Str
 ) -> u32 {
     fn get_type_name(uuid: ffi::Uuid) -> Option<&'static str> {
         let global = unsafe { crate::module::MODULE.as_mut() }?;
@@ -250,8 +249,7 @@ unsafe extern "C" fn get_type_name(
     }
     let result = std::panic::catch_unwind(|| {
         if let Some(name) = get_type_name(uuid) {
-            *out = name.as_ptr() as *const c_char;
-            *len = name.len();
+            *out = ffi::Utf8Str::from(name);
             1
         } else {
             0
@@ -271,12 +269,7 @@ unsafe extern "C" fn has_component(entity: ffi::Entity, uuid: ffi::Uuid) -> u32 
     result.unwrap_or(0)
 }
 
-unsafe extern "C" fn get_field_name(
-    uuid: ffi::Uuid,
-    idx: u32,
-    out: *mut *const c_char,
-    len: *mut usize,
-) -> u32 {
+unsafe extern "C" fn get_field_name(uuid: ffi::Uuid, idx: u32, out: *mut ffi::Utf8Str) -> u32 {
     fn get_field_name(uuid: ffi::Uuid, idx: u32) -> Option<&'static str> {
         let global = unsafe { crate::module::MODULE.as_mut() }?;
         let uuid = from_ffi_uuid(uuid);
@@ -285,8 +278,7 @@ unsafe extern "C" fn get_field_name(
     }
     let result = std::panic::catch_unwind(|| {
         if let Some(name) = get_field_name(uuid, idx) {
-            *out = name.as_ptr() as *const c_char;
-            *len = name.len();
+            *out = ffi::Utf8Str::from(name);
             1
         } else {
             0

@@ -15,6 +15,41 @@
 
 #define LOCTEXT_NAMESPACE "RustProperty"
 
+void FRustProperty::Initialize(TSharedPtr<IPropertyHandle> Handle, ReflectionType Type)
+{
+	auto HandleTag = Handle->GetChildHandle(GET_MEMBER_NAME_CHECKED(FRustProperty, Tag));
+	// How does that not work? Falling back to an int32 instead
+	// HandleTag->SetValue(TEnumAsByte<ERustPropertyTag>(ERustPropertyTag::Float));
+	if (Type == ReflectionType::Float)
+	{
+		HandleTag->SetValue(ERustPropertyTag::Float);
+	}
+	if (Type == ReflectionType::Vector3)
+	{
+		HandleTag->SetValue(ERustPropertyTag::Vector);
+	}
+	if (Type == ReflectionType::Bool)
+	{
+		HandleTag->SetValue(ERustPropertyTag::Bool);
+	}
+	if (Type == ReflectionType::Quaternion)
+	{
+		HandleTag->SetValue(ERustPropertyTag::Quat);
+	}
+	if (Type == ReflectionType::UClass)
+	{
+		HandleTag->SetValue(ERustPropertyTag::Class);
+	}
+	if (Type == ReflectionType::USound)
+	{
+		HandleTag->SetValue(ERustPropertyTag::Sound);
+	}
+}
+
+void FDynamicRustComponent::Reload(TSharedPtr<IPropertyHandle> Handle, FGuid Guid)
+{
+}
+
 void FDynamicRustComponent::Initialize(TSharedPtr<IPropertyHandle> Handle, FGuid InitGuid)
 {
 	TSharedPtr<IPropertyHandle> NameProperty = Handle->GetChildHandle(
@@ -26,10 +61,10 @@ void FDynamicRustComponent::Initialize(TSharedPtr<IPropertyHandle> Handle, FGuid
 	//Guid = InitGuid;
 	Uuid Id = ToUuid(InitGuid);
 
-	const char* TypeNamePtr = nullptr;
-	uintptr_t TypeNameLen = 0;
-	Fns->get_type_name(Id, &TypeNamePtr, &TypeNameLen);
-	FString Name = FString(TypeNameLen, UTF8_TO_TCHAR(TypeNamePtr));
+	Utf8Str TypeNamePtr;
+	Fns->get_type_name(Id, &TypeNamePtr);
+	FString Name = ToFString(TypeNamePtr);
+	
 	UE_LOG(LogTemp, Warning, TEXT("Name %s"), *Name);
 	NameProperty->SetValue(Name);
 
@@ -38,10 +73,9 @@ void FDynamicRustComponent::Initialize(TSharedPtr<IPropertyHandle> Handle, FGuid
 
 	for (uint32_t Idx = 0; Idx < NumberOfFields; ++Idx)
 	{
-		const char* NamePtr = nullptr;
-		uintptr_t Len = 0;
-		Fns->get_field_name(Id, Idx, &NamePtr, &Len);
-		FString FieldName = FString(Len, UTF8_TO_TCHAR(NamePtr));
+		Utf8Str NamePtr;
+		Fns->get_field_name(Id, Idx, &NamePtr);
+		FString FieldName = ToFString(NamePtr);
 
 		ReflectionType Type;
 		Fns->get_field_type(Id, Idx, &Type);
@@ -53,40 +87,13 @@ void FDynamicRustComponent::Initialize(TSharedPtr<IPropertyHandle> Handle, FGuid
 
 		auto RustPropertyEntry = RustPropertyMap->GetChildHandle(FieldIndex);
 		RustPropertyEntry->GetKeyHandle()->SetValue(FieldName);
-		auto HandleTag = RustPropertyEntry->GetChildHandle(GET_MEMBER_NAME_CHECKED(FRustProperty, Tag));
-		// How does that not work? Falling back to an int32 instead
-		// HandleTag->SetValue(TEnumAsByte<ERustPropertyTag>(ERustPropertyTag::Float));
-		if (Type == ReflectionType::Float)
-		{
-			HandleTag->SetValue(ERustPropertyTag::Float);
-			auto HandleFloat = RustPropertyEntry->GetChildHandle(GET_MEMBER_NAME_CHECKED(FRustProperty, Float));
-		}
-		if (Type == ReflectionType::Vector3)
-		{
-			HandleTag->SetValue(ERustPropertyTag::Vector);
-		}
-		if (Type == ReflectionType::Bool)
-		{
-			HandleTag->SetValue(ERustPropertyTag::Bool);
-		}
-		if (Type == ReflectionType::Quaternion)
-		{
-			HandleTag->SetValue(ERustPropertyTag::Quat);
-		}
-		if (Type == ReflectionType::UClass)
-		{
-			HandleTag->SetValue(ERustPropertyTag::Class);
-		}
-		if (Type == ReflectionType::USound)
-		{
-			HandleTag->SetValue(ERustPropertyTag::Sound);
-		}
+		FRustProperty::Initialize(RustPropertyEntry, Type);
 	}
 }
 
 void FDynamicRustComponent::Render(TSharedRef<IPropertyHandle> MapHandle, IDetailCategoryBuilder& DetailBuilder,
-                                    const TSharedRef<class IPropertyUtilities> Utilities,
-                                    FOnComponentRemoved OnComponentRemoved)
+                                   const TSharedRef<class IPropertyUtilities> Utilities,
+                                   FOnComponentRemoved OnComponentRemoved)
 {
 	uint32 NumberOfComponents;
 	MapHandle->GetNumChildren(NumberOfComponents);

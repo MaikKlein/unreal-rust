@@ -144,6 +144,9 @@ FCollisionShape ToFCollisionShape(CollisionShape Shape)
 
 FString ToFString(Utf8Str Str)
 {
+	if(Str.len == 0)
+		return FString();
+	
 	return FString(Str.len, UTF8_TO_TCHAR(Str.ptr));
 }
 

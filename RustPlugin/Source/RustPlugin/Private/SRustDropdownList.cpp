@@ -18,12 +18,11 @@ void SRustDropdownList::Construct(const FArguments& InArgs)
 
 	for (Uuid Id : GetModule().Plugin.Uuids)
 	{
-		const char* Name;
-		uintptr_t Len = 0;
-		if (GetModule().Plugin.Rust.reflection_fns.get_type_name(Id, &Name, &Len))
+		Utf8Str Name;
+		if (GetModule().Plugin.Rust.reflection_fns.get_type_name(Id, &Name))
 		{
 			FUuidViewNode* Node = new FUuidViewNode();
-			Node->Name = FString(Len, UTF8_TO_TCHAR(Name));
+			Node->Name = ToFString(Name);
 			Node->Id = ToFGuid(Id);
 			AllItems.Add(MakeShareable(Node));
 		}

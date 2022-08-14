@@ -24,11 +24,34 @@ void FRustDetailCustomization::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 		return;
 
 	TWeakObjectPtr<UEntityComponent> Component = Cast<UEntityComponent>(Objects[0]);
+
+
 	//TSharedRef<IPropertyHandle> Handle = DetailBuilder.GetProperty(
 	//	GET_MEMBER_NAME_CHECKED(UEntityComponent, Components));
 	TSharedRef<IPropertyHandle> ComponentsHandle = DetailBuilder.GetProperty(
 		GET_MEMBER_NAME_CHECKED(UEntityComponent, Components));
+	{
+		uint32 NumChildren = 0;
+		ComponentsHandle->GetNumChildren(NumChildren);
 
+		for (uint32 ComponentIdx = 0; ComponentIdx < NumChildren; ++ComponentIdx)
+		{
+			auto ChildProp = ComponentsHandle->GetChildHandle(ComponentIdx);
+			auto KeyProp = ChildProp->GetKeyHandle();
+
+			FString GuidName;
+			KeyProp->GetValue(GuidName);
+
+			FGuid Guid;
+			FGuid::Parse(GuidName, Guid);
+
+			auto RustComponent = Component->Components.Find(GuidName);
+			if (RustComponent != nullptr)
+			{
+				RustComponent->Reload(ChildProp, Guid);
+			}
+		}
+	}
 
 	IDetailCategoryBuilder& RustCategory = DetailBuilder.EditCategory(TEXT("Rust"));
 	auto OnPicked = [Component, &DetailBuilder, ComponentsHandle](FUuidViewNode* Node)
@@ -50,7 +73,7 @@ void FRustDetailCustomization::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 	};
 
 	FDynamicRustComponent::Render(ComponentsHandle, RustCategory, DetailBuilder.GetPropertyUtilities(),
-	                               FOnComponentRemoved());
+	                              FOnComponentRemoved());
 
 	RustCategory.AddCustomRow(LOCTEXT("Picker", "Picker")).WholeRowContent()[
 		SNew(SRustDropdownList).OnUuidPickedDelegate(FOnUuidPicked::CreateLambda(OnPicked))
