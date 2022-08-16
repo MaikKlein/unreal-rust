@@ -30,7 +30,7 @@ FGuid ToFGuid(Uuid uuid);
 Uuid ToUuid(FGuid guid);
 
 UnrealBindings CreateBindings();
-FRustPluginModule& GetModule();
+FRustPluginModule& GetRustModule();
 
 FCollisionShape ToFCollisionShape(CollisionShape Shape);
 

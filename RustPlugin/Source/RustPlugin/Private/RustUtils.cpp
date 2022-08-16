@@ -105,7 +105,7 @@ Uuid ToUuid(FGuid guid)
 	return uuid;
 }
 
-FRustPluginModule& GetModule()
+FRustPluginModule& GetRustModule()
 {
 	return FModuleManager::LoadModuleChecked<FRustPluginModule>(TEXT("RustPlugin"));
 }

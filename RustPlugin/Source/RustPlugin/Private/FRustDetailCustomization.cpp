@@ -72,8 +72,7 @@ void FRustDetailCustomization::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 		DetailBuilder.ForceRefreshDetails();
 	};
 
-	FDynamicRustComponent::Render(ComponentsHandle, RustCategory, DetailBuilder.GetPropertyUtilities(),
-	                              FOnComponentRemoved());
+	FDynamicRustComponent::Render(ComponentsHandle, RustCategory, DetailBuilder);
 
 	RustCategory.AddCustomRow(LOCTEXT("Picker", "Picker")).WholeRowContent()[
 		SNew(SRustDropdownList).OnUuidPickedDelegate(FOnUuidPicked::CreateLambda(OnPicked))

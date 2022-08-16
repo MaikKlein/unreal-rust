@@ -16,10 +16,10 @@ void SRustDropdownList::Construct(const FArguments& InArgs)
 {
 	OnUuidPicked = InArgs._OnUuidPickedDelegate;
 
-	for (Uuid Id : GetModule().Plugin.Uuids)
+	for (Uuid Id : GetRustModule().Plugin.Uuids)
 	{
 		Utf8Str Name;
-		if (GetModule().Plugin.Rust.reflection_fns.get_type_name(Id, &Name))
+		if (GetRustModule().Plugin.Rust.reflection_fns.get_type_name(Id, &Name))
 		{
 			FUuidViewNode* Node = new FUuidViewNode();
 			Node->Name = ToFString(Name);

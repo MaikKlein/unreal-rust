@@ -49,7 +49,7 @@ void Log(const char* s, int32 len)
 void IterateActors(AActorOpaque** array, uint64_t* len)
 {
 	uint64_t i = 0;
-	for (TActorIterator<ARustActor> ActorItr(GetModule().GameMode->GetWorld()); ActorItr; ++ActorItr, ++i)
+	for (TActorIterator<ARustActor> ActorItr(GetRustModule().GameMode->GetWorld()); ActorItr; ++ActorItr, ++i)
 	{
 		if (i >= *len)
 			return;
@@ -61,7 +61,7 @@ void IterateActors(AActorOpaque** array, uint64_t* len)
 
 void GetActionState(const char* name, uintptr_t len, ActionState* state)
 {
-	APlayerController* PC = UGameplayStatics::GetPlayerController(GetModule().GameMode, 0);
+	APlayerController* PC = UGameplayStatics::GetPlayerController(GetRustModule().GameMode, 0);
 
 	FName ActionName((int32)len, name);
 
@@ -92,7 +92,7 @@ void GetActionState(const char* name, uintptr_t len, ActionState* state)
 void GetAxisValue(const char* name, uintptr_t len, float* value)
 {
 	FName AxisName((int32)len, name);
-	*value = GetModule().GameMode->InputComponent->GetAxisValue(AxisName);
+	*value = GetRustModule().GameMode->InputComponent->GetAxisValue(AxisName);
 }
 
 void SetEntityForActor(AActorOpaque* actor, Entity entity)
@@ -144,18 +144,18 @@ AActorOpaque* SpawnActor(ActorClass class_,
 	};
 	FVector Pos = ToFVector(position);
 	FRotator Rot = ToFQuat(rotation).Rotator();
-	return (AActorOpaque*)GetModule().GameMode->GetWorld()->SpawnActor(Class, &Pos, &Rot, FActorSpawnParameters{});
+	return (AActorOpaque*)GetRustModule().GameMode->GetWorld()->SpawnActor(Class, &Pos, &Rot, FActorSpawnParameters{});
 }
 
 void SetViewTarget(const AActorOpaque* actor)
 {
-	APlayerController* PC = UGameplayStatics::GetPlayerController(GetModule().GameMode, 0);
+	APlayerController* PC = UGameplayStatics::GetPlayerController(GetRustModule().GameMode, 0);
 	PC->SetViewTarget(ToAActor(actor), FViewTargetTransitionParams());
 }
 
 void GetMouseDelta(float* x, float* y)
 {
-	APlayerController* PC = UGameplayStatics::GetPlayerController(GetModule().GameMode, 0);
+	APlayerController* PC = UGameplayStatics::GetPlayerController(GetRustModule().GameMode, 0);
 	PC->GetInputMouseDelta(*x, *y);
 }
 
@@ -224,7 +224,7 @@ uint32_t LineTrace(Vector3 start, Vector3 end, LineTraceParams Params, HitResult
 	{
 		CollisionParams.AddIgnoredActor((AActor*)Params.ignored_actors[i]);
 	}
-	bool IsHit = GetModule().GameMode->GetWorld()->LineTraceSingleByChannel(
+	bool IsHit = GetRustModule().GameMode->GetWorld()->LineTraceSingleByChannel(
 		Out, ToFVector(start), ToFVector(end), ECollisionChannel::ECC_MAX, CollisionParams, FCollisionResponseParams{});
 	if (IsHit)
 	{
@@ -253,7 +253,7 @@ uint32_t OverlapMulti(CollisionShape shape,
 	{
 		CollisionParams.AddIgnoredActor((AActor*)params.ignored_actors[i]);
 	}
-	bool IsHit = GetModule().GameMode->GetWorld()->OverlapMultiByChannel(Out,
+	bool IsHit = GetRustModule().GameMode->GetWorld()->OverlapMultiByChannel(Out,
 	                                                                     ToFVector(position),
 	                                                                     ToFQuat(rotation),
 	                                                                     ECollisionChannel::ECC_MAX,
@@ -339,7 +339,7 @@ uint32_t Sweep(Vector3 start,
 		// TODO: Make configurable
 		CollisionParams.bDebugQuery = true;
 	}
-	bool IsHit = GetModule().GameMode->GetWorld()->SweepSingleByChannel(
+	bool IsHit = GetRustModule().GameMode->GetWorld()->SweepSingleByChannel(
 		Out,
 		ToFVector(start),
 		ToFVector(end),
@@ -380,7 +380,7 @@ uint32_t SweepMulti(Vector3 start,
 		// TODO: Make configurable
 		CollisionParams.bDebugQuery = true;
 	}
-	bool IsHit = GetModule().GameMode->GetWorld()->SweepMultiByChannel(
+	bool IsHit = GetRustModule().GameMode->GetWorld()->SweepMultiByChannel(
 		Out,
 		ToFVector(start),
 		ToFVector(end),
@@ -413,10 +413,10 @@ void GetRegisteredClasses(UClassOpague** classes, uintptr_t* len)
 {
 	if (classes == nullptr)
 	{
-		*len = GetModule().GameMode->RegisteredClasses.Num();
+		*len = GetRustModule().GameMode->RegisteredClasses.Num();
 		return;
 	}
-	auto GameMode = GetModule().GameMode;
+	auto GameMode = GetRustModule().GameMode;
 	uintptr_t Count = *len;
 	for (uintptr_t Idx = 0; Idx < Count; ++Idx)
 	{
@@ -602,9 +602,16 @@ uint32_t GetEditorComponentUObject(const AActorOpaque* actor, Uuid uuid, Utf8Str
 	if (Prop == nullptr)
 		return 0;
 
-	if (Prop->Tag != ERustPropertyTag::Class)
-		return 0;
+	if (Prop->Tag == ERustPropertyTag::Class)
+	{
+		*out = static_cast<UObjectOpague*>(Prop->Class.Get());
+		return 1;
+	}
+	if (Prop->Tag == ERustPropertyTag::Sound)
+	{
+		*out = static_cast<UObjectOpague*>(Prop->Sound.Get());
+		return 1;
+	}
 
-	*out = static_cast<UObjectOpague*>(Prop->Class.Get());
-	return 1;
+	return 0;
 }

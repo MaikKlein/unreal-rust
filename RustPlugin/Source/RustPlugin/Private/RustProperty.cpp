@@ -4,6 +4,7 @@
 #include "RustProperty.h"
 
 #include "ContentBrowserModule.h"
+#include "DetailLayoutBuilder.h"
 #include "RustPlugin.h"
 #include "RustUtils.h"
 #include "DetailWidgetRow.h"
@@ -48,6 +49,36 @@ void FRustProperty::Initialize(TSharedPtr<IPropertyHandle> Handle, ReflectionTyp
 
 void FDynamicRustComponent::Reload(TSharedPtr<IPropertyHandle> Handle, FGuid Guid)
 {
+	TSharedPtr<IPropertyHandle> FieldsProperty = Handle->GetChildHandle(
+		GET_MEMBER_NAME_CHECKED(FDynamicRustComponent, Fields));
+
+	auto Fns = &GetRustModule().Plugin.Rust.reflection_fns;
+	Uuid Id = ToUuid(Guid);
+
+	uint32_t NumberOfFields = 0;
+	Fns->number_of_fields(Id, &NumberOfFields);
+
+	for (uint32_t Idx = 0; Idx < NumberOfFields; ++Idx)
+	{
+		Utf8Str NamePtr;
+		Fns->get_field_name(Id, Idx, &NamePtr);
+		FString FieldName = ToFString(NamePtr);
+
+		ReflectionType Type;
+		Fns->get_field_type(Id, Idx, &Type);
+
+		if (Fields.Find(FieldName) == nullptr)
+		{
+			uint32 IndexAdded = 0;
+			FieldsProperty->GetNumChildren(IndexAdded);
+			FieldsProperty->AsMap()->AddItem();
+
+			auto RustPropertyEntry = FieldsProperty->GetChildHandle(IndexAdded);
+			FRustProperty::Initialize(RustPropertyEntry, Type);
+			auto KeyHandle = RustPropertyEntry->GetKeyHandle();
+			KeyHandle->SetValue(FieldName);
+		}
+	}
 }
 
 void FDynamicRustComponent::Initialize(TSharedPtr<IPropertyHandle> Handle, FGuid InitGuid)
@@ -57,15 +88,14 @@ void FDynamicRustComponent::Initialize(TSharedPtr<IPropertyHandle> Handle, FGuid
 	TSharedPtr<IPropertyHandle> RustPropertyMap = Handle->GetChildHandle(
 		GET_MEMBER_NAME_CHECKED(FDynamicRustComponent, Fields));
 
-	auto Fns = &GetModule().Plugin.Rust.reflection_fns;
+	auto Fns = &GetRustModule().Plugin.Rust.reflection_fns;
 	//Guid = InitGuid;
 	Uuid Id = ToUuid(InitGuid);
 
 	Utf8Str TypeNamePtr;
 	Fns->get_type_name(Id, &TypeNamePtr);
 	FString Name = ToFString(TypeNamePtr);
-	
-	UE_LOG(LogTemp, Warning, TEXT("Name %s"), *Name);
+
 	NameProperty->SetValue(Name);
 
 	uint32_t NumberOfFields = 0;
@@ -92,8 +122,7 @@ void FDynamicRustComponent::Initialize(TSharedPtr<IPropertyHandle> Handle, FGuid
 }
 
 void FDynamicRustComponent::Render(TSharedRef<IPropertyHandle> MapHandle, IDetailCategoryBuilder& DetailBuilder,
-                                   const TSharedRef<class IPropertyUtilities> Utilities,
-                                   FOnComponentRemoved OnComponentRemoved)
+                                   IDetailLayoutBuilder& LayoutBuilder)
 {
 	uint32 NumberOfComponents;
 	MapHandle->GetNumChildren(NumberOfComponents);
@@ -129,7 +158,12 @@ void FDynamicRustComponent::Render(TSharedRef<IPropertyHandle> MapHandle, IDetai
 				.HeightOverride(22)[
 						SNew(SButton)
 					.ButtonStyle(FAppStyle::Get(), "SimpleButton")
-					.OnClicked(OnComponentRemoved)
+					.OnClicked(FOnComponentRemoved::CreateLambda([MapHandle, ComponentIdx, &LayoutBuilder]()
+						             {
+							             MapHandle->AsMap()->DeleteItem(ComponentIdx);
+							             LayoutBuilder.ForceRefreshDetails();
+							             return FReply::Handled();
+						             }))
 					.ContentPadding(0)
 						//.IsFocusable(InArgs._IsFocusable)
 						[
@@ -179,7 +213,6 @@ void FDynamicRustComponent::Render(TSharedRef<IPropertyHandle> MapHandle, IDetai
 			{
 				auto VectorProperty = RustPropertyEntry->GetChildHandle(
 					GET_MEMBER_NAME_CHECKED(FRustProperty, Vector));
-				UE_LOG(LogTemp, Warning, TEXT("Vector %i"), VectorProperty.IsValid());
 				auto SetVector = [=](FVector V)
 				{
 					const FScopedTransaction Transaction(LOCTEXT("Vector", "Store"));

@@ -67,5 +67,5 @@ struct FDynamicRustComponent
 	void Reload(TSharedPtr<IPropertyHandle> Handle, FGuid Guid);
 	static void Initialize(TSharedPtr<IPropertyHandle> Handle, FGuid InitGuid);
 	static void Render(TSharedRef<IPropertyHandle> MapHandle, IDetailCategoryBuilder& DetailBuilder,
-	                   const TSharedRef<class IPropertyUtilities> Utilities, FOnComponentRemoved OnComponentRemoved);
+	                   IDetailLayoutBuilder& LayoutBuilder);
 };

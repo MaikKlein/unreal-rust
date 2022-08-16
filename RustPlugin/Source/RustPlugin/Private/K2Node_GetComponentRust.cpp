@@ -32,7 +32,7 @@ void UK2Node_GetComponentRust::AllocateDefaultPins()
 	const auto ElementPin = CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Struct, FEntity::StaticStruct(),
 	                                  EntityParamName);
 
-	const auto& Module = GetModule();
+	const auto& Module = GetRustModule();
 
 	FGuid Id = SelectedNode.Id;
 	uint32_t NumberOfFields = 0;
@@ -85,7 +85,7 @@ void UK2Node_GetComponentRust::ExpandNode(class FKismetCompilerContext& Compiler
 	Super::ExpandNode(CompilerContext, SourceGraph);
 
 	Uuid Id = ToUuid(SelectedNode.Id);
-	const auto& Module = GetModule();
+	const auto& Module = GetRustModule();
 	uint32_t NumberOfFields = 0;
 	Module.Plugin.Rust.reflection_fns.number_of_fields(Id, &NumberOfFields);
 	auto UuidPin = CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Object, UUuid::StaticClass(), UuidParamName);
