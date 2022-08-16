@@ -104,6 +104,8 @@ pub struct Color {
     pub b: u8,
     pub a: u8,
 }
+
+/// cbindgen:ignore
 impl Color {
     pub const RED: Self = Self {
         r: 255,

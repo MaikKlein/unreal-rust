@@ -8,8 +8,8 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 
-uuid = { version = "0.8", features = ["v4", "serde"] }
+uuid = { version = "1", features = ["v4", "serde"] }
 unreal-ffi = { path = "../unreal-ffi" }
-bevy_ecs = "0.7"
+bevy_ecs = "0.8"
 log = "0.4"
-glam = "0.20"
+glam = "0.21"

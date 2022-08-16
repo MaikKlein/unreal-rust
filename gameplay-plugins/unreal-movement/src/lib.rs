@@ -190,13 +190,13 @@ fn do_gliding(
 
 #[derive(WorldQuery)]
 #[world_query(mutable)]
-pub struct MovementQuery<'w> {
+pub struct MovementQuery {
     entity: Entity,
-    actor: &'w ActorComponent,
-    transform: &'w mut TransformComponent,
-    physics: &'w PhysicsComponent,
-    controller: &'w mut CharacterControllerComponent,
-    config: &'w CharacterConfigComponent,
+    actor: &'static ActorComponent,
+    transform: &'static mut TransformComponent,
+    physics: &'static PhysicsComponent,
+    controller: &'static mut CharacterControllerComponent,
+    config: &'static CharacterConfigComponent,
 }
 impl<'w> MovementQueryItem<'w> {
     pub fn try_step_up(&self, move_result: &SweepHit, api: &UnrealApi) -> Option<StepUpResult> {

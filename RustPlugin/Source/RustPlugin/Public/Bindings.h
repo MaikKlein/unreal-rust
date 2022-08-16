@@ -81,9 +81,6 @@ struct Color {
   uint8_t b;
   uint8_t a;
 };
-static const Color Color_RED = Color{ /* .r = */ 255, /* .g = */ 0, /* .b = */ 0, /* .a = */ 255 };
-static const Color Color_GREEN = Color{ /* .r = */ 0, /* .g = */ 255, /* .b = */ 0, /* .a = */ 255 };
-static const Color Color_BLUE = Color{ /* .r = */ 0, /* .g = */ 0, /* .b = */ 255, /* .a = */ 255 };
 
 struct Utf8Str {
   const char *ptr;

@@ -9,7 +9,7 @@ license = "MIT OR Apache-2.0"
 [dependencies]
 unreal-api = { path = "../unreal-api"}
 unreal-reflect = { path = "../unreal-reflect" }
-bevy_ecs = "0.7"
+bevy_ecs = "0.8"
 log = "0.4"
 unreal-movement = { path = "../gameplay-plugins/unreal-movement" }
 
