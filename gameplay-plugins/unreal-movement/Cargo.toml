@@ -2,11 +2,9 @@
 name = "unreal-movement"
 version = "0.1.0"
 edition = "2021"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+license = "MIT OR Apache-2.0"
 
 [dependencies]
-
 unreal-api = { path = "../../unreal-api"}
 unreal-reflect = { path = "../../unreal-reflect" }
 bevy_ecs = "0.7"
