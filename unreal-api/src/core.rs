@@ -1,8 +1,9 @@
 use bevy_ecs::prelude::*;
 use ffi::{ActorComponentPtr, ActorComponentType, EventType, Quaternion};
-use std::{collections::HashMap, ffi::c_void, os::raw::c_char};
+use std::ffi::c_void;
 
 use crate::{
+    api::UnrealApi,
     ffi::{self, AActorOpaque},
     input::Input,
     math::{Quat, Vec3},
@@ -42,10 +43,15 @@ impl Plugin for CorePlugin {
             .insert_resource(Frame::default())
             .insert_resource(Time::default())
             .insert_resource(Input::default())
-            .insert_resource(ActorRegistration::default())
-            .add_stage(CoreStage::PreUpdate)
+            .insert_resource(UnrealApi::default())
+            .add_stage(CoreStage::RegisterEvent)
+            .add_stage_after(CoreStage::RegisterEvent, CoreStage::PreUpdate)
             .add_stage_after(CoreStage::PreUpdate, CoreStage::Update)
             .add_stage_after(CoreStage::Update, CoreStage::PostUpdate)
+            .add_system_set_to_stage(
+                CoreStage::RegisterEvent,
+                SystemSet::new().with_system(process_unreal_events),
+            )
             .add_system_set_to_stage(
                 CoreStage::PreUpdate,
                 SystemSet::new()
@@ -57,8 +63,7 @@ impl Plugin for CorePlugin {
                 CoreStage::PostUpdate,
                 SystemSet::new()
                     .with_system(upload_transform_to_unreal)
-                    .with_system(upload_physics_to_unreal)
-                    .with_system(process_unreal_events),
+                    .with_system(upload_physics_to_unreal),
             );
     }
 }
@@ -237,10 +242,7 @@ unsafe extern "C" fn number_of_fields(uuid: ffi::Uuid, out: *mut u32) -> u32 {
     });
     result.unwrap_or(0)
 }
-unsafe extern "C" fn get_type_name(
-    uuid: ffi::Uuid,
-    out: *mut ffi::Utf8Str
-) -> u32 {
+unsafe extern "C" fn get_type_name(uuid: ffi::Uuid, out: *mut ffi::Utf8Str) -> u32 {
     fn get_type_name(uuid: ffi::Uuid) -> Option<&'static str> {
         let global = unsafe { crate::module::MODULE.as_mut() }?;
         let uuid = from_ffi_uuid(uuid);
@@ -384,6 +386,7 @@ pub struct StartupStage;
 #[derive(Debug, Hash, PartialEq, Eq, Clone, StageLabel)]
 pub enum CoreStage {
     Startup,
+    RegisterEvent,
     PreUpdate,
     Update,
     PostUpdate,
@@ -456,12 +459,6 @@ impl Default for ParentComponent {
 #[uuid = "35256309-43b4-4459-9884-eb6e9137faf5"]
 pub struct PlayerInputComponent {
     pub direction: Vec3,
-}
-
-// TODO: Implement unregister.
-#[derive(Default)]
-pub struct ActorRegistration {
-    pub actor_to_entity: HashMap<ActorPtr, Entity>,
 }
 
 #[derive(Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
@@ -558,7 +555,7 @@ fn update_input(mut input: ResMut<Input>) {
     input.update();
 }
 
-fn process_unreal_events(mut actor_register: ResMut<ActorRegistration>, mut commands: Commands) {
+fn process_unreal_events(mut api: ResMut<UnrealApi>, mut commands: Commands) {
     unsafe {
         // TODO: This is UB
         if let Some(global) = crate::module::MODULE.as_mut() {
@@ -580,8 +577,11 @@ fn process_unreal_events(mut actor_register: ResMut<ActorRegistration>, mut comm
                             uuids.as_mut_ptr(),
                             &mut len,
                         );
-                        uuids.set_len(len);
+                        // We might have gotten back fewer uuids, so we truncate
+                        uuids.truncate(len);
 
+                        // We register all the components that are on the actor in unreal and add
+                        // them to the entity
                         for uuid in uuids {
                             let uuid = from_ffi_uuid(uuid);
                             if let Some(insert) = global
@@ -591,7 +591,6 @@ fn process_unreal_events(mut actor_register: ResMut<ActorRegistration>, mut comm
                                 .insert_editor_component
                                 .get(&uuid)
                             {
-                                log::info!("{uuid:?}");
                                 insert.insert_component(actor, uuid, &mut entity_cmds);
                             }
                         }
@@ -605,6 +604,9 @@ fn process_unreal_events(mut actor_register: ResMut<ActorRegistration>, mut comm
                             ))
                             .id();
 
+                        // Create a physics component if the root component is a primitive
+                        // component
+                        // TODO: We probably should get ALL the primitive components as well
                         let mut root_component = ActorComponentPtr::default();
                         (bindings().get_root_component)(actor, &mut root_component);
                         if root_component.ty == ActorComponentType::Primitive
@@ -615,10 +617,10 @@ fn process_unreal_events(mut actor_register: ResMut<ActorRegistration>, mut comm
                             commands.entity(entity).insert(physics_component);
                         }
 
-                        actor_register
-                            .actor_to_entity
-                            .insert(ActorPtr(actor), entity);
+                        api.register_actor(ActorPtr(actor), entity);
 
+                        // Update the `EntityComponent` with the entity id so we can easily access
+                        // it in blueprint etc
                         (bindings().set_entity_for_actor)(
                             actor,
                             ffi::Entity {

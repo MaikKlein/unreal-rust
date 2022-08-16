@@ -2,7 +2,6 @@ use std::collections::HashMap;
 
 use bevy_ecs::prelude::*;
 use unreal_api::Component;
-use unreal_api::registry::{UClass, USound};
 use unreal_api::{
     core::{ActorComponent, ActorPtr, CoreStage, ParentComponent, TransformComponent},
     ffi::{self, UClassOpague},
@@ -62,14 +61,6 @@ pub struct CameraComponent {
     pub current_y: f32,
     #[reflect(skip)]
     pub mode: CameraMode,
-}
-
-#[derive(Debug, Component)]
-#[uuid = "c7f85b63-fbf0-4b14-a2f7-bbe994173b5a"]
-pub struct FooComponent {
-    pub n: f32,
-    pub class: UClass,
-    pub sound: USound,
 }
 
 pub struct PlayerInput;
@@ -166,12 +157,6 @@ fn update_controller_view(
         }
     }
 }
-fn foo(query: Query<&FooComponent>) {
-    for foo in query.iter() {
-        log::info!("{}", foo.n);
-    }
-}
-
 fn rotate_camera(mut query: Query<(&mut TransformComponent, &mut CameraComponent)>) {
     fn lerp(start: f32, end: f32, t: f32) -> f32 {
         start * (1.0 - t) + end * t
@@ -265,7 +250,6 @@ impl UserModule for MyModule {
     fn initialize(&self, module: &mut Module) {
         register_components! {
             CameraComponent,
-            FooComponent,
             => module
 
         };
@@ -285,8 +269,7 @@ impl UserModule for MyModule {
                     .with_system(update_controller_view)
                     .with_system(rotate_camera)
                     .with_system(update_camera.after(rotate_camera))
-                    .with_system(toggle_camera)
-                    .with_system(foo),
+                    .with_system(toggle_camera),
             );
     }
 }

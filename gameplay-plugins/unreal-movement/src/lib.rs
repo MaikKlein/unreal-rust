@@ -1,13 +1,14 @@
 use bevy_ecs::{prelude::*, query::WorldQuery};
+use unreal_api::api::{SweepHit, SweepParams, UnrealApi};
 use unreal_api::Component;
 use unreal_api::{
-    core::{ActorComponent, ActorPtr, ActorRegistration, CoreStage, Frame, TransformComponent},
+    core::{ActorComponent, CoreStage, Frame, TransformComponent},
     ffi,
     input::Input,
     log::LogCategory,
     math::{Quat, Vec3, Vec3Swizzles},
     module::Module,
-    physics::{sweep, PhysicsComponent, SweepParams, SweepResult},
+    physics::PhysicsComponent,
     plugin::Plugin,
     register_components,
 };
@@ -102,11 +103,11 @@ impl MovementLog {
 }
 pub enum MovementHit {
     Slope { normal: Vec3 },
-    Wall { hit: SweepResult },
+    Wall { hit: SweepHit },
 }
 
 pub struct FloorHit {
-    pub actor: Option<ActorPtr>,
+    pub entity: Entity,
     pub impact_location: Vec3,
 }
 
@@ -118,10 +119,10 @@ fn do_walking(
     movement: &mut MovementQueryItem,
     input: &Input,
     dt: f32,
-    registry: &ActorRegistration,
     query: &Query<&PhysicsComponent>,
+    api: &UnrealApi,
 ) -> Option<MovementState> {
-    if let Some(hit) = movement.find_floor() {
+    if let Some(hit) = movement.find_floor(api) {
         movement.controller.vertical_velocity = Vec3::ZERO;
         movement.transform.position.z = hit.impact_location.z
             + movement.physics.get_collision_shape().extent().z
@@ -131,34 +132,43 @@ fn do_walking(
             movement.controller.vertical_velocity.z += movement.config.jump_velocity;
             return Some(MovementState::Falling);
         }
-        let entity = hit.actor.and_then(|ptr| registry.actor_to_entity.get(&ptr));
-        let phys = entity.and_then(|&entity| query.get(entity).ok());
+        let phys = query.get(hit.entity).ok();
         let velocity = phys.map(|p| p.velocity).unwrap_or_default();
-        movement.do_movement(velocity, dt);
+        movement.do_movement(velocity, dt, api);
         None
     } else {
         Some(MovementState::Falling)
     }
 }
 
-fn do_falling(movement: &mut MovementQueryItem, input: &Input, dt: f32) -> Option<MovementState> {
+fn do_falling(
+    movement: &mut MovementQueryItem,
+    input: &Input,
+    dt: f32,
+    api: &UnrealApi,
+) -> Option<MovementState> {
     let is_downwards = movement.controller.vertical_velocity.z < 0.0;
-    if movement.find_floor().is_some() && is_downwards {
+    if movement.find_floor(api).is_some() && is_downwards {
         Some(MovementState::Walking)
     } else if input.is_action_pressed(PlayerInput::JUMP) {
         Some(MovementState::Gliding)
     } else {
         movement.controller.vertical_velocity +=
             movement.config.gravity_dir * movement.config.gravity_strength * dt;
-        movement.do_movement(Vec3::ZERO, dt);
+        movement.do_movement(Vec3::ZERO, dt, api);
         None
     }
 }
 
-fn do_gliding(movement: &mut MovementQueryItem, input: &Input, dt: f32) -> Option<MovementState> {
+fn do_gliding(
+    movement: &mut MovementQueryItem,
+    input: &Input,
+    dt: f32,
+    api: &UnrealApi,
+) -> Option<MovementState> {
     let is_downwards = movement.controller.vertical_velocity.z < 0.0;
 
-    if movement.find_floor().is_some() && is_downwards {
+    if movement.find_floor(api).is_some() && is_downwards {
         Some(MovementState::Walking)
     } else if input.is_action_pressed(PlayerInput::JUMP) {
         Some(MovementState::Falling)
@@ -172,7 +182,7 @@ fn do_gliding(movement: &mut MovementQueryItem, input: &Input, dt: f32) -> Optio
             -movement.config.max_gliding_downwards_speed,
             movement.controller.vertical_velocity.z,
         );
-        movement.do_movement(Vec3::ZERO, dt);
+        movement.do_movement(Vec3::ZERO, dt, api);
 
         None
     }
@@ -181,6 +191,7 @@ fn do_gliding(movement: &mut MovementQueryItem, input: &Input, dt: f32) -> Optio
 #[derive(WorldQuery)]
 #[world_query(mutable)]
 pub struct MovementQuery<'w> {
+    entity: Entity,
     actor: &'w ActorComponent,
     transform: &'w mut TransformComponent,
     physics: &'w PhysicsComponent,
@@ -188,10 +199,10 @@ pub struct MovementQuery<'w> {
     config: &'w CharacterConfigComponent,
 }
 impl<'w> MovementQueryItem<'w> {
-    pub fn try_step_up(&self, move_result: &SweepResult) -> Option<StepUpResult> {
+    pub fn try_step_up(&self, move_result: &SweepHit, api: &UnrealApi) -> Option<StepUpResult> {
         let params = SweepParams::default()
             // Don't test against ourselves
-            .add_ignored_actor(self.actor.actor);
+            .add_ignored_entity(self.entity);
 
         // We want to slighty offset the start of the sweep in the direction we were moving,
         // otherwise we might miss the downwards sweep test
@@ -201,7 +212,7 @@ impl<'w> MovementQueryItem<'w> {
             + offset
             + Vec3::Z * (self.config.step_size + self.config.ground_offset);
 
-        sweep(
+        api.sweep(
             sweep_start,
             // We want to sweep downards but no more than we can step
             sweep_start - Vec3::Z * self.config.step_size,
@@ -246,10 +257,10 @@ impl<'w> MovementQueryItem<'w> {
             })
         })
     }
-    pub fn resolve_possible_penetration(&self) -> Option<Vec3> {
-        let params = SweepParams::default().add_ignored_actor(self.actor.actor);
+    pub fn resolve_possible_penetration(&self, api: &UnrealApi) -> Option<Vec3> {
+        let params = SweepParams::default().add_ignored_entity(self.entity);
         let shape = self.physics.get_collision_shape();
-        sweep(
+        api.sweep(
             self.transform.position,
             self.transform.position + Vec3::Z * 10.0,
             self.transform.rotation,
@@ -281,8 +292,8 @@ impl<'w> MovementQueryItem<'w> {
         })
     }
 
-    pub fn do_movement(&mut self, velocity: Vec3, dt: f32) {
-        if let Some(hit) = self.movement_hit(self.controller.horizontal_velocity, dt) {
+    pub fn do_movement(&mut self, velocity: Vec3, dt: f32, api: &UnrealApi) {
+        if let Some(hit) = self.movement_hit(self.controller.horizontal_velocity, dt, api) {
             match hit {
                 MovementHit::Slope { normal } => {
                     self.controller.horizontal_velocity =
@@ -294,7 +305,7 @@ impl<'w> MovementQueryItem<'w> {
                     let is_wall = Vec3::dot(hit.impact_normal, Vec3::Z) < 0.2;
 
                     if is_wall {
-                        if let Some(step_result) = self.try_step_up(&hit) {
+                        if let Some(step_result) = self.try_step_up(&hit, api) {
                             self.transform.position =
                                 step_result.location + Vec3::Z * self.config.ground_offset;
                         } else {
@@ -314,9 +325,9 @@ impl<'w> MovementQueryItem<'w> {
             }
         }
         {
-            let params = SweepParams::default().add_ignored_actor(self.actor.actor);
+            let params = SweepParams::default().add_ignored_entity(self.entity);
 
-            if let Some(hit) = sweep(
+            if let Some(hit) = api.sweep(
                 self.transform.position,
                 self.transform.position + self.controller.vertical_velocity * dt,
                 self.transform.rotation,
@@ -339,10 +350,10 @@ impl<'w> MovementQueryItem<'w> {
             self.transform.rotation = Quat::lerp(self.transform.rotation, target_rot, dt * 10.0);
         }
     }
-    pub fn movement_hit(&self, velocity: Vec3, dt: f32) -> Option<MovementHit> {
-        let params = SweepParams::default().add_ignored_actor(self.actor.actor);
+    pub fn movement_hit(&self, velocity: Vec3, dt: f32, api: &UnrealApi) -> Option<MovementHit> {
+        let params = SweepParams::default().add_ignored_entity(self.entity);
 
-        if let Some(hit) = sweep(
+        if let Some(hit) = api.sweep(
             self.transform.position,
             self.transform.position + velocity * dt,
             self.transform.rotation,
@@ -363,10 +374,10 @@ impl<'w> MovementQueryItem<'w> {
         None
     }
 
-    pub fn find_floor(&self) -> Option<FloorHit> {
-        let params = SweepParams::default().add_ignored_actor(self.actor.actor);
+    pub fn find_floor(&self, api: &UnrealApi) -> Option<FloorHit> {
+        let params = SweepParams::default().add_ignored_entity(self.entity);
         let shape = self.physics.get_collision_shape();
-        sweep(
+        api.sweep(
             self.transform.position,
             self.transform.position + self.config.gravity_dir * 500.0,
             self.transform.rotation,
@@ -381,7 +392,7 @@ impl<'w> MovementQueryItem<'w> {
                 >= self.transform.position.z - shape.extent().z;
             if is_walkable && is_within_range {
                 Some(FloorHit {
-                    actor: hit.actor,
+                    entity: hit.entity,
                     impact_location: hit.impact_location,
                 })
             } else {
@@ -394,10 +405,11 @@ impl<'w> MovementQueryItem<'w> {
 fn character_control_system(
     input: Res<Input>,
     frame: Res<Frame>,
-    registry: Res<ActorRegistration>,
+    api: Res<UnrealApi>,
     mut query: Query<MovementQuery>,
     phys: Query<&PhysicsComponent>,
 ) {
+    let api = &api;
     let forward = input
         .get_axis_value(PlayerInput::MOVE_FORWARD)
         .unwrap_or(0.0);
@@ -410,14 +422,14 @@ fn character_control_system(
         movement.controller.horizontal_velocity =
             input_dir.normalize_or_zero() * movement.config.max_movement_speed;
 
-        if let Some(new_position) = movement.resolve_possible_penetration() {
+        if let Some(new_position) = movement.resolve_possible_penetration(api) {
             movement.transform.position = new_position;
         }
 
         let new_state = match movement.controller.movement_state {
-            MovementState::Walking => do_walking(&mut movement, &input, frame.dt, &registry, &phys),
-            MovementState::Falling => do_falling(&mut movement, &input, frame.dt),
-            MovementState::Gliding => do_gliding(&mut movement, &input, frame.dt),
+            MovementState::Walking => do_walking(&mut movement, &input, frame.dt, &phys, api),
+            MovementState::Falling => do_falling(&mut movement, &input, frame.dt, api),
+            MovementState::Gliding => do_gliding(&mut movement, &input, frame.dt, api),
         };
 
         if let Some(new_state) = new_state {

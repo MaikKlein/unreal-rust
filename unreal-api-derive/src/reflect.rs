@@ -105,7 +105,7 @@ pub fn reflect_derive(ast: &DeriveInput) -> proc_macro2::TokenStream {
                         use unreal_api::editor_component::GetEditorComponentValue;
                         let component = #struct_ident {
                             #(
-                                #field_idents: #field_types::get(actor, uuid, #field_names).unwrap(),
+                                #field_idents: #field_types::get(actor, uuid, #field_names).expect(#field_names),
                             )*
                         };
                         commands.insert(component);

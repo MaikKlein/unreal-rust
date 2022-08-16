@@ -1,6 +1,7 @@
 #![allow(clippy::missing_safety_doc)]
 extern crate self as unreal_api;
 
+pub mod api;
 pub use unreal_ffi as ffi;
 pub mod core;
 pub mod editor_component;
