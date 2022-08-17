@@ -30,21 +30,24 @@ impl Input {
         self.action.clear();
 
         for binding in &self.action_bindings {
-            let mut state = ActionState::Nothing;
-            unsafe {
-                (bindings().get_action_state)(
-                    binding.as_ptr() as *const c_char,
-                    binding.len(),
-                    &mut state,
-                );
-            }
-            let action = match state {
-                ActionState::Pressed => Some(Action::Pressed),
-                ActionState::Released => Some(Action::Released),
-                _ => None,
+            let check_state = |state: ActionState| -> bool {
+                let mut out = 0;
+                unsafe {
+                    (bindings().get_action_state)(
+                        binding.as_ptr() as *const c_char,
+                        binding.len(),
+                        state,
+                        &mut out,
+                    );
+                }
+                out == 1
             };
-            if let Some(action) = action {
-                self.action.insert(binding, action);
+
+            if check_state(ActionState::Pressed) {
+                self.action.insert(binding, Action::Pressed);
+            }
+            if check_state(ActionState::Released) {
+                self.action.insert(binding, Action::Released);
             }
         }
         for binding in &self.axis_bindings {

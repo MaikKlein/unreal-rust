@@ -10,7 +10,6 @@ enum class ActionState : uint8_t {
   Pressed = 0,
   Released = 1,
   Held = 2,
-  Nothing = 3,
 };
 
 enum class ActorClass : uint32_t {
@@ -156,7 +155,7 @@ using LogFn = void(*)(const char*, int32_t);
 
 using IterateActorsFn = void(*)(AActorOpaque **array, uint64_t *len);
 
-using GetActionStateFn = void(*)(const char *name, uintptr_t len, ActionState *state);
+using GetActionStateFn = void(*)(const char *name, uintptr_t len, ActionState state, uint32_t *out);
 
 using GetAxisValueFn = void(*)(const char *name, uintptr_t len, float *value);
 
@@ -342,7 +341,7 @@ extern void Log(const char *s, int32_t len);
 
 extern void IterateActors(AActorOpaque **array, uint64_t *len);
 
-extern void GetActionState(const char *name, uintptr_t len, ActionState *state);
+extern void GetActionState(const char *name, uintptr_t len, ActionState state, uint32_t *out);
 
 extern void GetAxisValue(const char *name, uintptr_t len, float *value);
 

@@ -250,7 +250,7 @@ pub type SetSpatialDataFn = extern "C" fn(
 );
 pub type IterateActorsFn = unsafe extern "C" fn(array: *mut *mut AActorOpaque, len: *mut u64);
 pub type GetActionStateFn =
-    unsafe extern "C" fn(name: *const c_char, len: usize, state: &mut ActionState);
+    unsafe extern "C" fn(name: *const c_char, len: usize, state: ActionState, out: *mut u32);
 pub type GetAxisValueFn = unsafe extern "C" fn(name: *const c_char, len: usize, value: &mut f32);
 pub type SetEntityForActorFn = unsafe extern "C" fn(name: *mut AActorOpaque, entity: Entity);
 pub type SpawnActorFn = unsafe extern "C" fn(
@@ -314,7 +314,7 @@ extern "C" {
     pub fn TickActor(actor: *mut AActorOpaque, dt: f32);
     pub fn Log(s: *const c_char, len: i32);
     pub fn IterateActors(array: *mut *mut AActorOpaque, len: *mut u64);
-    pub fn GetActionState(name: *const c_char, len: usize, state: &mut ActionState);
+    pub fn GetActionState(name: *const c_char, len: usize, state: ActionState, out: *mut u32);
     pub fn GetAxisValue(name: *const c_char, len: usize, value: &mut f32);
     pub fn SetEntityForActor(name: *mut AActorOpaque, entity: Entity);
     pub fn SpawnActor(
@@ -389,7 +389,6 @@ pub enum ActionState {
     Pressed = 0,
     Released = 1,
     Held = 2,
-    Nothing = 3,
 }
 #[repr(u32)]
 #[derive(Debug)]

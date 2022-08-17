@@ -59,34 +59,40 @@ void IterateActors(AActorOpaque** array, uint64_t* len)
 	*len = i;
 }
 
-void GetActionState(const char* name, uintptr_t len, ActionState* state)
+void GetActionState(const char* name, uintptr_t len, ActionState state, uint32_t* out)
 {
 	APlayerController* PC = UGameplayStatics::GetPlayerController(GetRustModule().GameMode, 0);
 
 	FName ActionName((int32)len, name);
 
-	// TODO: I think this logic is broken. I think we can have both a pressed and a released event
-	// at the same time. If that happens we will only process the `Pressed` event.
-
 	for (auto M : PC->PlayerInput->GetKeysForAction(ActionName))
 	{
-		if (PC->PlayerInput->WasJustPressed(M.Key))
+		if (state == ActionState::Pressed)
 		{
-			*state = ActionState::Pressed;
-			return;
+			if (PC->PlayerInput->WasJustPressed(M.Key))
+			{
+				*out = true;
+				return;
+			}
 		}
-		if (PC->PlayerInput->WasJustReleased(M.Key))
+		if (state == ActionState::Released)
 		{
-			*state = ActionState::Released;
-			return;
+			if (PC->PlayerInput->WasJustReleased(M.Key))
+			{
+				*out = true;
+				return;
+			}
 		}
-		if (PC->PlayerInput->IsPressed(M.Key))
+		if (state == ActionState::Held)
 		{
-			*state = ActionState::Held;
-			return;
+			if (PC->PlayerInput->IsPressed(M.Key))
+			{
+				*out = true;
+				return;
+			}
 		}
 	}
-	*state = ActionState::Nothing;
+	*out = false;
 }
 
 void GetAxisValue(const char* name, uintptr_t len, float* value)
@@ -254,12 +260,12 @@ uint32_t OverlapMulti(CollisionShape shape,
 		CollisionParams.AddIgnoredActor((AActor*)params.ignored_actors[i]);
 	}
 	bool IsHit = GetRustModule().GameMode->GetWorld()->OverlapMultiByChannel(Out,
-	                                                                     ToFVector(position),
-	                                                                     ToFQuat(rotation),
-	                                                                     ECollisionChannel::ECC_MAX,
-	                                                                     ToFCollisionShape(shape),
-	                                                                     CollisionParams,
-	                                                                     FCollisionResponseParams{});
+	                                                                         ToFVector(position),
+	                                                                         ToFQuat(rotation),
+	                                                                         ECollisionChannel::ECC_MAX,
+	                                                                         ToFCollisionShape(shape),
+	                                                                         CollisionParams,
+	                                                                         FCollisionResponseParams{});
 	if (IsHit)
 	{
 		uintptr_t Length = FGenericPlatformMath::Min(max_results, (uintptr_t)Out.Num());
