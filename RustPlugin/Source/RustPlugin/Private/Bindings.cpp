@@ -11,6 +11,7 @@
 #include "GameFramework/PlayerInput.h"
 #include "EntityComponent.h"
 #include "Camera/CameraActor.h"
+#include "Sound/SoundBase.h"
 #include "VisualLogger/VisualLogger.h"
 
 DEFINE_LOG_CATEGORY(RustVisualLog);
@@ -620,4 +621,11 @@ uint32_t GetEditorComponentUObject(const AActorOpaque* actor, Uuid uuid, Utf8Str
 	}
 
 	return 0;
+}
+
+void PlaySoundAtLocation(const UOSoundBaseOpague* sound, Vector3 location, Quaternion rotation,
+                         const SoundSettings* settings)
+{
+	auto World = GetRustModule().GameMode->GetWorld();
+	UGameplayStatics::PlaySoundAtLocation(World, (USoundBase*)sound, ToFVector(location), ToFQuat(rotation).Rotator());
 }

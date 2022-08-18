@@ -6,6 +6,9 @@
 
 UnrealBindings CreateBindings()
 {
+	SoundFns sound_fns;
+	sound_fns.play_sound_at_location = PlaySoundAtLocation;
+	
 	EditorComponentFns editor_component_fns;
 	editor_component_fns.get_editor_component_bool = &GetEditorComponentBool;
 	editor_component_fns.get_editor_component_float = &GetEditorComponentFloat;
@@ -27,6 +30,7 @@ UnrealBindings CreateBindings()
 	physics_bindings.get_collision_shape = &GetCollisionShape;
 
 	UnrealBindings b = {};
+	b.sound_fns = sound_fns;
 	b.physics_bindings = physics_bindings;
 	b.editor_component_fns = editor_component_fns;
 	b.get_spatial_data = &GetSpatialData;

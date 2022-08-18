@@ -232,6 +232,7 @@ pub type UPrimtiveOpaque = c_void;
 pub type UCapsuleOpaque = c_void;
 pub type UClassOpague = c_void;
 pub type UObjectOpague = c_void;
+pub type UOSoundBaseOpague = c_void;
 
 pub type GetSpatialDataFn = extern "C" fn(
     actor: *const AActorOpaque,
@@ -379,6 +380,7 @@ pub struct UnrealBindings {
     pub get_actor_name: GetActorNameFn,
     pub set_owner: SetOwnerFn,
     pub editor_component_fns: EditorComponentFns,
+    pub sound_fns: SoundFns,
 }
 unsafe impl Sync for UnrealBindings {}
 unsafe impl Send for UnrealBindings {}
@@ -687,4 +689,38 @@ pub struct EditorComponentFns {
     pub get_editor_component_bool: GetEditorComponentBoolFn,
     pub get_editor_component_float: GetEditorComponentFloatFn,
     pub get_editor_component_uobject: GetEditorComponentUObjectFn,
+}
+
+#[repr(C)]
+pub struct SoundSettings {
+    pub volume: f32,
+    pub pitch: f32,
+}
+impl Default for SoundSettings {
+    fn default() -> Self {
+        Self {
+            volume: 1.0,
+            pitch: 1.0,
+        }
+    }
+}
+
+extern "C" {
+    pub fn PlaySoundAtLocation(
+        sound: *const UOSoundBaseOpague,
+        location: Vector3,
+        rotation: Quaternion,
+        settings: *const SoundSettings,
+    );
+}
+pub type PlaySoundAtLocationFn = unsafe extern "C" fn(
+    sound: *const UOSoundBaseOpague,
+    location: Vector3,
+    rotation: Quaternion,
+    settings: *const SoundSettings,
+);
+
+#[repr(C)]
+pub struct SoundFns {
+    pub play_sound_at_location: PlaySoundAtLocationFn,
 }

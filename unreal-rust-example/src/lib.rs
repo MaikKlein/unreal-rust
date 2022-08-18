@@ -1,6 +1,8 @@
 use std::collections::HashMap;
 
 use bevy_ecs::prelude::*;
+use unreal_api::registry::USound;
+use unreal_api::sound::play_sound_at_location;
 use unreal_api::Component;
 use unreal_api::{
     core::{ActorComponent, ActorPtr, CoreStage, ParentComponent, TransformComponent},
@@ -50,6 +52,12 @@ impl CameraMode {
             CameraMode::FirstPerson => CameraMode::ThirdPerson,
         };
     }
+}
+
+#[derive(Debug, Component)]
+#[uuid = "52788d7e-017b-42cd-b3bf-aa616315c0c4"]
+pub struct CharacterSoundsComponent {
+    pub camera_toggle: USound,
 }
 
 #[derive(Default, Debug, Component)]
@@ -130,6 +138,7 @@ fn toggle_camera(
     input: Res<Input>,
     mut camera_query: Query<(Entity, &mut CameraComponent, &ParentComponent)>,
     mut actor_query: Query<&mut ActorComponent>,
+    sound: Query<(&TransformComponent, &CharacterSoundsComponent)>,
 ) {
     if input.is_action_pressed(PlayerInput::TOGGLE_CAMERA) {
         for (entity, mut camera, parent) in camera_query.iter_mut() {
@@ -141,6 +150,14 @@ fn toggle_camera(
                     CameraMode::FirstPerson => parent_actor.set_owner(Some(&camera_actor)),
                     CameraMode::ThirdPerson => parent_actor.set_owner(None),
                 };
+            }
+            if let Ok((transform, sound)) = sound.get(parent.parent) {
+                play_sound_at_location(
+                    sound.camera_toggle,
+                    transform.position,
+                    transform.rotation,
+                    &ffi::SoundSettings::default(),
+                )
             }
         }
     }
@@ -249,6 +266,7 @@ impl InitUserModule for MyModule {
 impl UserModule for MyModule {
     fn initialize(&self, module: &mut Module) {
         register_components! {
+            CharacterSoundsComponent,
             CameraComponent,
             => module
 

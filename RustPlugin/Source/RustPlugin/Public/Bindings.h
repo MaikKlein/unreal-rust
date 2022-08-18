@@ -147,6 +147,13 @@ struct Uuid {
 
 using UObjectOpague = void;
 
+using UOSoundBaseOpague = void;
+
+struct SoundSettings {
+  float volume;
+  float pitch;
+};
+
 using GetSpatialDataFn = void(*)(const AActorOpaque *actor, Vector3 *position, Quaternion *rotation, Vector3 *scale);
 
 using SetSpatialDataFn = void(*)(AActorOpaque *actor, Vector3 position, Quaternion rotation, Vector3 scale);
@@ -244,6 +251,12 @@ struct EditorComponentFns {
   GetEditorComponentUObjectFn get_editor_component_uobject;
 };
 
+using PlaySoundAtLocationFn = void(*)(const UOSoundBaseOpague *sound, Vector3 location, Quaternion rotation, const SoundSettings *settings);
+
+struct SoundFns {
+  PlaySoundAtLocationFn play_sound_at_location;
+};
+
 struct UnrealBindings {
   GetSpatialDataFn get_spatial_data;
   SetSpatialDataFn set_spatial_data;
@@ -267,6 +280,7 @@ struct UnrealBindings {
   GetActorNameFn get_actor_name;
   SetOwnerFn set_owner;
   EditorComponentFns editor_component_fns;
+  SoundFns sound_fns;
 };
 
 using RetrieveUuids = void(*)(Uuid *ptr, uintptr_t *len);
@@ -449,5 +463,10 @@ extern uint32_t GetEditorComponentUObject(const AActorOpaque *actor,
                                           Utf8Str field,
                                           UObjectType ty,
                                           UObjectOpague **out);
+
+extern void PlaySoundAtLocation(const UOSoundBaseOpague *sound,
+                                Vector3 location,
+                                Quaternion rotation,
+                                const SoundSettings *settings);
 
 } // extern "C"

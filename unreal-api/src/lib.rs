@@ -10,6 +10,7 @@ pub mod log;
 pub mod module;
 pub mod physics;
 pub mod plugin;
+pub mod sound;
 pub use unreal_api_derive::Component;
 
 // TODO: Here for the unreal_api_derive macro. Lets restructure this
