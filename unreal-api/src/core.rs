@@ -346,6 +346,27 @@ pub fn create_reflection_fns() -> ffi::ReflectionFns {
     }
 }
 
+unsafe extern "C" fn allocate(size: usize, align: usize, ptr: *mut ffi::RustAlloc) -> u32 {
+    use std::alloc::{alloc, Layout};
+    let layout = Layout::from_size_align(size, align);
+    match layout {
+        Ok(layout) => {
+            let alloc_ptr = alloc(layout);
+            *ptr = ffi::RustAlloc {
+                ptr: alloc_ptr,
+                size,
+                align,
+            };
+
+            1
+        }
+        Err(_) => 0,
+    }
+}
+pub fn create_allocate_fns() -> ffi::AllocateFns {
+    ffi::AllocateFns { allocate }
+}
+
 pub extern "C" fn tick(dt: f32) -> crate::ffi::ResultCode {
     let r = std::panic::catch_unwind(|| unsafe {
         UnrealCore::tick(&mut crate::module::MODULE.as_mut().unwrap().core, dt);
@@ -415,6 +436,19 @@ impl ActorComponent {
                 .map(|comp| comp.actor.0 as *const AActorOpaque)
                 .unwrap_or(std::ptr::null());
             (bindings().set_owner)(self.actor.0, ptr);
+        }
+    }
+    pub fn get_actor_name(&self) -> String {
+        unsafe {
+            let mut alloc = ffi::RustAlloc::empty();
+            (bindings().get_actor_name)(self.actor.0, &mut alloc);
+            let name = {
+                let slice = std::slice::from_raw_parts(alloc.ptr, alloc.size);
+                let name = std::str::from_utf8(slice).unwrap();
+                name.to_string()
+            };
+            alloc.free();
+            name
         }
     }
 }

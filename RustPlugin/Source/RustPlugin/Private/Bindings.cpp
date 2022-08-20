@@ -296,17 +296,6 @@ void VisualLogCapsule(
 	float radius,
 	Color color)
 {
-	//DrawDebugCapsule(
-	//	GetModule().GameMode->GetWorld(),
-	//	ToFVector(position),
-	//	half_height,
-	//	radius,
-	//	ToFQuat(rotation),
-	//	ToFColor(color),
-	//	false,
-	//	0.0,
-	//	1,
-	//	1.0);
 	FString CategoryStr = ToFString(category);
 	auto LogCat = FLogCategory<ELogVerbosity::Log, ELogVerbosity::All>(*CategoryStr);
 	FVector Base = ToFVector(position) - half_height * (ToFQuat(rotation) * FVector::UpVector);
@@ -439,16 +428,6 @@ UClassOpague* GetClass(const AActorOpaque* actor)
 uint32 IsMoveable(const AActorOpaque* actor)
 {
 	return ToAActor(actor)->IsRootComponentMovable();
-}
-
-void GetActorName(const AActorOpaque* actor, char* data, uintptr_t* len)
-{
-	// TODO: Implement
-	//if(data == nullptr) {
-	//    FString Name = ToAActor(actor)->GetActorNameOrLabel();
-	//    auto Utf8 = TCHAR_TO_UTF8(*Name);
-	//    auto Length = Utf8.Length();
-	//}
 }
 
 void SetOwner(AActorOpaque* actor, const AActorOpaque* new_owner)
@@ -628,4 +607,15 @@ void PlaySoundAtLocation(const UOSoundBaseOpague* sound, Vector3 location, Quate
 {
 	auto World = GetRustModule().GameMode->GetWorld();
 	UGameplayStatics::PlaySoundAtLocation(World, (USoundBase*)sound, ToFVector(location), ToFQuat(rotation).Rotator());
+}
+
+void GetActorName(const AActorOpaque* actor, RustAlloc* data)
+{
+	FString Name = ToAActor(actor)->GetActorNameOrLabel();
+	UE_LOG(LogTemp, Warning, TEXT("Unreal %s"), *Name);
+	auto Utf8 = FTCHARToUTF8(*Name);
+
+	GetRustModule().Plugin.Rust.allocate_fns.allocate(Utf8.Length(), 1, data);
+	FMemory::Memcpy(data->ptr, Utf8.Get(), data->size);
+	//std::memcpy(data->ptr, Utf8.Get(), data->size);
 }

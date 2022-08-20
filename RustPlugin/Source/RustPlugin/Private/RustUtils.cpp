@@ -52,6 +52,7 @@ UnrealBindings CreateBindings()
 	b.get_class = &GetClass;
 	b.is_moveable = &IsMoveable;
 	b.set_owner = &SetOwner;
+	b.get_actor_name = &GetActorName;
 	return b;
 }
 

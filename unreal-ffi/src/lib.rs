@@ -282,8 +282,7 @@ pub type GetRegisteredClassesFn =
 
 pub type GetClassFn = unsafe extern "C" fn(actor: *const AActorOpaque) -> *mut UClassOpague;
 pub type IsMoveableFn = unsafe extern "C" fn(actor: *const AActorOpaque) -> u32;
-pub type GetActorNameFn =
-    unsafe extern "C" fn(actor: *const AActorOpaque, data: *mut c_char, len: *mut usize);
+pub type GetActorNameFn = unsafe extern "C" fn(actor: *const AActorOpaque, data: *mut RustAlloc);
 
 pub type SetOwnerFn =
     unsafe extern "C" fn(actor: *mut AActorOpaque, new_owner: *const AActorOpaque);
@@ -353,7 +352,7 @@ extern "C" {
     pub fn GetRegisteredClasses(classes: *mut *mut UClassOpague, len: *mut usize);
     pub fn GetClass(actor: *const AActorOpaque) -> *mut UClassOpague;
     pub fn IsMoveable(actor: *const AActorOpaque) -> u32;
-    pub fn GetActorName(actor: *const AActorOpaque, data: *mut c_char, len: *mut usize);
+    pub fn GetActorName(actor: *const AActorOpaque, data: *mut RustAlloc);
 }
 
 #[repr(C)]
@@ -460,6 +459,7 @@ pub struct RustBindings {
     pub begin_play: BeginPlayFn,
     pub unreal_event: UnrealEventFn,
     pub reflection_fns: ReflectionFns,
+    pub allocate_fns: AllocateFns,
 }
 pub type UnrealEventFn = unsafe extern "C" fn(ty: *const EventType, data: *const c_void);
 pub type GetVelocityFn = unsafe extern "C" fn(primitive: *const UPrimtiveOpaque) -> Vector3;
@@ -601,6 +601,43 @@ pub struct ReflectionFns {
     pub get_field_bool_value: GetFieldBoolValueFn,
     pub get_field_float_value: GetFieldFloatValueFn,
     pub get_field_quat_value: GetFieldQuatValueFn,
+}
+
+#[repr(C)]
+pub struct RustAlloc {
+    pub ptr: *mut u8,
+    pub size: usize,
+    pub align: usize,
+}
+
+impl RustAlloc {
+    pub fn empty() -> Self {
+        Self {
+            ptr: std::ptr::null_mut(),
+            size: 0,
+            align: 0,
+        }
+    }
+    /// # Safety
+    /// Must have a valid allocation from within unreal c++
+    /// Only free if the ptr is not already in use
+    /// Ptr must be valid, and allocated from the same allocator
+    pub unsafe fn free(self) {
+        if self.size == 0 || self.ptr.is_null() {
+            return;
+        }
+        std::alloc::dealloc(
+            self.ptr,
+            std::alloc::Layout::from_size_align(self.size, self.align).unwrap(),
+        );
+    }
+}
+
+pub type AllocateFn = unsafe extern "C" fn(size: usize, align: usize, ptr: *mut RustAlloc) -> u32;
+
+#[repr(C)]
+pub struct AllocateFns {
+    pub allocate: AllocateFn,
 }
 
 extern "C" {

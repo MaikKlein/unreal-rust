@@ -88,6 +88,12 @@ struct Utf8Str {
 
 using UClassOpague = void;
 
+struct RustAlloc {
+  uint8_t *ptr;
+  uintptr_t size;
+  uintptr_t align;
+};
+
 using UPrimtiveOpaque = void;
 
 struct LineTraceParams {
@@ -226,7 +232,7 @@ using GetClassFn = UClassOpague*(*)(const AActorOpaque *actor);
 
 using IsMoveableFn = uint32_t(*)(const AActorOpaque *actor);
 
-using GetActorNameFn = void(*)(const AActorOpaque *actor, char *data, uintptr_t *len);
+using GetActorNameFn = void(*)(const AActorOpaque *actor, RustAlloc *data);
 
 using SetOwnerFn = void(*)(AActorOpaque *actor, const AActorOpaque *new_owner);
 
@@ -321,12 +327,19 @@ struct ReflectionFns {
   GetFieldQuatValueFn get_field_quat_value;
 };
 
+using AllocateFn = uint32_t(*)(uintptr_t size, uintptr_t align, RustAlloc *ptr);
+
+struct AllocateFns {
+  AllocateFn allocate;
+};
+
 struct RustBindings {
   RetrieveUuids retrieve_uuids;
   TickFn tick;
   BeginPlayFn begin_play;
   UnrealEventFn unreal_event;
   ReflectionFns reflection_fns;
+  AllocateFns allocate_fns;
 };
 
 using EntryUnrealBindingsFn = RustBindings(*)(UnrealBindings bindings);
@@ -396,7 +409,7 @@ extern UClassOpague *GetClass(const AActorOpaque *actor);
 
 extern uint32_t IsMoveable(const AActorOpaque *actor);
 
-extern void GetActorName(const AActorOpaque *actor, char *data, uintptr_t *len);
+extern void GetActorName(const AActorOpaque *actor, RustAlloc *data);
 
 extern Vector3 GetVelocity(const UPrimtiveOpaque *primitive);
 
