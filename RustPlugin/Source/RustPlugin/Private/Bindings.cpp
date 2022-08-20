@@ -623,5 +623,5 @@ void RegisterActorOnBeginOverlap(AActorOpaque* actor)
 	AActor* Actor = ToAActor(actor);
 	if(!GameMode || !Actor)
 	    return;
-	Actor->OnActorBeginOverlap.AddDynamic(GameMode, &ARustGameModeBase::OnActorOverlap);
+	Actor->OnActorBeginOverlap.AddUniqueDynamic(GameMode, &ARustGameModeBase::OnActorOverlap);
 }

@@ -13,17 +13,8 @@ use crate::{
     register_components,
 };
 
-#[derive(Debug)]
-pub enum UnrealEvent {
-    ActorAdded(*mut AActorOpaque),
-}
-
-unsafe impl Send for UnrealEvent {}
-unsafe impl Sync for UnrealEvent {}
-
 pub struct UnrealCore {
     module: Module,
-    unreal_events: Vec<UnrealEvent>,
 }
 
 pub struct CorePlugin;
@@ -50,10 +41,11 @@ impl Plugin for CorePlugin {
             .add_stage_after(CoreStage::Update, CoreStage::PostUpdate)
             // TODO: Order matters here. Needs to be defined after the stages
             .add_event::<OnActorBeginOverlapEvent>()
+            .add_event::<ActorSpawnedEvent>()
             .add_system_set_to_stage(
                 CoreStage::RegisterEvent,
                 SystemSet::new()
-                    .with_system(process_unreal_events)
+                    .with_system(process_actor_spawned)
                     .with_system(process_register_begin),
             )
             .add_system_set_to_stage(
@@ -77,10 +69,7 @@ impl UnrealCore {
         let mut module = Module::new();
         module.add_plugin(CorePlugin);
         user_module.initialize(&mut module);
-        Self {
-            module,
-            unreal_events: Vec::new(),
-        }
+        Self { module }
     }
 
     pub fn begin_play(&mut self, user_module: &dyn UserModule) {
@@ -121,6 +110,10 @@ pub unsafe extern "C" fn retrieve_uuids(ptr: *mut ffi::Uuid, len: *mut usize) {
     }
 }
 
+pub struct ActorSpawnedEvent {
+    pub actor: ActorPtr,
+}
+
 pub struct OnActorBeginOverlapEvent {
     pub overlapped_actor: ActorPtr,
     pub other: ActorPtr,
@@ -131,10 +124,9 @@ pub unsafe extern "C" fn unreal_event(ty: *const EventType, data: *const c_void)
         match *ty {
             EventType::ActorSpawned => {
                 let actor_spawned_event = data as *const ffi::ActorSpawnedEvent;
-                global
-                    .core
-                    .unreal_events
-                    .push(UnrealEvent::ActorAdded((*actor_spawned_event).actor));
+                global.core.module.world.send_event(ActorSpawnedEvent {
+                    actor: ActorPtr((*actor_spawned_event).actor),
+                });
             }
             EventType::ActorBeginOverlap => {
                 let overlap = data as *const ffi::ActorBeginOverlap;
@@ -624,80 +616,74 @@ fn process_register_begin(mut reader: EventReader<OnActorBeginOverlapEvent>) {
     }
 }
 
-fn process_unreal_events(mut api: ResMut<UnrealApi>, mut commands: Commands) {
+fn process_actor_spawned(
+    mut api: ResMut<UnrealApi>,
+    mut reader: EventReader<ActorSpawnedEvent>,
+    mut commands: Commands,
+) {
     unsafe {
-        // TODO: This is UB
         if let Some(global) = crate::module::MODULE.as_mut() {
-            for event in global.core.unreal_events.drain(..) {
-                match event {
-                    UnrealEvent::ActorAdded(actor) => {
-                        let mut entity_cmds = commands.spawn();
+            for &ActorSpawnedEvent { actor } in reader.iter() {
+                let mut entity_cmds = commands.spawn();
 
-                        let mut len = 0;
-                        (bindings().editor_component_fns.get_editor_components)(
-                            actor,
-                            std::ptr::null_mut(),
-                            &mut len,
-                        );
+                let mut len = 0;
+                (bindings().editor_component_fns.get_editor_components)(
+                    actor.0,
+                    std::ptr::null_mut(),
+                    &mut len,
+                );
 
-                        let mut uuids = vec![ffi::Uuid::default(); len];
-                        (bindings().editor_component_fns.get_editor_components)(
-                            actor,
-                            uuids.as_mut_ptr(),
-                            &mut len,
-                        );
-                        // We might have gotten back fewer uuids, so we truncate
-                        uuids.truncate(len);
+                let mut uuids = vec![ffi::Uuid::default(); len];
+                (bindings().editor_component_fns.get_editor_components)(
+                    actor.0,
+                    uuids.as_mut_ptr(),
+                    &mut len,
+                );
+                // We might have gotten back fewer uuids, so we truncate
+                uuids.truncate(len);
 
-                        // We register all the components that are on the actor in unreal and add
-                        // them to the entity
-                        for uuid in uuids {
-                            let uuid = from_ffi_uuid(uuid);
-                            if let Some(insert) = global
-                                .core
-                                .module
-                                .reflection_registry
-                                .insert_editor_component
-                                .get(&uuid)
-                            {
-                                insert.insert_component(actor, uuid, &mut entity_cmds);
-                            }
-                        }
-
-                        let entity = entity_cmds
-                            .insert_bundle((
-                                ActorComponent {
-                                    actor: ActorPtr(actor),
-                                },
-                                TransformComponent::default(),
-                            ))
-                            .id();
-
-                        // Create a physics component if the root component is a primitive
-                        // component
-                        // TODO: We probably should get ALL the primitive components as well
-                        let mut root_component = ActorComponentPtr::default();
-                        (bindings().get_root_component)(actor, &mut root_component);
-                        if root_component.ty == ActorComponentType::Primitive
-                            && !root_component.ptr.is_null()
-                        {
-                            let physics_component =
-                                PhysicsComponent::new(UnrealPtr::from_raw(root_component.ptr));
-                            commands.entity(entity).insert(physics_component);
-                        }
-
-                        api.register_actor(ActorPtr(actor), entity);
-
-                        // Update the `EntityComponent` with the entity id so we can easily access
-                        // it in blueprint etc
-                        (bindings().set_entity_for_actor)(
-                            actor,
-                            ffi::Entity {
-                                id: entity.to_bits(),
-                            },
-                        );
+                // We register all the components that are on the actor in unreal and add
+                // them to the entity
+                for uuid in uuids {
+                    let uuid = from_ffi_uuid(uuid);
+                    if let Some(insert) = global
+                        .core
+                        .module
+                        .reflection_registry
+                        .insert_editor_component
+                        .get(&uuid)
+                    {
+                        insert.insert_component(actor.0, uuid, &mut entity_cmds);
                     }
                 }
+
+                let entity = entity_cmds
+                    .insert_bundle((ActorComponent { actor }, TransformComponent::default()))
+                    .id();
+
+                // Create a physics component if the root component is a primitive
+                // component
+                // TODO: We probably should get ALL the primitive components as well
+                let mut root_component = ActorComponentPtr::default();
+                (bindings().get_root_component)(actor.0, &mut root_component);
+                if root_component.ty == ActorComponentType::Primitive
+                    && !root_component.ptr.is_null()
+                {
+                    let physics_component =
+                        PhysicsComponent::new(UnrealPtr::from_raw(root_component.ptr));
+                    commands.entity(entity).insert(physics_component);
+                }
+
+                api.register_actor(actor, entity);
+
+                // Update the `EntityComponent` with the entity id so we can easily access
+                // it in blueprint etc
+                (bindings().set_entity_for_actor)(
+                    actor.0,
+                    ffi::Entity {
+                        id: entity.to_bits(),
+                    },
+                );
             }
         }
     }
