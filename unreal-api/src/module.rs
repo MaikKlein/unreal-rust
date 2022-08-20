@@ -1,14 +1,15 @@
 use std::collections::{HashMap, HashSet};
 
 use bevy_ecs::{
-    prelude::System,
+    event::Event,
+    prelude::{Events, System},
     schedule::{Schedule, StageLabel, SystemSet, SystemStage},
     system::Resource,
 };
 use unreal_reflect::{registry::ReflectDyn, uuid, TypeUuid, World};
 
 use crate::{
-    core::{StartupStage, UnrealCore},
+    core::{CoreStage, StartupStage, UnrealCore},
     editor_component::InsertEditorComponent,
     ffi::UnrealBindings,
     plugin::Plugin,
@@ -133,6 +134,15 @@ impl Module {
             .add_system_set_to_stage(StartupStage, system_set);
         self
     }
+
+    pub fn add_event<T: Event>(&mut self) -> &mut Self {
+        self.world.init_resource::<Events<T>>();
+        self.add_system_set_to_stage(
+            CoreStage::RegisterEvent,
+            SystemSet::new().with_system(Events::<T>::update_system),
+        );
+        self
+    }
 }
 
 impl Default for Module {
@@ -152,20 +162,50 @@ macro_rules! implement_unreal_module {
         #[no_mangle]
         pub unsafe extern "C" fn register_unreal_bindings(
             bindings: $crate::ffi::UnrealBindings,
-        ) -> $crate::ffi::RustBindings {
+            rust_bindings: *mut $crate::ffi::RustBindings,
+        ) -> u32 {
+            std::panic::set_hook(Box::new(|panic_info| {
+                let info = panic_info
+                    .payload()
+                    .downcast_ref::<&'static str>()
+                    .copied()
+                    .or(panic_info
+                        .payload()
+                        .downcast_ref::<String>()
+                        .map(String::as_str));
+
+                if let Some(s) = info {
+                    let location = panic_info.location().map_or("".to_string(), |loc| {
+                        format!("{}, at line {}", loc.file(), loc.line())
+                    });
+                    log::error!("Panic: {} => {}", location, s);
+                } else {
+                    log::error!("panic occurred");
+                }
+            }));
             $crate::module::BINDINGS = Some(bindings);
             let _ = $crate::log::init();
-            let module = Box::new(<$module as $crate::module::InitUserModule>::initialize());
-            let core = $crate::core::UnrealCore::new(module.as_ref());
 
-            $crate::module::MODULE = Some($crate::module::Global { core, module });
-            $crate::ffi::RustBindings {
-                retrieve_uuids: $crate::core::retrieve_uuids,
-                tick: $crate::core::tick,
-                begin_play: $crate::core::begin_play,
-                unreal_event: $crate::core::unreal_event,
-                reflection_fns: $crate::core::create_reflection_fns(),
-                allocate_fns: $crate::core::create_allocate_fns(),
+            let r = std::panic::catch_unwind(|| unsafe {
+                let module = Box::new(<$module as $crate::module::InitUserModule>::initialize());
+                let core = $crate::core::UnrealCore::new(module.as_ref());
+
+                $crate::module::MODULE = Some($crate::module::Global { core, module });
+                $crate::ffi::RustBindings {
+                    retrieve_uuids: $crate::core::retrieve_uuids,
+                    tick: $crate::core::tick,
+                    begin_play: $crate::core::begin_play,
+                    unreal_event: $crate::core::unreal_event,
+                    reflection_fns: $crate::core::create_reflection_fns(),
+                    allocate_fns: $crate::core::create_allocate_fns(),
+                }
+            });
+            match r {
+                Ok(bindings) => {
+                    *rust_bindings = bindings;
+                    1
+                }
+                Err(_) => 0,
             }
         }
     };

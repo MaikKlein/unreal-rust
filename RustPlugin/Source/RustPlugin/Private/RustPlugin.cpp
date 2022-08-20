@@ -114,8 +114,15 @@ void FPlugin::CallEntryPoints()
 		return;
 
 	// Pass unreal function pointers to Rust, and also retrieve function pointers from Rust so we can call into Rust
-	Rust = Bindings(CreateBindings());
-	RetrieveUuids();
+	if(Bindings(CreateBindings(), &Rust))
+	{
+		RetrieveUuids();
+	}
+	else
+	{
+		// TODO: We had a panic when calling the entry point. We need to handle that better, otherwise unreal will segfault because the rust bindings are nullptrs
+		
+	}
 }
 
 void FPlugin::RetrieveUuids()

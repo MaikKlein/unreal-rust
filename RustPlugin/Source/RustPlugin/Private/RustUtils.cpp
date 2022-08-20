@@ -53,6 +53,7 @@ UnrealBindings CreateBindings()
 	b.is_moveable = &IsMoveable;
 	b.set_owner = &SetOwner;
 	b.get_actor_name = &GetActorName;
+	b.register_actor_on_begin_overlap = &RegisterActorOnBeginOverlap;
 	return b;
 }
 

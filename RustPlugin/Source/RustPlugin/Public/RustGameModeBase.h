@@ -34,4 +34,6 @@ class RUSTPLUGIN_API ARustGameModeBase : public AGameModeBase
 public:
 	UPROPERTY(EditAnywhere, Category = Game)
 	TArray<TSubclassOf<AActor>> RegisteredClasses;
+	UFUNCTION()
+	void OnActorOverlap(AActor* OverlappedActor, AActor* OtherActor);
 };

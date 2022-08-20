@@ -1,6 +1,4 @@
 use std::collections::HashMap;
-use std::ffi::CStr;
-use std::os::raw::c_char;
 
 use bevy_ecs::prelude::*;
 use unreal_api::registry::USound;
@@ -111,6 +109,9 @@ fn spawn_class(
 ) {
     for (entity, actor) in query.iter() {
         unsafe {
+            (bindings().register_actor_on_begin_overlap)(actor.actor.0);
+        }
+        unsafe {
             let class_ptr = (bindings().get_class)(actor.actor.0);
             if let Some(&class) = class_resource.classes.get(&class_ptr) {
                 match class {
@@ -203,11 +204,6 @@ fn rotate_camera(mut query: Query<(&mut TransformComponent, &mut CameraComponent
     }
 }
 
-fn actor_name(query: Query<&ActorComponent>) {
-    for actor in &query {
-        log::info!("{}", actor.get_actor_name());
-    }
-}
 fn spawn_camera(
     mut commands: Commands,
     mut query: Query<(Entity, &ActorComponent, Added<CharacterControllerComponent>)>,
@@ -295,8 +291,7 @@ impl UserModule for MyModule {
                     .with_system(update_controller_view)
                     .with_system(rotate_camera)
                     .with_system(update_camera.after(rotate_camera))
-                    .with_system(toggle_camera)
-                    .with_system(actor_name),
+                    .with_system(toggle_camera),
             );
     }
 }

@@ -1,4 +1,4 @@
-use glam::{Vec3, Quat};
+use glam::{Quat, Vec3};
 use unreal_reflect::registry::USound;
 
 pub use crate::ffi::SoundSettings;

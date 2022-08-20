@@ -29,6 +29,7 @@ enum class CollisionShapeType : uint32_t {
 
 enum class EventType : uint32_t {
   ActorSpawned = 0,
+  ActorBeginOverlap = 1,
 };
 
 enum class ReflectionType : uint32_t {
@@ -182,6 +183,8 @@ using GetMouseDeltaFn = void(*)(float *x, float *y);
 
 using GetActorComponentsFn = void(*)(const AActorOpaque *actor, ActorComponentPtr *data, uintptr_t *len);
 
+using RegisterActorOnBeginOverlapFn = void(*)(AActorOpaque *actor);
+
 using VisualLogSegmentFn = void(*)(const AActorOpaque *owner, Vector3 start, Vector3 end, Color color);
 
 using VisualLogCapsuleFn = void(*)(Utf8Str category, const AActorOpaque *owner, Vector3 position, Quaternion rotation, float half_height, float radius, Color color);
@@ -275,6 +278,7 @@ struct UnrealBindings {
   SetViewTargetFn set_view_target;
   GetMouseDeltaFn get_mouse_delta;
   GetActorComponentsFn get_actor_components;
+  RegisterActorOnBeginOverlapFn register_actor_on_begin_overlap;
   VisualLogSegmentFn visual_log_segment;
   VisualLogCapsuleFn visual_log_capsule;
   VisualLogLocationFn visual_log_location;
@@ -342,13 +346,20 @@ struct RustBindings {
   AllocateFns allocate_fns;
 };
 
-using EntryUnrealBindingsFn = RustBindings(*)(UnrealBindings bindings);
+using EntryUnrealBindingsFn = uint32_t(*)(UnrealBindings bindings, RustBindings *rust_bindings);
 
 struct ActorSpawnedEvent {
   AActorOpaque *actor;
 };
 
+struct ActorBeginOverlap {
+  AActorOpaque *overlapped_actor;
+  AActorOpaque *other;
+};
+
 extern "C" {
+
+extern void RegisterActorOnBeginOverlap(AActorOpaque *actor);
 
 extern void SetOwner(AActorOpaque *actor, const AActorOpaque *new_owner);
 

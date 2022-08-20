@@ -612,10 +612,16 @@ void PlaySoundAtLocation(const UOSoundBaseOpague* sound, Vector3 location, Quate
 void GetActorName(const AActorOpaque* actor, RustAlloc* data)
 {
 	FString Name = ToAActor(actor)->GetActorNameOrLabel();
-	UE_LOG(LogTemp, Warning, TEXT("Unreal %s"), *Name);
 	auto Utf8 = FTCHARToUTF8(*Name);
-
 	GetRustModule().Plugin.Rust.allocate_fns.allocate(Utf8.Length(), 1, data);
 	FMemory::Memcpy(data->ptr, Utf8.Get(), data->size);
-	//std::memcpy(data->ptr, Utf8.Get(), data->size);
+}
+
+void RegisterActorOnBeginOverlap(AActorOpaque* actor)
+{
+	auto GameMode = GetRustModule().GameMode;
+	AActor* Actor = ToAActor(actor);
+	if(!GameMode || !Actor)
+	    return;
+	Actor->OnActorBeginOverlap.AddDynamic(GameMode, &ARustGameModeBase::OnActorOverlap);
 }

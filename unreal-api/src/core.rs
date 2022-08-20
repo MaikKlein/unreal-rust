@@ -48,9 +48,13 @@ impl Plugin for CorePlugin {
             .add_stage_after(CoreStage::RegisterEvent, CoreStage::PreUpdate)
             .add_stage_after(CoreStage::PreUpdate, CoreStage::Update)
             .add_stage_after(CoreStage::Update, CoreStage::PostUpdate)
+            // TODO: Order matters here. Needs to be defined after the stages
+            .add_event::<OnActorBeginOverlapEvent>()
             .add_system_set_to_stage(
                 CoreStage::RegisterEvent,
-                SystemSet::new().with_system(process_unreal_events),
+                SystemSet::new()
+                    .with_system(process_unreal_events)
+                    .with_system(process_register_begin),
             )
             .add_system_set_to_stage(
                 CoreStage::PreUpdate,
@@ -80,16 +84,6 @@ impl UnrealCore {
     }
 
     pub fn begin_play(&mut self, user_module: &dyn UserModule) {
-        std::panic::set_hook(Box::new(|panic_info| {
-            if let Some(s) = panic_info.payload().downcast_ref::<&str>() {
-                let location = panic_info.location().map_or("".to_string(), |loc| {
-                    format!("{}, at line {}", loc.file(), loc.line())
-                });
-                log::error!("Panic: {} => {}", location, s);
-            } else {
-                log::error!("panic occurred");
-            }
-        }));
         *self = Self::new(user_module);
 
         self.module.startup.run_once(&mut self.module.world);
@@ -127,6 +121,11 @@ pub unsafe extern "C" fn retrieve_uuids(ptr: *mut ffi::Uuid, len: *mut usize) {
     }
 }
 
+pub struct OnActorBeginOverlapEvent {
+    pub overlapped_actor: ActorPtr,
+    pub other: ActorPtr,
+}
+
 pub unsafe extern "C" fn unreal_event(ty: *const EventType, data: *const c_void) {
     if let Some(global) = crate::module::MODULE.as_mut() {
         match *ty {
@@ -136,6 +135,17 @@ pub unsafe extern "C" fn unreal_event(ty: *const EventType, data: *const c_void)
                     .core
                     .unreal_events
                     .push(UnrealEvent::ActorAdded((*actor_spawned_event).actor));
+            }
+            EventType::ActorBeginOverlap => {
+                let overlap = data as *const ffi::ActorBeginOverlap;
+                global
+                    .core
+                    .module
+                    .world
+                    .send_event(OnActorBeginOverlapEvent {
+                        overlapped_actor: ActorPtr((*overlap).overlapped_actor),
+                        other: ActorPtr((*overlap).other),
+                    });
             }
         }
     }
@@ -497,6 +507,21 @@ pub struct PlayerInputComponent {
 
 #[derive(Debug, Hash, PartialEq, Eq, PartialOrd, Ord, Clone, Copy)]
 pub struct ActorPtr(pub *mut AActorOpaque);
+impl ActorPtr {
+    pub fn get_actor_name(&self) -> String {
+        unsafe {
+            let mut alloc = ffi::RustAlloc::empty();
+            (bindings().get_actor_name)(self.0, &mut alloc);
+            let name = {
+                let slice = std::slice::from_raw_parts(alloc.ptr, alloc.size);
+                let name = std::str::from_utf8(slice).unwrap();
+                name.to_string()
+            };
+            alloc.free();
+            name
+        }
+    }
+}
 unsafe impl Send for ActorPtr {}
 unsafe impl Sync for ActorPtr {}
 impl Default for ActorPtr {
@@ -587,6 +612,16 @@ fn upload_transform_to_unreal(query: Query<(&ActorComponent, &TransformComponent
 
 fn update_input(mut input: ResMut<Input>) {
     input.update();
+}
+
+fn process_register_begin(mut reader: EventReader<OnActorBeginOverlapEvent>) {
+    for event in reader.iter() {
+        log::info!(
+            "Event {} {}",
+            event.overlapped_actor.get_actor_name(),
+            event.other.get_actor_name()
+        );
+    }
 }
 
 fn process_unreal_events(mut api: ResMut<UnrealApi>, mut commands: Commands) {

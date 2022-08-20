@@ -294,8 +294,10 @@ pub type VisualLogLocationFn = unsafe extern "C" fn(
     radius: f32,
     color: Color,
 );
+pub type RegisterActorOnBeginOverlapFn = unsafe extern "C" fn(actor: *mut AActorOpaque);
 
 extern "C" {
+    pub fn RegisterActorOnBeginOverlap(actor: *mut AActorOpaque);
     pub fn SetOwner(actor: *mut AActorOpaque, new_owner: *const AActorOpaque);
 
     pub fn SetSpatialData(
@@ -368,6 +370,7 @@ pub struct UnrealBindings {
     pub set_view_target: SetViewTargetFn,
     pub get_mouse_delta: GetMouseDeltaFn,
     pub get_actor_components: GetActorComponentsFn,
+    pub register_actor_on_begin_overlap: RegisterActorOnBeginOverlapFn,
     pub visual_log_segment: VisualLogSegmentFn,
     pub visual_log_capsule: VisualLogCapsuleFn,
     pub visual_log_location: VisualLogLocationFn,
@@ -435,7 +438,8 @@ pub struct Uuid {
     pub d: u32,
 }
 
-pub type EntryUnrealBindingsFn = unsafe extern "C" fn(bindings: UnrealBindings) -> RustBindings;
+pub type EntryUnrealBindingsFn =
+    unsafe extern "C" fn(bindings: UnrealBindings, rust_bindings: *mut RustBindings) -> u32;
 pub type BeginPlayFn = unsafe extern "C" fn() -> ResultCode;
 pub type TickFn = unsafe extern "C" fn(dt: f32) -> ResultCode;
 pub type RetrieveUuids = unsafe extern "C" fn(ptr: *mut Uuid, len: *mut usize);
@@ -445,11 +449,18 @@ pub type GetVelocityRustFn =
 #[repr(u32)]
 pub enum EventType {
     ActorSpawned = 0,
+    ActorBeginOverlap = 1,
 }
 
 #[repr(C)]
 pub struct ActorSpawnedEvent {
     pub actor: *mut AActorOpaque,
+}
+
+#[repr(C)]
+pub struct ActorBeginOverlap {
+    pub overlapped_actor: *mut AActorOpaque,
+    pub other: *mut AActorOpaque,
 }
 
 #[repr(C)]

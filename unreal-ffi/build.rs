@@ -13,6 +13,7 @@ fn main() {
         .include_item("EntryTickFn")
         .include_item("RetrieveUuids")
         .include_item("ActorSpawnedEvent")
+        .include_item("ActorBeginOverlap")
         .with_pragma_once(true)
         //.with_config(Config {
         //    structure: StructConfig  {
