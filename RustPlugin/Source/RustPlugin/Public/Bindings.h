@@ -67,15 +67,6 @@ struct Quaternion {
   float w;
 };
 
-struct Entity {
-  uint64_t id;
-};
-
-struct ActorComponentPtr {
-  ActorComponentType ty;
-  void *ptr;
-};
-
 struct Color {
   uint8_t r;
   uint8_t g;
@@ -86,14 +77,6 @@ struct Color {
 struct Utf8Str {
   const char *ptr;
   uintptr_t len;
-};
-
-using UClassOpague = void;
-
-struct RustAlloc {
-  uint8_t *ptr;
-  uintptr_t size;
-  uintptr_t align;
 };
 
 using UPrimtiveOpaque = void;
@@ -160,6 +143,23 @@ using UOSoundBaseOpague = void;
 struct SoundSettings {
   float volume;
   float pitch;
+};
+
+struct Entity {
+  uint64_t id;
+};
+
+struct ActorComponentPtr {
+  ActorComponentType ty;
+  void *ptr;
+};
+
+using UClassOpague = void;
+
+struct RustAlloc {
+  uint8_t *ptr;
+  uintptr_t size;
+  uintptr_t align;
 };
 
 using GetSpatialDataFn = void(*)(const AActorOpaque *actor, Vector3 *position, Quaternion *rotation, Vector3 *scale);
@@ -369,20 +369,6 @@ struct ActorEndOverlap {
 
 extern "C" {
 
-extern void RegisterActorOnOverlap(AActorOpaque *actor);
-
-extern void SetOwner(AActorOpaque *actor, const AActorOpaque *new_owner);
-
-extern void SetSpatialData(AActorOpaque *actor,
-                           Vector3 position,
-                           Quaternion rotation,
-                           Vector3 scale);
-
-extern void GetSpatialData(const AActorOpaque *actor,
-                           Vector3 *position,
-                           Quaternion *rotation,
-                           Vector3 *scale);
-
 extern void TickActor(AActorOpaque *actor, float dt);
 
 extern void Log(const char *s, int32_t len);
@@ -393,20 +379,12 @@ extern void GetActionState(const char *name, uintptr_t len, ActionState state, u
 
 extern void GetAxisValue(const char *name, uintptr_t len, float *value);
 
-extern void SetEntityForActor(AActorOpaque *name, Entity entity);
-
 extern AActorOpaque *SpawnActor(ActorClass actor_class,
                                 Vector3 position,
                                 Quaternion rotation,
                                 Vector3 scale);
 
-extern void SetViewTarget(const AActorOpaque *actor);
-
 extern void GetMouseDelta(float *x, float *y);
-
-extern void GetActorComponents(const AActorOpaque *actor, ActorComponentPtr *data, uintptr_t *len);
-
-extern void GetRootComponent(const AActorOpaque *actor, ActorComponentPtr *data);
 
 extern void VisualLogSegment(const AActorOpaque *owner, Vector3 start, Vector3 end, Color color);
 
@@ -423,14 +401,6 @@ extern void VisualLogLocation(Utf8Str category,
                               Vector3 position,
                               float radius,
                               Color color);
-
-extern void GetRegisteredClasses(UClassOpague **classes, uintptr_t *len);
-
-extern UClassOpague *GetClass(const AActorOpaque *actor);
-
-extern uint32_t IsMoveable(const AActorOpaque *actor);
-
-extern void GetActorName(const AActorOpaque *actor, RustAlloc *data);
 
 extern Vector3 GetVelocity(const UPrimtiveOpaque *primitive);
 
@@ -502,5 +472,33 @@ extern void PlaySoundAtLocation(const UOSoundBaseOpague *sound,
                                 Vector3 location,
                                 Quaternion rotation,
                                 const SoundSettings *settings);
+
+extern void RegisterActorOnOverlap(AActorOpaque *actor);
+
+extern void SetOwner(AActorOpaque *actor, const AActorOpaque *new_owner);
+
+extern void SetSpatialData(AActorOpaque *actor,
+                           Vector3 position,
+                           Quaternion rotation,
+                           Vector3 scale);
+
+extern void GetSpatialData(const AActorOpaque *actor,
+                           Vector3 *position,
+                           Quaternion *rotation,
+                           Vector3 *scale);
+
+extern void SetEntityForActor(AActorOpaque *name, Entity entity);
+
+extern void GetActorComponents(const AActorOpaque *actor, ActorComponentPtr *data, uintptr_t *len);
+
+extern void GetRootComponent(const AActorOpaque *actor, ActorComponentPtr *data);
+
+extern void GetRegisteredClasses(UClassOpague **classes, uintptr_t *len);
+
+extern UClassOpague *GetClass(const AActorOpaque *actor);
+
+extern uint32_t IsMoveable(const AActorOpaque *actor);
+
+extern void GetActorName(const AActorOpaque *actor, RustAlloc *data);
 
 } // extern "C"

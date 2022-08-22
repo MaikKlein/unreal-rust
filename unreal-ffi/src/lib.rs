@@ -1,5 +1,6 @@
 use glam::{Quat, Vec3};
 use std::{ffi::c_void, os::raw::c_char};
+pub mod actor;
 
 #[repr(u8)]
 #[derive(Debug)]
@@ -234,40 +235,20 @@ pub type UClassOpague = c_void;
 pub type UObjectOpague = c_void;
 pub type UOSoundBaseOpague = c_void;
 
-pub type GetSpatialDataFn = extern "C" fn(
-    actor: *const AActorOpaque,
-    position: &mut Vector3,
-    rotation: &mut Quaternion,
-    scale: &mut Vector3,
-);
-
 pub type LogFn = extern "C" fn(*const c_char, i32);
-
-pub type SetSpatialDataFn = extern "C" fn(
-    actor: *mut AActorOpaque,
-    position: Vector3,
-    rotation: Quaternion,
-    scale: Vector3,
-);
 pub type IterateActorsFn = unsafe extern "C" fn(array: *mut *mut AActorOpaque, len: *mut u64);
 pub type GetActionStateFn =
     unsafe extern "C" fn(name: *const c_char, len: usize, state: ActionState, out: *mut u32);
 pub type GetAxisValueFn = unsafe extern "C" fn(name: *const c_char, len: usize, value: &mut f32);
-pub type SetEntityForActorFn = unsafe extern "C" fn(name: *mut AActorOpaque, entity: Entity);
 pub type SpawnActorFn = unsafe extern "C" fn(
     actor_class: ActorClass,
     position: Vector3,
     rotation: Quaternion,
     scale: Vector3,
 ) -> *mut AActorOpaque;
-pub type SetViewTargetFn = unsafe extern "C" fn(actor: *const AActorOpaque);
 pub type GetMouseDeltaFn = unsafe extern "C" fn(x: &mut f32, y: &mut f32);
-pub type GetActorComponentsFn =
-    unsafe extern "C" fn(actor: *const AActorOpaque, data: *mut ActorComponentPtr, len: &mut usize);
 pub type VisualLogSegmentFn =
     unsafe extern "C" fn(owner: *const AActorOpaque, start: Vector3, end: Vector3, color: Color);
-pub type GetRootComponentFn =
-    unsafe extern "C" fn(actor: *const AActorOpaque, data: *mut ActorComponentPtr);
 pub type VisualLogCapsuleFn = unsafe extern "C" fn(
     category: Utf8Str,
     owner: *const AActorOpaque,
@@ -277,15 +258,6 @@ pub type VisualLogCapsuleFn = unsafe extern "C" fn(
     radius: f32,
     color: Color,
 );
-pub type GetRegisteredClassesFn =
-    unsafe extern "C" fn(classes: *mut *mut UClassOpague, len: *mut usize);
-
-pub type GetClassFn = unsafe extern "C" fn(actor: *const AActorOpaque) -> *mut UClassOpague;
-pub type IsMoveableFn = unsafe extern "C" fn(actor: *const AActorOpaque) -> u32;
-pub type GetActorNameFn = unsafe extern "C" fn(actor: *const AActorOpaque, data: *mut RustAlloc);
-
-pub type SetOwnerFn =
-    unsafe extern "C" fn(actor: *mut AActorOpaque, new_owner: *const AActorOpaque);
 
 pub type VisualLogLocationFn = unsafe extern "C" fn(
     category: Utf8Str,
@@ -294,45 +266,20 @@ pub type VisualLogLocationFn = unsafe extern "C" fn(
     radius: f32,
     color: Color,
 );
-pub type RegisterActorOnOverlapFn = unsafe extern "C" fn(actor: *mut AActorOpaque);
 
 extern "C" {
-    pub fn RegisterActorOnOverlap(actor: *mut AActorOpaque);
-    pub fn SetOwner(actor: *mut AActorOpaque, new_owner: *const AActorOpaque);
-
-    pub fn SetSpatialData(
-        actor: *mut AActorOpaque,
-        position: Vector3,
-        rotation: Quaternion,
-        scale: Vector3,
-    );
-
-    pub fn GetSpatialData(
-        actor: *const AActorOpaque,
-        position: &mut Vector3,
-        rotation: &mut Quaternion,
-        scale: &mut Vector3,
-    );
     pub fn TickActor(actor: *mut AActorOpaque, dt: f32);
     pub fn Log(s: *const c_char, len: i32);
     pub fn IterateActors(array: *mut *mut AActorOpaque, len: *mut u64);
     pub fn GetActionState(name: *const c_char, len: usize, state: ActionState, out: *mut u32);
     pub fn GetAxisValue(name: *const c_char, len: usize, value: &mut f32);
-    pub fn SetEntityForActor(name: *mut AActorOpaque, entity: Entity);
     pub fn SpawnActor(
         actor_class: ActorClass,
         position: Vector3,
         rotation: Quaternion,
         scale: Vector3,
     ) -> *mut AActorOpaque;
-    pub fn SetViewTarget(actor: *const AActorOpaque);
     pub fn GetMouseDelta(x: &mut f32, y: &mut f32);
-    pub fn GetActorComponents(
-        actor: *const AActorOpaque,
-        data: *mut ActorComponentPtr,
-        len: &mut usize,
-    );
-    pub fn GetRootComponent(actor: *const AActorOpaque, data: *mut ActorComponentPtr);
 
     pub fn VisualLogSegment(owner: *const AActorOpaque, start: Vector3, end: Vector3, color: Color);
     pub fn VisualLogCapsule(
@@ -351,31 +298,11 @@ extern "C" {
         radius: f32,
         color: Color,
     );
-    pub fn GetRegisteredClasses(classes: *mut *mut UClassOpague, len: *mut usize);
-    pub fn GetClass(actor: *const AActorOpaque) -> *mut UClassOpague;
-    pub fn IsMoveable(actor: *const AActorOpaque) -> u32;
-    pub fn GetActorName(actor: *const AActorOpaque, data: *mut RustAlloc);
-}
-
-#[repr(C)]
-pub struct ActorFns {
-    pub get_spatial_data: GetSpatialDataFn,
-    pub set_spatial_data: SetSpatialDataFn,
-    pub set_entity_for_actor: SetEntityForActorFn,
-    pub get_actor_components: GetActorComponentsFn,
-    pub register_actor_on_overlap: RegisterActorOnOverlapFn,
-    pub get_root_component: GetRootComponentFn,
-    pub get_registered_classes: GetRegisteredClassesFn,
-    pub get_class: GetClassFn,
-    pub set_view_target: SetViewTargetFn,
-    pub get_actor_name: GetActorNameFn,
-    pub set_owner: SetOwnerFn,
-    pub is_moveable: IsMoveableFn,
 }
 
 #[repr(C)]
 pub struct UnrealBindings {
-    pub actor_fns: ActorFns,
+    pub actor_fns: actor::ActorFns,
     pub log: LogFn,
     pub iterate_actors: IterateActorsFn,
     pub get_action_state: GetActionStateFn,
