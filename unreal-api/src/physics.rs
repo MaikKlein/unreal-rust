@@ -45,7 +45,7 @@ pub fn sweep_multi(
     let mut hits: Vec<ffi::HitResult> = Vec::new();
     hits.resize_with(max_results, Default::default);
     unsafe {
-        let len = (bindings().physics_bindings.sweep_multi)(
+        let len = (bindings().physics_fns.sweep_multi)(
             start.into(),
             end.into(),
             rotation.into(),
@@ -195,7 +195,7 @@ impl PhysicsComponent {
         unsafe {
             let mut shape = ffi::CollisionShape::default();
             assert!(
-                (bindings().physics_bindings.get_collision_shape)(self.ptr.ptr, &mut shape) == 1
+                (bindings().physics_fns.get_collision_shape)(self.ptr.ptr, &mut shape) == 1
             );
             match shape.ty {
                 ffi::CollisionShapeType::Capsule => CollisionShape::Capsule {
@@ -217,26 +217,26 @@ impl PhysicsComponent {
     }
     pub fn download_state(&mut self) {
         unsafe {
-            self.is_simulating = (bindings().physics_bindings.is_simulating)(self.ptr.ptr) == 1;
-            self.velocity = (bindings().physics_bindings.get_velocity)(self.ptr.ptr).into();
+            self.is_simulating = (bindings().physics_fns.is_simulating)(self.ptr.ptr) == 1;
+            self.velocity = (bindings().physics_fns.get_velocity)(self.ptr.ptr).into();
         }
     }
 
     pub fn upload_state(&mut self) {
         unsafe {
-            (bindings().physics_bindings.set_velocity)(self.ptr.ptr, self.velocity.into());
+            (bindings().physics_fns.set_velocity)(self.ptr.ptr, self.velocity.into());
         }
     }
 
     pub fn add_impulse(&mut self, impulse: Vec3) {
         unsafe {
-            (bindings().physics_bindings.add_impulse)(self.ptr.ptr, impulse.into());
+            (bindings().physics_fns.add_impulse)(self.ptr.ptr, impulse.into());
         }
     }
 
     pub fn add_force(&mut self, force: Vec3) {
         unsafe {
-            (bindings().physics_bindings.add_force)(self.ptr.ptr, force.into());
+            (bindings().physics_fns.add_force)(self.ptr.ptr, force.into());
         }
     }
 }

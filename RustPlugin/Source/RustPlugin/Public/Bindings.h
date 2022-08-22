@@ -79,6 +79,39 @@ struct Utf8Str {
   uintptr_t len;
 };
 
+struct Uuid {
+  uint32_t a;
+  uint32_t b;
+  uint32_t c;
+  uint32_t d;
+};
+
+using UObjectOpague = void;
+
+using UOSoundBaseOpague = void;
+
+struct SoundSettings {
+  float volume;
+  float pitch;
+};
+
+struct Entity {
+  uint64_t id;
+};
+
+struct ActorComponentPtr {
+  ActorComponentType ty;
+  void *ptr;
+};
+
+using UClassOpague = void;
+
+struct RustAlloc {
+  uint8_t *ptr;
+  uintptr_t size;
+  uintptr_t align;
+};
+
 using UPrimtiveOpaque = void;
 
 struct LineTraceParams {
@@ -129,39 +162,6 @@ struct OverlapResult {
   UPrimtiveOpaque *primtive;
 };
 
-struct Uuid {
-  uint32_t a;
-  uint32_t b;
-  uint32_t c;
-  uint32_t d;
-};
-
-using UObjectOpague = void;
-
-using UOSoundBaseOpague = void;
-
-struct SoundSettings {
-  float volume;
-  float pitch;
-};
-
-struct Entity {
-  uint64_t id;
-};
-
-struct ActorComponentPtr {
-  ActorComponentType ty;
-  void *ptr;
-};
-
-using UClassOpague = void;
-
-struct RustAlloc {
-  uint8_t *ptr;
-  uintptr_t size;
-  uintptr_t align;
-};
-
 using GetSpatialDataFn = void(*)(const AActorOpaque *actor, Vector3 *position, Quaternion *rotation, Vector3 *scale);
 
 using SetSpatialDataFn = void(*)(AActorOpaque *actor, Vector3 position, Quaternion rotation, Vector3 scale);
@@ -201,24 +201,6 @@ struct ActorFns {
   IsMoveableFn is_moveable;
 };
 
-using LogFn = void(*)(const char*, int32_t);
-
-using IterateActorsFn = void(*)(AActorOpaque **array, uint64_t *len);
-
-using GetActionStateFn = void(*)(const char *name, uintptr_t len, ActionState state, uint32_t *out);
-
-using GetAxisValueFn = void(*)(const char *name, uintptr_t len, float *value);
-
-using SpawnActorFn = AActorOpaque*(*)(ActorClass actor_class, Vector3 position, Quaternion rotation, Vector3 scale);
-
-using GetMouseDeltaFn = void(*)(float *x, float *y);
-
-using VisualLogSegmentFn = void(*)(const AActorOpaque *owner, Vector3 start, Vector3 end, Color color);
-
-using VisualLogCapsuleFn = void(*)(Utf8Str category, const AActorOpaque *owner, Vector3 position, Quaternion rotation, float half_height, float radius, Color color);
-
-using VisualLogLocationFn = void(*)(Utf8Str category, const AActorOpaque *owner, Vector3 position, float radius, Color color);
-
 using GetVelocityFn = Vector3(*)(const UPrimtiveOpaque *primitive);
 
 using SetVelocityFn = void(*)(UPrimtiveOpaque *primitive, Vector3 velocity);
@@ -241,7 +223,7 @@ using OverlapMultiFn = uint32_t(*)(CollisionShape collision_shape, Vector3 posit
 
 using GetCollisionShapeFn = uint32_t(*)(const UPrimtiveOpaque *primitive, CollisionShape *shape);
 
-struct UnrealPhysicsBindings {
+struct PhysicsFns {
   GetVelocityFn get_velocity;
   SetVelocityFn set_velocity;
   IsSimulatingFn is_simulating;
@@ -254,6 +236,24 @@ struct UnrealPhysicsBindings {
   OverlapMultiFn overlap_multi;
   GetCollisionShapeFn get_collision_shape;
 };
+
+using LogFn = void(*)(const char*, int32_t);
+
+using IterateActorsFn = void(*)(AActorOpaque **array, uint64_t *len);
+
+using GetActionStateFn = void(*)(const char *name, uintptr_t len, ActionState state, uint32_t *out);
+
+using GetAxisValueFn = void(*)(const char *name, uintptr_t len, float *value);
+
+using SpawnActorFn = AActorOpaque*(*)(ActorClass actor_class, Vector3 position, Quaternion rotation, Vector3 scale);
+
+using GetMouseDeltaFn = void(*)(float *x, float *y);
+
+using VisualLogSegmentFn = void(*)(const AActorOpaque *owner, Vector3 start, Vector3 end, Color color);
+
+using VisualLogCapsuleFn = void(*)(Utf8Str category, const AActorOpaque *owner, Vector3 position, Quaternion rotation, float half_height, float radius, Color color);
+
+using VisualLogLocationFn = void(*)(Utf8Str category, const AActorOpaque *owner, Vector3 position, float radius, Color color);
 
 using GetEditorComponentUuidsFn = uint32_t(*)(const AActorOpaque *actor, Uuid *data, uintptr_t *len);
 
@@ -284,6 +284,7 @@ struct SoundFns {
 
 struct UnrealBindings {
   ActorFns actor_fns;
+  PhysicsFns physics_fns;
   LogFn log;
   IterateActorsFn iterate_actors;
   GetActionStateFn get_action_state;
@@ -293,7 +294,6 @@ struct UnrealBindings {
   VisualLogSegmentFn visual_log_segment;
   VisualLogCapsuleFn visual_log_capsule;
   VisualLogLocationFn visual_log_location;
-  UnrealPhysicsBindings physics_bindings;
   EditorComponentFns editor_component_fns;
   SoundFns sound_fns;
 };
@@ -402,44 +402,6 @@ extern void VisualLogLocation(Utf8Str category,
                               float radius,
                               Color color);
 
-extern Vector3 GetVelocity(const UPrimtiveOpaque *primitive);
-
-extern void SetVelocity(UPrimtiveOpaque *primitive, Vector3 velocity);
-
-extern uint32_t IsSimulating(const UPrimtiveOpaque *primitive);
-
-extern void AddForce(UPrimtiveOpaque *actor, Vector3 force);
-
-extern void AddImpulse(UPrimtiveOpaque *actor, Vector3 force);
-
-extern uint32_t LineTrace(Vector3 start, Vector3 end, LineTraceParams params, HitResult *result);
-
-extern Vector3 GetBoundingBoxExtent(const UPrimtiveOpaque *primitive);
-
-extern uint32_t Sweep(Vector3 start,
-                      Vector3 end,
-                      Quaternion rotation,
-                      LineTraceParams params,
-                      CollisionShape collision_shape,
-                      HitResult *result);
-
-extern uint32_t SweepMulti(Vector3 start,
-                           Vector3 end,
-                           Quaternion rotation,
-                           LineTraceParams params,
-                           CollisionShape collision_shape,
-                           uintptr_t max_results,
-                           HitResult *results);
-
-extern uint32_t OverlapMulti(CollisionShape collision_shape,
-                             Vector3 position,
-                             Quaternion rotation,
-                             LineTraceParams params,
-                             uintptr_t max_results,
-                             OverlapResult **result);
-
-extern uint32_t GetCollisionShape(const UPrimtiveOpaque *primitive, CollisionShape *shape);
-
 extern uint32_t GetEditorComponentUuids(const AActorOpaque *actor, Uuid *data, uintptr_t *len);
 
 extern uint32_t GetEditorComponentVector(const AActorOpaque *actor,
@@ -500,5 +462,43 @@ extern UClassOpague *GetClass(const AActorOpaque *actor);
 extern uint32_t IsMoveable(const AActorOpaque *actor);
 
 extern void GetActorName(const AActorOpaque *actor, RustAlloc *data);
+
+extern Vector3 GetVelocity(const UPrimtiveOpaque *primitive);
+
+extern void SetVelocity(UPrimtiveOpaque *primitive, Vector3 velocity);
+
+extern uint32_t IsSimulating(const UPrimtiveOpaque *primitive);
+
+extern void AddForce(UPrimtiveOpaque *actor, Vector3 force);
+
+extern void AddImpulse(UPrimtiveOpaque *actor, Vector3 force);
+
+extern uint32_t LineTrace(Vector3 start, Vector3 end, LineTraceParams params, HitResult *result);
+
+extern Vector3 GetBoundingBoxExtent(const UPrimtiveOpaque *primitive);
+
+extern uint32_t Sweep(Vector3 start,
+                      Vector3 end,
+                      Quaternion rotation,
+                      LineTraceParams params,
+                      CollisionShape collision_shape,
+                      HitResult *result);
+
+extern uint32_t SweepMulti(Vector3 start,
+                           Vector3 end,
+                           Quaternion rotation,
+                           LineTraceParams params,
+                           CollisionShape collision_shape,
+                           uintptr_t max_results,
+                           HitResult *results);
+
+extern uint32_t OverlapMulti(CollisionShape collision_shape,
+                             Vector3 position,
+                             Quaternion rotation,
+                             LineTraceParams params,
+                             uintptr_t max_results,
+                             OverlapResult **result);
+
+extern uint32_t GetCollisionShape(const UPrimtiveOpaque *primitive, CollisionShape *shape);
 
 } // extern "C"

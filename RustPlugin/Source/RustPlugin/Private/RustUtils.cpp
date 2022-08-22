@@ -17,17 +17,17 @@ UnrealBindings CreateBindings()
 	editor_component_fns.get_editor_component_uobject = &GetEditorComponentUObject;
 	editor_component_fns.get_editor_components = &GetEditorComponentUuids;
 
-	UnrealPhysicsBindings physics_bindings = {};
-	physics_bindings.add_force = &AddForce;
-	physics_bindings.add_impulse = &AddImpulse;
-	physics_bindings.set_velocity = &SetVelocity;
-	physics_bindings.get_velocity = &GetVelocity;
-	physics_bindings.is_simulating = &IsSimulating;
-	physics_bindings.line_trace = &LineTrace;
-	physics_bindings.get_bounding_box_extent = &GetBoundingBoxExtent;
-	physics_bindings.sweep = &Sweep;
-	physics_bindings.sweep_multi = &SweepMulti;
-	physics_bindings.get_collision_shape = &GetCollisionShape;
+	PhysicsFns physics_fns = {};
+	 physics_fns.add_force = &AddForce;
+	 physics_fns.add_impulse = &AddImpulse;
+	 physics_fns.set_velocity = &SetVelocity;
+	 physics_fns.get_velocity = &GetVelocity;
+	 physics_fns.is_simulating = &IsSimulating;
+	 physics_fns.line_trace = &LineTrace;
+	 physics_fns.get_bounding_box_extent = &GetBoundingBoxExtent;
+	 physics_fns.sweep = &Sweep;
+	 physics_fns.sweep_multi = &SweepMulti;
+	 physics_fns.get_collision_shape = &GetCollisionShape;
 
 	ActorFns actor_fns = {};
 	actor_fns.get_spatial_data = &GetSpatialData;
@@ -46,7 +46,7 @@ UnrealBindings CreateBindings()
 	UnrealBindings b = {};
 	b.actor_fns = actor_fns;
 	b.sound_fns = sound_fns;
-	b.physics_bindings = physics_bindings;
+	b.physics_fns = physics_fns;
 	b.editor_component_fns = editor_component_fns;
 	b.log = &Log;
 	b.iterate_actors = &IterateActors;

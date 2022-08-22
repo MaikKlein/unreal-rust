@@ -89,7 +89,7 @@ impl UnrealApi {
         };
         let mut hit = ffi::HitResult::default();
         unsafe {
-            if (bindings().physics_bindings.sweep)(
+            if (bindings().physics_fns.sweep)(
                 start.into(),
                 end.into(),
                 rotation.into(),
@@ -137,7 +137,7 @@ impl UnrealApi {
         };
         let mut hit = ffi::HitResult::default();
         unsafe {
-            if (bindings().physics_bindings.line_trace)(start.into(), end.into(), params, &mut hit)
+            if (bindings().physics_fns.line_trace)(start.into(), end.into(), params, &mut hit)
                 == 1
             {
                 let entity = self
