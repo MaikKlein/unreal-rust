@@ -137,8 +137,7 @@ impl UnrealApi {
         };
         let mut hit = ffi::HitResult::default();
         unsafe {
-            if (bindings().physics_fns.line_trace)(start.into(), end.into(), params, &mut hit)
-                == 1
+            if (bindings().physics_fns.line_trace)(start.into(), end.into(), params, &mut hit) == 1
             {
                 let entity = self
                     .actor_to_entity

@@ -194,9 +194,7 @@ impl PhysicsComponent {
     pub fn get_collision_shape(&self) -> CollisionShape {
         unsafe {
             let mut shape = ffi::CollisionShape::default();
-            assert!(
-                (bindings().physics_fns.get_collision_shape)(self.ptr.ptr, &mut shape) == 1
-            );
+            assert!((bindings().physics_fns.get_collision_shape)(self.ptr.ptr, &mut shape) == 1);
             match shape.ty {
                 ffi::CollisionShapeType::Capsule => CollisionShape::Capsule {
                     half_height: shape.data.capsule.half_height,

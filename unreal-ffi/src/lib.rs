@@ -250,6 +250,7 @@ pub struct ActorComponentPtr {
     pub ty: ActorComponentType,
     pub ptr: *mut c_void,
 }
+
 impl Default for ActorComponentPtr {
     fn default() -> Self {
         Self {
