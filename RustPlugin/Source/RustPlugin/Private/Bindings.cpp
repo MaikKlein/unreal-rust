@@ -617,11 +617,12 @@ void GetActorName(const AActorOpaque* actor, RustAlloc* data)
 	FMemory::Memcpy(data->ptr, Utf8.Get(), data->size);
 }
 
-void RegisterActorOnBeginOverlap(AActorOpaque* actor)
+void RegisterActorOnOverlap(AActorOpaque* actor)
 {
 	auto GameMode = GetRustModule().GameMode;
 	AActor* Actor = ToAActor(actor);
 	if(!GameMode || !Actor)
 	    return;
-	Actor->OnActorBeginOverlap.AddUniqueDynamic(GameMode, &ARustGameModeBase::OnActorOverlap);
+	Actor->OnActorBeginOverlap.AddUniqueDynamic(GameMode, &ARustGameModeBase::OnActorBeginOverlap);
+	Actor->OnActorEndOverlap.AddUniqueDynamic(GameMode, &ARustGameModeBase::OnActorEndOverlap);
 }

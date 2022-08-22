@@ -5,6 +5,7 @@ fn main() {
 
     cbindgen::Builder::new()
         .with_crate(crate_dir)
+        // TODO: This is stupid and easy to forgot to add things here. Can we auto detect those?
         .include_item("UnrealBindings")
         .include_item("RustBindings")
         .include_item("CreateRustBindings")
@@ -14,6 +15,7 @@ fn main() {
         .include_item("RetrieveUuids")
         .include_item("ActorSpawnedEvent")
         .include_item("ActorBeginOverlap")
+        .include_item("ActorEndOverlap")
         .with_pragma_once(true)
         //.with_config(Config {
         //    structure: StructConfig  {

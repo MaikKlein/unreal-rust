@@ -41,12 +41,14 @@ impl Plugin for CorePlugin {
             .add_stage_after(CoreStage::Update, CoreStage::PostUpdate)
             // TODO: Order matters here. Needs to be defined after the stages
             .add_event::<OnActorBeginOverlapEvent>()
+            .add_event::<OnActorEndOverlapEvent>()
             .add_event::<ActorSpawnedEvent>()
             .add_system_set_to_stage(
                 CoreStage::RegisterEvent,
                 SystemSet::new()
                     .with_system(process_actor_spawned)
-                    .with_system(process_register_begin),
+                    .with_system(process_register_begin)
+                    .with_system(process_register_end),
             )
             .add_system_set_to_stage(
                 CoreStage::PreUpdate,
@@ -119,6 +121,11 @@ pub struct OnActorBeginOverlapEvent {
     pub other: ActorPtr,
 }
 
+pub struct OnActorEndOverlapEvent {
+    pub overlapped_actor: ActorPtr,
+    pub other: ActorPtr,
+}
+
 pub unsafe extern "C" fn unreal_event(ty: *const EventType, data: *const c_void) {
     if let Some(global) = crate::module::MODULE.as_mut() {
         match *ty {
@@ -138,6 +145,13 @@ pub unsafe extern "C" fn unreal_event(ty: *const EventType, data: *const c_void)
                         overlapped_actor: ActorPtr((*overlap).overlapped_actor),
                         other: ActorPtr((*overlap).other),
                     });
+            }
+            EventType::ActorEndOverlap => {
+                let overlap = data as *const ffi::ActorEndOverlap;
+                global.core.module.world.send_event(OnActorEndOverlapEvent {
+                    overlapped_actor: ActorPtr((*overlap).overlapped_actor),
+                    other: ActorPtr((*overlap).other),
+                });
             }
         }
     }
@@ -437,13 +451,13 @@ impl ActorComponent {
             let ptr = new_owner
                 .map(|comp| comp.actor.0 as *const AActorOpaque)
                 .unwrap_or(std::ptr::null());
-            (bindings().set_owner)(self.actor.0, ptr);
+            (bindings().actor_fns.set_owner)(self.actor.0, ptr);
         }
     }
     pub fn get_actor_name(&self) -> String {
         unsafe {
             let mut alloc = ffi::RustAlloc::empty();
-            (bindings().get_actor_name)(self.actor.0, &mut alloc);
+            (bindings().actor_fns.get_actor_name)(self.actor.0, &mut alloc);
             let name = {
                 let slice = std::slice::from_raw_parts(alloc.ptr, alloc.size);
                 let name = std::str::from_utf8(slice).unwrap();
@@ -503,7 +517,7 @@ impl ActorPtr {
     pub fn get_actor_name(&self) -> String {
         unsafe {
             let mut alloc = ffi::RustAlloc::empty();
-            (bindings().get_actor_name)(self.0, &mut alloc);
+            (bindings().actor_fns.get_actor_name)(self.0, &mut alloc);
             let name = {
                 let slice = std::slice::from_raw_parts(alloc.ptr, alloc.size);
                 let name = std::str::from_utf8(slice).unwrap();
@@ -577,7 +591,12 @@ fn download_transform_from_unreal(mut query: Query<(&ActorComponent, &mut Transf
         let mut rotation = ffi::Quaternion::default();
         let mut scale = ffi::Vector3::default();
 
-        (bindings().get_spatial_data)(actor.actor.0, &mut position, &mut rotation, &mut scale);
+        (bindings().actor_fns.get_spatial_data)(
+            actor.actor.0,
+            &mut position,
+            &mut rotation,
+            &mut scale,
+        );
 
         transform.position = position.into();
         transform.rotation = rotation.into();
@@ -588,12 +607,12 @@ fn download_transform_from_unreal(mut query: Query<(&ActorComponent, &mut Transf
 
 fn upload_transform_to_unreal(query: Query<(&ActorComponent, &TransformComponent)>) {
     for (actor, transform) in query.iter() {
-        let is_moveable = unsafe { (bindings().is_moveable)(actor.actor.0) } > 0;
+        let is_moveable = unsafe { (bindings().actor_fns.is_moveable)(actor.actor.0) } > 0;
         if !is_moveable {
             continue;
         }
         assert!(!transform.is_nan());
-        (bindings().set_spatial_data)(
+        (bindings().actor_fns.set_spatial_data)(
             actor.actor.0,
             transform.position.into(),
             transform.rotation.into(),
@@ -609,7 +628,16 @@ fn update_input(mut input: ResMut<Input>) {
 fn process_register_begin(mut reader: EventReader<OnActorBeginOverlapEvent>) {
     for event in reader.iter() {
         log::info!(
-            "Event {} {}",
+            "Begin {} {}",
+            event.overlapped_actor.get_actor_name(),
+            event.other.get_actor_name()
+        );
+    }
+}
+fn process_register_end(mut reader: EventReader<OnActorEndOverlapEvent>) {
+    for event in reader.iter() {
+        log::info!(
+            "End {} {}",
             event.overlapped_actor.get_actor_name(),
             event.other.get_actor_name()
         );
@@ -665,7 +693,7 @@ fn process_actor_spawned(
                 // component
                 // TODO: We probably should get ALL the primitive components as well
                 let mut root_component = ActorComponentPtr::default();
-                (bindings().get_root_component)(actor.0, &mut root_component);
+                (bindings().actor_fns.get_root_component)(actor.0, &mut root_component);
                 if root_component.ty == ActorComponentType::Primitive
                     && !root_component.ptr.is_null()
                 {
@@ -678,7 +706,7 @@ fn process_actor_spawned(
 
                 // Update the `EntityComponent` with the entity id so we can easily access
                 // it in blueprint etc
-                (bindings().set_entity_for_actor)(
+                (bindings().actor_fns.set_entity_for_actor)(
                     actor.0,
                     ffi::Entity {
                         id: entity.to_bits(),

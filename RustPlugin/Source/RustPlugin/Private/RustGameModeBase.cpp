@@ -48,14 +48,22 @@ void ARustGameModeBase::OnActorSpawnedHandler(AActor* actor)
 	GetRustModule().Plugin.Rust.unreal_event(&Type, (void*)&Event);
 }
 
-void ARustGameModeBase::OnActorOverlap(AActor* OverlappedActor, AActor* OtherActor)
+void ARustGameModeBase::OnActorBeginOverlap(AActor* OverlappedActor, AActor* OtherActor)
 {
 	EventType Type = EventType::ActorBeginOverlap;
 	ActorBeginOverlap Event;
 	Event.overlapped_actor = (AActorOpaque*)OverlappedActor;
 	Event.other = (AActorOpaque*)OtherActor;
 	GetRustModule().Plugin.Rust.unreal_event(&Type, (void*)&Event);
-	UE_LOG(LogTemp, Warning, TEXT("Overlap"));
+}
+
+void ARustGameModeBase::OnActorEndOverlap(AActor* OverlappedActor, AActor* OtherActor)
+{
+	EventType Type = EventType::ActorEndOverlap;
+	ActorEndOverlap Event;
+	Event.overlapped_actor = (AActorOpaque*)OverlappedActor;
+	Event.other = (AActorOpaque*)OtherActor;
+	GetRustModule().Plugin.Rust.unreal_event(&Type, (void*)&Event);
 }
 
 void ARustGameModeBase::PostLogin(APlayerController* NewPlayer)

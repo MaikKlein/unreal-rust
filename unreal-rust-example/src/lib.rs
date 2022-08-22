@@ -83,11 +83,11 @@ impl PlayerInput {
 fn register_class_resource(mut commands: Commands) {
     let mut len: usize = 0;
     unsafe {
-        (bindings().get_registered_classes)(std::ptr::null_mut(), &mut len);
+        (bindings().actor_fns.get_registered_classes)(std::ptr::null_mut(), &mut len);
     }
     let mut classes: Vec<*mut UClassOpague> = Vec::with_capacity(len);
     unsafe {
-        (bindings().get_registered_classes)(classes.as_mut_ptr(), &mut len);
+        (bindings().actor_fns.get_registered_classes)(classes.as_mut_ptr(), &mut len);
         classes.set_len(len);
     }
 
@@ -109,10 +109,10 @@ fn spawn_class(
 ) {
     for (entity, actor) in query.iter() {
         unsafe {
-            (bindings().register_actor_on_begin_overlap)(actor.actor.0);
+            (bindings().actor_fns.register_actor_on_overlap)(actor.actor.0);
         }
         unsafe {
-            let class_ptr = (bindings().get_class)(actor.actor.0);
+            let class_ptr = (bindings().actor_fns.get_class)(actor.actor.0);
             if let Some(&class) = class_resource.classes.get(&class_ptr) {
                 match class {
                     Class::Player => {
@@ -220,7 +220,7 @@ fn spawn_camera(
                 Quat::from_rotation_x(0.0).into(),
                 Vec3::ONE.into(),
             );
-            (bindings().set_view_target)(actor);
+            (bindings().actor_fns.set_view_target)(actor);
             commands.spawn().insert_bundle((
                 TransformComponent {
                     position: pos,

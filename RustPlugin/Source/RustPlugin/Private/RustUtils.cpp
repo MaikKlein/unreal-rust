@@ -29,31 +29,34 @@ UnrealBindings CreateBindings()
 	physics_bindings.sweep_multi = &SweepMulti;
 	physics_bindings.get_collision_shape = &GetCollisionShape;
 
+	ActorFns actor_fns = {};
+	actor_fns.get_spatial_data = &GetSpatialData;
+	actor_fns.set_spatial_data = &SetSpatialData;
+	actor_fns.set_entity_for_actor = &SetEntityForActor;
+	actor_fns.set_view_target = &SetViewTarget;
+	actor_fns.get_actor_components = &GetActorComponents;
+	actor_fns.get_registered_classes = &GetRegisteredClasses;
+	actor_fns.get_class = &GetClass;
+	actor_fns.set_owner = &SetOwner;
+	actor_fns.get_actor_name = &GetActorName;
+	actor_fns.is_moveable = &IsMoveable;
+	actor_fns.register_actor_on_overlap = &RegisterActorOnOverlap;
+	actor_fns.get_root_component = &GetRootComponent;
+	
 	UnrealBindings b = {};
+	b.actor_fns = actor_fns;
 	b.sound_fns = sound_fns;
 	b.physics_bindings = physics_bindings;
 	b.editor_component_fns = editor_component_fns;
-	b.get_spatial_data = &GetSpatialData;
-	b.set_spatial_data = &SetSpatialData;
 	b.log = &Log;
 	b.iterate_actors = &IterateActors;
 	b.get_action_state = &GetActionState;
 	b.get_axis_value = &GetAxisValue;
-	b.set_entity_for_actor = &SetEntityForActor;
 	b.spawn_actor = &SpawnActor;
-	b.set_view_target = &SetViewTarget;
 	b.get_mouse_delta = &GetMouseDelta;
-	b.get_actor_components = &GetActorComponents;
 	b.visual_log_segment = &VisualLogSegment;
 	b.visual_log_capsule = &VisualLogCapsule;
 	b.visual_log_location = &VisualLogLocation;
-	b.get_root_component = &GetRootComponent;
-	b.get_registered_classes = &GetRegisteredClasses;
-	b.get_class = &GetClass;
-	b.is_moveable = &IsMoveable;
-	b.set_owner = &SetOwner;
-	b.get_actor_name = &GetActorName;
-	b.register_actor_on_begin_overlap = &RegisterActorOnBeginOverlap;
 	return b;
 }
 

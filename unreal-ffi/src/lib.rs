@@ -294,10 +294,10 @@ pub type VisualLogLocationFn = unsafe extern "C" fn(
     radius: f32,
     color: Color,
 );
-pub type RegisterActorOnBeginOverlapFn = unsafe extern "C" fn(actor: *mut AActorOpaque);
+pub type RegisterActorOnOverlapFn = unsafe extern "C" fn(actor: *mut AActorOpaque);
 
 extern "C" {
-    pub fn RegisterActorOnBeginOverlap(actor: *mut AActorOpaque);
+    pub fn RegisterActorOnOverlap(actor: *mut AActorOpaque);
     pub fn SetOwner(actor: *mut AActorOpaque, new_owner: *const AActorOpaque);
 
     pub fn SetSpatialData(
@@ -358,29 +358,34 @@ extern "C" {
 }
 
 #[repr(C)]
-pub struct UnrealBindings {
+pub struct ActorFns {
     pub get_spatial_data: GetSpatialDataFn,
     pub set_spatial_data: SetSpatialDataFn,
+    pub set_entity_for_actor: SetEntityForActorFn,
+    pub get_actor_components: GetActorComponentsFn,
+    pub register_actor_on_overlap: RegisterActorOnOverlapFn,
+    pub get_root_component: GetRootComponentFn,
+    pub get_registered_classes: GetRegisteredClassesFn,
+    pub get_class: GetClassFn,
+    pub set_view_target: SetViewTargetFn,
+    pub get_actor_name: GetActorNameFn,
+    pub set_owner: SetOwnerFn,
+    pub is_moveable: IsMoveableFn,
+}
+
+#[repr(C)]
+pub struct UnrealBindings {
+    pub actor_fns: ActorFns,
     pub log: LogFn,
     pub iterate_actors: IterateActorsFn,
     pub get_action_state: GetActionStateFn,
     pub get_axis_value: GetAxisValueFn,
-    pub set_entity_for_actor: SetEntityForActorFn,
     pub spawn_actor: SpawnActorFn,
-    pub set_view_target: SetViewTargetFn,
     pub get_mouse_delta: GetMouseDeltaFn,
-    pub get_actor_components: GetActorComponentsFn,
-    pub register_actor_on_begin_overlap: RegisterActorOnBeginOverlapFn,
     pub visual_log_segment: VisualLogSegmentFn,
     pub visual_log_capsule: VisualLogCapsuleFn,
     pub visual_log_location: VisualLogLocationFn,
     pub physics_bindings: UnrealPhysicsBindings,
-    pub get_root_component: GetRootComponentFn,
-    pub get_registered_classes: GetRegisteredClassesFn,
-    pub get_class: GetClassFn,
-    pub is_moveable: IsMoveableFn,
-    pub get_actor_name: GetActorNameFn,
-    pub set_owner: SetOwnerFn,
     pub editor_component_fns: EditorComponentFns,
     pub sound_fns: SoundFns,
 }
@@ -450,6 +455,7 @@ pub type GetVelocityRustFn =
 pub enum EventType {
     ActorSpawned = 0,
     ActorBeginOverlap = 1,
+    ActorEndOverlap = 2,
 }
 
 #[repr(C)]
@@ -459,6 +465,11 @@ pub struct ActorSpawnedEvent {
 
 #[repr(C)]
 pub struct ActorBeginOverlap {
+    pub overlapped_actor: *mut AActorOpaque,
+    pub other: *mut AActorOpaque,
+}
+#[repr(C)]
+pub struct ActorEndOverlap {
     pub overlapped_actor: *mut AActorOpaque,
     pub other: *mut AActorOpaque,
 }

@@ -30,6 +30,7 @@ enum class CollisionShapeType : uint32_t {
 enum class EventType : uint32_t {
   ActorSpawned = 0,
   ActorBeginOverlap = 1,
+  ActorEndOverlap = 2,
 };
 
 enum class ReflectionType : uint32_t {
@@ -165,6 +166,41 @@ using GetSpatialDataFn = void(*)(const AActorOpaque *actor, Vector3 *position, Q
 
 using SetSpatialDataFn = void(*)(AActorOpaque *actor, Vector3 position, Quaternion rotation, Vector3 scale);
 
+using SetEntityForActorFn = void(*)(AActorOpaque *name, Entity entity);
+
+using GetActorComponentsFn = void(*)(const AActorOpaque *actor, ActorComponentPtr *data, uintptr_t *len);
+
+using RegisterActorOnOverlapFn = void(*)(AActorOpaque *actor);
+
+using GetRootComponentFn = void(*)(const AActorOpaque *actor, ActorComponentPtr *data);
+
+using GetRegisteredClassesFn = void(*)(UClassOpague **classes, uintptr_t *len);
+
+using GetClassFn = UClassOpague*(*)(const AActorOpaque *actor);
+
+using SetViewTargetFn = void(*)(const AActorOpaque *actor);
+
+using GetActorNameFn = void(*)(const AActorOpaque *actor, RustAlloc *data);
+
+using SetOwnerFn = void(*)(AActorOpaque *actor, const AActorOpaque *new_owner);
+
+using IsMoveableFn = uint32_t(*)(const AActorOpaque *actor);
+
+struct ActorFns {
+  GetSpatialDataFn get_spatial_data;
+  SetSpatialDataFn set_spatial_data;
+  SetEntityForActorFn set_entity_for_actor;
+  GetActorComponentsFn get_actor_components;
+  RegisterActorOnOverlapFn register_actor_on_overlap;
+  GetRootComponentFn get_root_component;
+  GetRegisteredClassesFn get_registered_classes;
+  GetClassFn get_class;
+  SetViewTargetFn set_view_target;
+  GetActorNameFn get_actor_name;
+  SetOwnerFn set_owner;
+  IsMoveableFn is_moveable;
+};
+
 using LogFn = void(*)(const char*, int32_t);
 
 using IterateActorsFn = void(*)(AActorOpaque **array, uint64_t *len);
@@ -173,17 +209,9 @@ using GetActionStateFn = void(*)(const char *name, uintptr_t len, ActionState st
 
 using GetAxisValueFn = void(*)(const char *name, uintptr_t len, float *value);
 
-using SetEntityForActorFn = void(*)(AActorOpaque *name, Entity entity);
-
 using SpawnActorFn = AActorOpaque*(*)(ActorClass actor_class, Vector3 position, Quaternion rotation, Vector3 scale);
 
-using SetViewTargetFn = void(*)(const AActorOpaque *actor);
-
 using GetMouseDeltaFn = void(*)(float *x, float *y);
-
-using GetActorComponentsFn = void(*)(const AActorOpaque *actor, ActorComponentPtr *data, uintptr_t *len);
-
-using RegisterActorOnBeginOverlapFn = void(*)(AActorOpaque *actor);
 
 using VisualLogSegmentFn = void(*)(const AActorOpaque *owner, Vector3 start, Vector3 end, Color color);
 
@@ -227,18 +255,6 @@ struct UnrealPhysicsBindings {
   GetCollisionShapeFn get_collision_shape;
 };
 
-using GetRootComponentFn = void(*)(const AActorOpaque *actor, ActorComponentPtr *data);
-
-using GetRegisteredClassesFn = void(*)(UClassOpague **classes, uintptr_t *len);
-
-using GetClassFn = UClassOpague*(*)(const AActorOpaque *actor);
-
-using IsMoveableFn = uint32_t(*)(const AActorOpaque *actor);
-
-using GetActorNameFn = void(*)(const AActorOpaque *actor, RustAlloc *data);
-
-using SetOwnerFn = void(*)(AActorOpaque *actor, const AActorOpaque *new_owner);
-
 using GetEditorComponentUuidsFn = uint32_t(*)(const AActorOpaque *actor, Uuid *data, uintptr_t *len);
 
 using GetEditorComponentQuatFn = uint32_t(*)(const AActorOpaque *actor, Uuid uuid, Utf8Str field, Quaternion *out);
@@ -267,28 +283,17 @@ struct SoundFns {
 };
 
 struct UnrealBindings {
-  GetSpatialDataFn get_spatial_data;
-  SetSpatialDataFn set_spatial_data;
+  ActorFns actor_fns;
   LogFn log;
   IterateActorsFn iterate_actors;
   GetActionStateFn get_action_state;
   GetAxisValueFn get_axis_value;
-  SetEntityForActorFn set_entity_for_actor;
   SpawnActorFn spawn_actor;
-  SetViewTargetFn set_view_target;
   GetMouseDeltaFn get_mouse_delta;
-  GetActorComponentsFn get_actor_components;
-  RegisterActorOnBeginOverlapFn register_actor_on_begin_overlap;
   VisualLogSegmentFn visual_log_segment;
   VisualLogCapsuleFn visual_log_capsule;
   VisualLogLocationFn visual_log_location;
   UnrealPhysicsBindings physics_bindings;
-  GetRootComponentFn get_root_component;
-  GetRegisteredClassesFn get_registered_classes;
-  GetClassFn get_class;
-  IsMoveableFn is_moveable;
-  GetActorNameFn get_actor_name;
-  SetOwnerFn set_owner;
   EditorComponentFns editor_component_fns;
   SoundFns sound_fns;
 };
@@ -357,9 +362,14 @@ struct ActorBeginOverlap {
   AActorOpaque *other;
 };
 
+struct ActorEndOverlap {
+  AActorOpaque *overlapped_actor;
+  AActorOpaque *other;
+};
+
 extern "C" {
 
-extern void RegisterActorOnBeginOverlap(AActorOpaque *actor);
+extern void RegisterActorOnOverlap(AActorOpaque *actor);
 
 extern void SetOwner(AActorOpaque *actor, const AActorOpaque *new_owner);
 
