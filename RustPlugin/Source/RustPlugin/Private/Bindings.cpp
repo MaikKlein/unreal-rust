@@ -621,8 +621,17 @@ void RegisterActorOnOverlap(AActorOpaque* actor)
 {
 	auto GameMode = GetRustModule().GameMode;
 	AActor* Actor = ToAActor(actor);
-	if(!GameMode || !Actor)
-	    return;
+	if (!GameMode || !Actor)
+		return;
 	Actor->OnActorBeginOverlap.AddUniqueDynamic(GameMode, &ARustGameModeBase::OnActorBeginOverlap);
 	Actor->OnActorEndOverlap.AddUniqueDynamic(GameMode, &ARustGameModeBase::OnActorEndOverlap);
+}
+
+void RegisterActorOnHit(AActorOpaque* actor)
+{
+	auto GameMode = GetRustModule().GameMode;
+	AActor* Actor = ToAActor(actor);
+	if (!GameMode || !Actor)
+		return;
+	Actor->OnActorHit.AddUniqueDynamic(GameMode, &ARustGameModeBase::OnActorHit);
 }

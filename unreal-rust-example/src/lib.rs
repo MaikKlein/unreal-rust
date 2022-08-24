@@ -1,8 +1,10 @@
 use std::collections::HashMap;
 
 use bevy_ecs::prelude::*;
+use unreal_api::api::UnrealApi;
+use unreal_api::core::OnActorHitEvent;
 use unreal_api::registry::USound;
-use unreal_api::sound::play_sound_at_location;
+use unreal_api::sound::{play_sound_at_location, SoundSettings};
 use unreal_api::Component;
 use unreal_api::{
     core::{ActorComponent, ActorPtr, CoreStage, ParentComponent, TransformComponent},
@@ -53,6 +55,11 @@ impl CameraMode {
         };
     }
 }
+#[derive(Debug, Component)]
+#[uuid = "b6addc7d-03b1-4b06-9328-f26c71997ee6"]
+pub struct PlaySoundOnImpactComponent {
+    pub sound: USound,
+}
 
 #[derive(Debug, Component)]
 #[uuid = "52788d7e-017b-42cd-b3bf-aa616315c0c4"]
@@ -101,6 +108,37 @@ fn register_class_resource(mut commands: Commands) {
     }
     commands.insert_resource(classes_resource);
 }
+fn register_hit_events(query: Query<(&ActorComponent, Added<PlaySoundOnImpactComponent>)>) {
+    for (actor, added) in &query {
+        if added {
+            unsafe {
+                (bindings().actor_fns.register_actor_on_hit)(actor.actor.0);
+            }
+        }
+    }
+}
+fn play_sound_on_hit(
+    api: Res<UnrealApi>,
+    mut events: EventReader<OnActorHitEvent>,
+    query: Query<(&TransformComponent, &PlaySoundOnImpactComponent)>,
+) {
+    for event in events.iter() {
+        if event.normal_impulse.length() <= 30000.0 {
+            continue;
+        }
+        if let Some(&entity) = api.actor_to_entity.get(&event.self_actor) {
+            if let Ok((trans, sound)) = query.get(entity) {
+                play_sound_at_location(
+                    sound.sound,
+                    trans.position,
+                    trans.rotation,
+                    &SoundSettings::default(),
+                )
+            }
+        }
+        log::info!("HIT {}", event.normal_impulse.length());
+    }
+}
 
 fn spawn_class(
     class_resource: Res<ClassesResource>,
@@ -110,6 +148,9 @@ fn spawn_class(
     for (entity, actor) in query.iter() {
         unsafe {
             (bindings().actor_fns.register_actor_on_overlap)(actor.actor.0);
+        }
+        unsafe {
+            (bindings().actor_fns.register_actor_on_hit)(actor.actor.0);
         }
         unsafe {
             let class_ptr = (bindings().actor_fns.get_class)(actor.actor.0);
@@ -271,6 +312,7 @@ impl UserModule for MyModule {
     fn initialize(&self, module: &mut Module) {
         register_components! {
             CharacterSoundsComponent,
+            PlaySoundOnImpactComponent,
             CameraComponent,
             => module
 
@@ -281,7 +323,8 @@ impl UserModule for MyModule {
             .add_startup_system_set(
                 SystemSet::new()
                     .with_system(register_class_resource)
-                    .with_system(register_player_input),
+                    .with_system(register_player_input)
+                    .with_system(register_hit_events),
             )
             .add_system_set_to_stage(
                 CoreStage::Update,
@@ -291,7 +334,8 @@ impl UserModule for MyModule {
                     .with_system(update_controller_view)
                     .with_system(rotate_camera)
                     .with_system(update_camera.after(rotate_camera))
-                    .with_system(toggle_camera),
+                    .with_system(toggle_camera)
+                    .with_system(play_sound_on_hit),
             );
     }
 }

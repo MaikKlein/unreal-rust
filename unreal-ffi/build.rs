@@ -16,6 +16,7 @@ fn main() {
         .include_item("ActorSpawnedEvent")
         .include_item("ActorBeginOverlap")
         .include_item("ActorEndOverlap")
+        .include_item("ActorHitEvent")
         .with_pragma_once(true)
         //.with_config(Config {
         //    structure: StructConfig  {

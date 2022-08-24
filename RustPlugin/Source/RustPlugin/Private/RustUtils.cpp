@@ -41,6 +41,7 @@ UnrealBindings CreateBindings()
 	actor_fns.get_actor_name = &GetActorName;
 	actor_fns.is_moveable = &IsMoveable;
 	actor_fns.register_actor_on_overlap = &RegisterActorOnOverlap;
+	actor_fns.register_actor_on_hit = &RegisterActorOnHit;
 	actor_fns.get_root_component = &GetRootComponent;
 	
 	UnrealBindings b = {};

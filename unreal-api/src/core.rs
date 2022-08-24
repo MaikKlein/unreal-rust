@@ -42,13 +42,11 @@ impl Plugin for CorePlugin {
             // TODO: Order matters here. Needs to be defined after the stages
             .add_event::<OnActorBeginOverlapEvent>()
             .add_event::<OnActorEndOverlapEvent>()
+            .add_event::<OnActorHitEvent>()
             .add_event::<ActorSpawnedEvent>()
             .add_system_set_to_stage(
                 CoreStage::RegisterEvent,
-                SystemSet::new()
-                    .with_system(process_actor_spawned)
-                    .with_system(process_register_begin)
-                    .with_system(process_register_end),
+                SystemSet::new().with_system(process_actor_spawned),
             )
             .add_system_set_to_stage(
                 CoreStage::PreUpdate,
@@ -126,6 +124,12 @@ pub struct OnActorEndOverlapEvent {
     pub other: ActorPtr,
 }
 
+pub struct OnActorHitEvent {
+    pub self_actor: ActorPtr,
+    pub other: ActorPtr,
+    pub normal_impulse: Vec3,
+}
+
 pub unsafe extern "C" fn unreal_event(ty: *const EventType, data: *const c_void) {
     if let Some(global) = crate::module::MODULE.as_mut() {
         match *ty {
@@ -151,6 +155,14 @@ pub unsafe extern "C" fn unreal_event(ty: *const EventType, data: *const c_void)
                 global.core.module.world.send_event(OnActorEndOverlapEvent {
                     overlapped_actor: ActorPtr((*overlap).overlapped_actor),
                     other: ActorPtr((*overlap).other),
+                });
+            }
+            EventType::ActorOnHit => {
+                let hit = data as *const ffi::ActorHitEvent;
+                global.core.module.world.send_event(OnActorHitEvent {
+                    self_actor: ActorPtr((*hit).self_actor),
+                    other: ActorPtr((*hit).other),
+                    normal_impulse: (*hit).normal_impulse.into(),
                 });
             }
         }
@@ -623,25 +635,6 @@ fn upload_transform_to_unreal(query: Query<(&ActorComponent, &TransformComponent
 
 fn update_input(mut input: ResMut<Input>) {
     input.update();
-}
-
-fn process_register_begin(mut reader: EventReader<OnActorBeginOverlapEvent>) {
-    for event in reader.iter() {
-        log::info!(
-            "Begin {} {}",
-            event.overlapped_actor.get_actor_name(),
-            event.other.get_actor_name()
-        );
-    }
-}
-fn process_register_end(mut reader: EventReader<OnActorEndOverlapEvent>) {
-    for event in reader.iter() {
-        log::info!(
-            "End {} {}",
-            event.overlapped_actor.get_actor_name(),
-            event.other.get_actor_name()
-        );
-    }
 }
 
 fn process_actor_spawned(

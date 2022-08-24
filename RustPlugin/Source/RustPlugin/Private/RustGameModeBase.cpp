@@ -26,7 +26,7 @@ ARustGameModeBase::ARustGameModeBase()
 {
 	FRustPluginModule& LocalModule = FModuleManager::LoadModuleChecked<FRustPluginModule>(TEXT("RustPlugin"));
 	LocalModule.GameMode = this;
-	
+
 	PrimaryActorTick.bStartWithTickEnabled = true;
 	PrimaryActorTick.bCanEverTick = true;
 
@@ -63,6 +63,16 @@ void ARustGameModeBase::OnActorEndOverlap(AActor* OverlappedActor, AActor* Other
 	ActorEndOverlap Event;
 	Event.overlapped_actor = (AActorOpaque*)OverlappedActor;
 	Event.other = (AActorOpaque*)OtherActor;
+	GetRustModule().Plugin.Rust.unreal_event(&Type, (void*)&Event);
+}
+
+void ARustGameModeBase::OnActorHit(AActor* SelfActor, AActor* OtherActor, FVector NormalImpulse, const FHitResult& Hit)
+{
+	EventType Type = EventType::ActorOnHit;
+	ActorHitEvent Event;
+	Event.self_actor = (AActorOpaque*)SelfActor;
+	Event.other = (AActorOpaque*)OtherActor;
+	Event.normal_impulse = ToVector3(NormalImpulse);
 	GetRustModule().Plugin.Rust.unreal_event(&Type, (void*)&Event);
 }
 

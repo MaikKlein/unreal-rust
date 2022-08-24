@@ -31,6 +31,7 @@ enum class EventType : uint32_t {
   ActorSpawned = 0,
   ActorBeginOverlap = 1,
   ActorEndOverlap = 2,
+  ActorOnHit = 3,
 };
 
 enum class ReflectionType : uint32_t {
@@ -172,6 +173,8 @@ using GetActorComponentsFn = void(*)(const AActorOpaque *actor, ActorComponentPt
 
 using RegisterActorOnOverlapFn = void(*)(AActorOpaque *actor);
 
+using RegisterActorOnHitFn = void(*)(AActorOpaque *actor);
+
 using GetRootComponentFn = void(*)(const AActorOpaque *actor, ActorComponentPtr *data);
 
 using GetRegisteredClassesFn = void(*)(UClassOpague **classes, uintptr_t *len);
@@ -192,6 +195,7 @@ struct ActorFns {
   SetEntityForActorFn set_entity_for_actor;
   GetActorComponentsFn get_actor_components;
   RegisterActorOnOverlapFn register_actor_on_overlap;
+  RegisterActorOnHitFn register_actor_on_hit;
   GetRootComponentFn get_root_component;
   GetRegisteredClassesFn get_registered_classes;
   GetClassFn get_class;
@@ -367,6 +371,12 @@ struct ActorEndOverlap {
   AActorOpaque *other;
 };
 
+struct ActorHitEvent {
+  AActorOpaque *self_actor;
+  AActorOpaque *other;
+  Vector3 normal_impulse;
+};
+
 extern "C" {
 
 extern void TickActor(AActorOpaque *actor, float dt);
@@ -434,6 +444,8 @@ extern void PlaySoundAtLocation(const UOSoundBaseOpague *sound,
                                 Vector3 location,
                                 Quaternion rotation,
                                 const SoundSettings *settings);
+
+extern void RegisterActorOnHit(AActorOpaque *actor);
 
 extern void RegisterActorOnOverlap(AActorOpaque *actor);
 

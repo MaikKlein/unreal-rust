@@ -282,6 +282,7 @@ pub enum EventType {
     ActorSpawned = 0,
     ActorBeginOverlap = 1,
     ActorEndOverlap = 2,
+    ActorOnHit = 3,
 }
 
 #[repr(C)]
@@ -298,6 +299,13 @@ pub struct ActorBeginOverlap {
 pub struct ActorEndOverlap {
     pub overlapped_actor: *mut AActorOpaque,
     pub other: *mut AActorOpaque,
+}
+
+#[repr(C)]
+pub struct ActorHitEvent {
+    pub self_actor: *mut AActorOpaque,
+    pub other: *mut AActorOpaque,
+    pub normal_impulse: Vector3,
 }
 
 #[repr(C)]

@@ -41,10 +41,12 @@ pub type SetOwnerFn =
     unsafe extern "C" fn(actor: *mut AActorOpaque, new_owner: *const AActorOpaque);
 
 pub type RegisterActorOnOverlapFn = unsafe extern "C" fn(actor: *mut AActorOpaque);
+pub type RegisterActorOnHitFn = unsafe extern "C" fn(actor: *mut AActorOpaque);
 
 pub type SetViewTargetFn = unsafe extern "C" fn(actor: *const AActorOpaque);
 
 extern "C" {
+    pub fn RegisterActorOnHit(actor: *mut AActorOpaque);
     pub fn RegisterActorOnOverlap(actor: *mut AActorOpaque);
 
     pub fn SetOwner(actor: *mut AActorOpaque, new_owner: *const AActorOpaque);
@@ -88,6 +90,7 @@ pub struct ActorFns {
     pub set_entity_for_actor: SetEntityForActorFn,
     pub get_actor_components: GetActorComponentsFn,
     pub register_actor_on_overlap: RegisterActorOnOverlapFn,
+    pub register_actor_on_hit: RegisterActorOnHitFn,
     pub get_root_component: GetRootComponentFn,
     pub get_registered_classes: GetRegisteredClassesFn,
     pub get_class: GetClassFn,
