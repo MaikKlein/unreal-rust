@@ -21,6 +21,13 @@ enum ERustPropertyTag
 	Sound
 };
 
+// TODO: This is a disgusting hack. We store all the possible variants in this struct so that we can access them
+// via the property system. The reason for that is `IPropertyHandle::SetValue` only implements a few overrides
+// like for FVector, FRotator etc. It would have been nice if we could set values for non default types.
+// There is `IPropertyHandle::AccessRawData` which we can use to write any data we want. But using this doesn't
+// update all instances of this property. Eg if we edit the blueprint base class, but we already placed this class in
+// a level, none of the properties would update for the blueprint classes that were already placed in the level.
+// But `IPropertyHandle::SetValue` seems to support that.
 USTRUCT()
 struct FRustProperty
 {
@@ -46,7 +53,7 @@ struct FRustProperty
 
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<AActor> Class;
-	//TObjectPtr<UClass> Class;
+	
 	UPROPERTY(EditAnywhere)
 	TObjectPtr<USoundBase> Sound;
 	static void Initialize(TSharedPtr<IPropertyHandle> Handle, ReflectionType Type);

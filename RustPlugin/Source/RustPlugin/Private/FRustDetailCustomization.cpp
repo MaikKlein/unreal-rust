@@ -26,6 +26,8 @@ void FRustDetailCustomization::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 
 	TSharedRef<IPropertyHandle> ComponentsHandle = DetailBuilder.GetProperty(
 		GET_MEMBER_NAME_CHECKED(UEntityComponent, Components));
+	// Don't show the components map in the editor. This should only be edited through the custom ui below.
+	DetailBuilder.HideProperty(ComponentsHandle);
 	{
 		uint32 NumChildren = 0;
 		ComponentsHandle->GetNumChildren(NumChildren);

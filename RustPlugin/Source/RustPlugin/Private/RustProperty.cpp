@@ -1,6 +1,5 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "RustProperty.h"
 
 #include "DetailLayoutBuilder.h"
@@ -9,10 +8,8 @@
 #include "DetailWidgetRow.h"
 #include "IContentBrowserSingleton.h"
 #include "IDetailGroup.h"
-#include "PropertyCustomizationHelpers.h"
 #include "EditorWidgets/Public/SAssetDropTarget.h"
 #include "GameFramework/GameModeBase.h"
-#include "Widgets/Input/SRotatorInputBox.h"
 #include "Widgets/Input/SVectorInputBox.h"
 
 #define LOCTEXT_NAMESPACE "RustProperty"
@@ -121,42 +118,6 @@ void FDynamicRustComponent::Render(TSharedRef<IPropertyHandle> MapHandle, IDetai
 		FString Name;
 		NameProperty->GetValue(Name);
 
-		//auto RowText = LOCTEXT("RustCategory", "Components");
-		//DetailBuilder.AddCustomRow(RowText).WholeRowContent()[
-		//	SNew(SBorder)
-		//		.BorderBackgroundColor(FSlateColor(FColor(0.0, 0.0, 0.0, 1.0)))
-		//		.Padding(0)
-		//	[
-		//		SNew(SHorizontalBox) +
-		//		SHorizontalBox::Slot()[
-		//			SNew(STextBlock).Text(FText::FromString(Name))
-		//		]
-		//		+ SHorizontalBox::Slot()[
-		//			SNew(SBox)
-		//		.HAlign(HAlign_Center)
-		//		.VAlign(VAlign_Center)
-		//		.WidthOverride(22)
-		//		.HeightOverride(22)[
-		//				SNew(SButton)
-		//			.ButtonStyle(FAppStyle::Get(), "SimpleButton")
-		//			.OnClicked(FOnComponentRemoved::CreateLambda([MapHandle, ComponentIdx, &LayoutBuilder]()
-		//				             {
-		//					             MapHandle->AsMap()->DeleteItem(ComponentIdx);
-		//					             LayoutBuilder.ForceRefreshDetails();
-		//					             return FReply::Handled();
-		//				             }))
-		//			.ContentPadding(0)
-		//				//.IsFocusable(InArgs._IsFocusable)
-		//				[
-		//					SNew(SImage)
-		//				.Image(FEditorStyle::GetBrush("Icons.Delete"))
-		//				.ColorAndOpacity(FSlateColor::UseForeground())
-		//				]
-		//			]
-		//		]
-		//	]
-		//];
-
 		TSharedPtr<IPropertyHandle> FieldsProperty = ComponentEntry->GetChildHandle(
 			GET_MEMBER_NAME_CHECKED(FDynamicRustComponent, Fields));
 
@@ -182,7 +143,6 @@ void FDynamicRustComponent::Render(TSharedRef<IPropertyHandle> MapHandle, IDetai
 						             return FReply::Handled();
 					             }))
 					.ContentPadding(0)
-					//.IsFocusable(InArgs._IsFocusable)
 					[
 						SNew(SImage)
 						.Image(FEditorStyle::GetBrush("Icons.Delete"))

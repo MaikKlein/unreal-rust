@@ -42,7 +42,9 @@ class RUSTPLUGIN_API UEntityComponent : public UActorComponent
 public:
 	UEntityComponent();
 	FEntity Id;
-	UPROPERTY(EditAnywhere)
+	// This apprently needs to be "EditAnywhere" so that we can read and write the properties in the details panel
+	// We also hide this property manually. It should only be edited through the custom Rust components panel.
+	UPROPERTY(EditAnywhere, Category="Rust")
 	TMap<FString, FDynamicRustComponent> Components;
 
 public:
