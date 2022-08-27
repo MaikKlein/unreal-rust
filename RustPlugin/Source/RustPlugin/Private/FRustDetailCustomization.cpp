@@ -19,15 +19,11 @@ void FRustDetailCustomization::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 	TArray<TWeakObjectPtr<UObject>> Objects;
 	DetailBuilder.GetObjectsBeingCustomized(Objects);
 
-
 	if (Objects.IsEmpty())
 		return;
 
 	TWeakObjectPtr<UEntityComponent> Component = Cast<UEntityComponent>(Objects[0]);
 
-
-	//TSharedRef<IPropertyHandle> Handle = DetailBuilder.GetProperty(
-	//	GET_MEMBER_NAME_CHECKED(UEntityComponent, Components));
 	TSharedRef<IPropertyHandle> ComponentsHandle = DetailBuilder.GetProperty(
 		GET_MEMBER_NAME_CHECKED(UEntityComponent, Components));
 	{
@@ -58,6 +54,11 @@ void FRustDetailCustomization::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 	{
 		if (Node == nullptr || Component == nullptr)
 			return;
+
+		if (Component.Get()->Components.Contains(Node->Id.ToString()))
+		{
+			return;
+		}
 
 		{
 			ComponentsHandle->AsMap()->AddItem();
