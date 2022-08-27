@@ -61,6 +61,7 @@ pub struct CharacterControllerComponent {
 
 #[derive(Debug, Component)]
 #[uuid = "16ca6de6-7a30-412d-8bef-4ee96e18a101"]
+#[reflect(editor)]
 pub struct CharacterConfigComponent {
     pub max_movement_speed: f32,
     pub gravity_dir: Vec3,

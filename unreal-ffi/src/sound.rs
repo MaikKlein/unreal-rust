@@ -1,4 +1,4 @@
-use crate::{USoundBaseOpague, Quaternion, Vector3};
+use crate::{Quaternion, USoundBaseOpague, Vector3};
 
 #[repr(C)]
 pub struct SoundSettings {

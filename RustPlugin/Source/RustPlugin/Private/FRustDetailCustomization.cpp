@@ -45,7 +45,7 @@ void FRustDetailCustomization::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 			FGuid Guid;
 			FGuid::Parse(GuidName, Guid);
 
-			auto RustComponent = Component->Components.Find(GuidName);
+			const auto RustComponent = Component->Components.Find(GuidName);
 			if (RustComponent != nullptr)
 			{
 				RustComponent->Reload(ChildProp, Guid);
@@ -75,7 +75,8 @@ void FRustDetailCustomization::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 	FDynamicRustComponent::Render(ComponentsHandle, RustCategory, DetailBuilder);
 
 	RustCategory.AddCustomRow(LOCTEXT("Picker", "Picker")).WholeRowContent()[
-		SNew(SRustDropdownList).OnUuidPickedDelegate(FOnUuidPicked::CreateLambda(OnPicked))
+		SNew(SRustDropdownList).OnlyShowEditorComponents(true).OnUuidPickedDelegate(
+			FOnUuidPicked::CreateLambda(OnPicked))
 	];
 }
 

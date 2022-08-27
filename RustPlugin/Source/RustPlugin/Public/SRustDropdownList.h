@@ -26,12 +26,14 @@ class RUSTPLUGIN_API SRustDropdownList : public SCompoundWidget
 	TSharedPtr<SListView<TSharedPtr<FUuidViewNode>>> ListViewWidget;
 	TSharedPtr<SSearchBox> SearchBox;
 	FOnUuidPicked OnUuidPicked;
+	bool OnlyShowEditorComponents;
 public:
 	SLATE_BEGIN_ARGS(SRustDropdownList)
 		{
 		}
 
 		SLATE_ARGUMENT(FOnUuidPicked, OnUuidPickedDelegate)
+		SLATE_ARGUMENT(bool, OnlyShowEditorComponents)
 
 	SLATE_END_ARGS()
 

@@ -57,12 +57,14 @@ impl CameraMode {
 }
 #[derive(Debug, Component)]
 #[uuid = "b6addc7d-03b1-4b06-9328-f26c71997ee6"]
+#[reflect(editor)]
 pub struct PlaySoundOnImpactComponent {
     pub sound: USound,
 }
 
 #[derive(Debug, Component)]
 #[uuid = "52788d7e-017b-42cd-b3bf-aa616315c0c4"]
+#[reflect(editor)]
 pub struct CharacterSoundsComponent {
     pub camera_toggle: USound,
 }

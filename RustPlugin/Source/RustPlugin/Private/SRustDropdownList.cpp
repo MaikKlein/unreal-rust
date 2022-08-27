@@ -15,11 +15,20 @@ BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 void SRustDropdownList::Construct(const FArguments& InArgs)
 {
 	OnUuidPicked = InArgs._OnUuidPickedDelegate;
+	OnlyShowEditorComponents = InArgs._OnlyShowEditorComponents;
 
 	for (auto& Elem : GetRustModule().Plugin.ReflectionData.Types)
 	{
+		if (InArgs._OnlyShowEditorComponents)
+		{
+			if (!Elem.Value.IsEditorComponent)
+			{
+				// We only add editor components here
+				continue;
+			}
+		}
+
 		FUuidViewNode* Node = new FUuidViewNode();
-		UE_LOG(LogTemp, Warning, TEXT("%s %s"), *Elem.Value.Name, *Elem.Key. ToString());
 		Node->Name = Elem.Value.Name;
 		Node->Id = Elem.Key;
 		AllItems.Add(MakeShareable(Node));

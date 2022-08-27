@@ -1,6 +1,6 @@
 extern crate proc_macro;
 
-use darling::FromField;
+use darling::{FromDeriveInput, FromField};
 use proc_macro2::Span;
 use quote::quote;
 use syn::*;
@@ -13,8 +13,17 @@ pub struct ReflectField {
     #[darling(default)]
     skip: bool,
 }
+#[derive(Debug, FromDeriveInput)]
+#[darling(attributes(reflect))]
+pub struct ReflectEditor {
+    #[darling(default)]
+    editor: bool,
+}
 
 pub fn reflect_derive(ast: &DeriveInput) -> proc_macro2::TokenStream {
+    let is_editor_component =
+        ReflectEditor::from_derive_input(ast).map_or(false, |reflect| reflect.editor);
+
     if let Data::Struct(data) = &ast.data {
         let literal_name = LitStr::new(&ast.ident.to_string(), Span::call_site());
         let reflect_struct_ident = Ident::new(&format!("{}Reflect", ast.ident), Span::call_site());
@@ -92,8 +101,7 @@ pub fn reflect_derive(ast: &DeriveInput) -> proc_macro2::TokenStream {
             quote!()
         };
 
-        let has_skip = fields.len() != reflect_fields.len();
-        let insert_component = if !has_skip {
+        let insert_component = if is_editor_component {
             quote! {
                 impl unreal_api::editor_component::InsertEditorComponent for #insert_struct_ident {
                     unsafe fn insert_component(
@@ -113,19 +121,21 @@ pub fn reflect_derive(ast: &DeriveInput) -> proc_macro2::TokenStream {
                 }
             }
         } else {
-            // TODO: Workaround for non constructible components
-            quote! {
-                impl unreal_api::editor_component::InsertEditorComponent for #insert_struct_ident {
-                    unsafe fn insert_component(
-                        &self,
-                        _actor: *const unreal_api::ffi::AActorOpaque,
-                        _uuid: unreal_api::uuid::Uuid,
-                        _commands: &mut unreal_api::ecs::system::EntityCommands<'_, '_, '_>,
-                    ) {
-                    }
-                }
-            }
+            quote! {}
         };
+
+        let register_editor_component = if is_editor_component {
+            quote! {
+                registry.insert_editor_component.insert(
+                    <#struct_ident as unreal_api::TypeUuid>::TYPE_UUID,
+                    Box::new(#insert_struct_ident),
+                );
+
+            }
+        } else {
+            quote!()
+        };
+
         quote! {
             pub struct #reflect_struct_ident;
 
@@ -160,10 +170,7 @@ pub fn reflect_derive(ast: &DeriveInput) -> proc_macro2::TokenStream {
                         <#struct_ident as unreal_api::TypeUuid>::TYPE_UUID,
                         Box::new(#reflect_struct_ident),
                     );
-                    registry.insert_editor_component.insert(
-                        <#struct_ident as unreal_api::TypeUuid>::TYPE_UUID,
-                        Box::new(#insert_struct_ident),
-                    );
+                    #register_editor_component
 
                 }
             }

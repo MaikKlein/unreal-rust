@@ -18,6 +18,7 @@ struct FRustReflection
 {
 	FString Name;
 	uint32 NumberOfFields;
+	bool IsEditorComponent;
 	TMap<uint32, FString> IndexToFieldName;
 	TMap<FString, ReflectionType> FieldNameToType;
 };

@@ -11,6 +11,7 @@
 #include "PropertyCustomizationHelpers.h"
 #include "EditorWidgets/Public/SAssetDropTarget.h"
 #include "GameFramework/GameModeBase.h"
+#include "Widgets/Input/SRotatorInputBox.h"
 #include "Widgets/Input/SVectorInputBox.h"
 
 #define LOCTEXT_NAMESPACE "RustProperty"
@@ -53,8 +54,9 @@ void FDynamicRustComponent::Reload(TSharedPtr<IPropertyHandle> Handle, FGuid Gui
 
 	Uuid Id = ToUuid(Guid);
 
-	auto Reflection =  GetRustModule().Plugin.ReflectionData.Types.Find(Guid);
-	for(auto& Elem: Reflection->FieldNameToType)
+	auto Reflection = GetRustModule().Plugin.ReflectionData.Types.Find(Guid);
+	check(Reflection);
+	for (auto& Elem : Reflection->FieldNameToType)
 	{
 		if (Fields.Find(Elem.Key) == nullptr)
 		{
@@ -79,7 +81,7 @@ void FDynamicRustComponent::Initialize(TSharedPtr<IPropertyHandle> Handle, FGuid
 
 	Uuid Id = ToUuid(InitGuid);
 
-	auto Reflection =  GetRustModule().Plugin.ReflectionData.Types.Find(InitGuid);
+	auto Reflection = GetRustModule().Plugin.ReflectionData.Types.Find(InitGuid);
 	NameProperty->SetValue(Reflection->Name);
 
 	uint32_t NumberOfFields = Reflection->IndexToFieldName.Num();
@@ -254,10 +256,63 @@ void FDynamicRustComponent::Render(TSharedRef<IPropertyHandle> MapHandle, IDetai
 			}
 			if (Tag == ERustPropertyTag::Quat)
 			{
-				auto BoolProperty = RustPropertyEntry->GetChildHandle(
+				auto QuatProperty = RustPropertyEntry->GetChildHandle(
 					GET_MEMBER_NAME_CHECKED(FRustProperty, Rotation));
-				W.ValueContent()[
-					BoolProperty->CreatePropertyValueWidget()
+				auto Roll = [=]() -> TOptional<FRotator::FReal>
+				{
+					FRotator R;
+					QuatProperty->GetValue(R);
+					return TOptional(R.Roll);
+				};
+				auto Yaw = [=]() -> TOptional<FRotator::FReal>
+				{
+					FRotator R;
+					QuatProperty->GetValue(R);
+					return TOptional(R.Yaw);
+				};
+				auto Pitch = [=]() -> TOptional<FRotator::FReal>
+				{
+					FRotator R;
+					QuatProperty->GetValue(R);
+					return TOptional(R.Pitch);
+				};
+				auto OnRollChanged = [=](FRotator::FReal Val)
+				{
+					FRotator R;
+					QuatProperty->GetValue(R);
+					R.Roll = Val;
+					QuatProperty->SetValue(R);
+				};
+				auto OnYawChanged = [=](FRotator::FReal Val)
+				{
+					FRotator R;
+					QuatProperty->GetValue(R);
+					R.Yaw = Val;
+					QuatProperty->SetValue(R);
+				};
+				auto OnPitchChanged = [=](FRotator::FReal Val)
+				{
+					FRotator R;
+					QuatProperty->GetValue(R);
+					R.Pitch = Val;
+					QuatProperty->SetValue(R);
+				};
+				TSharedPtr<TNumericUnitTypeInterface<FRotator::FReal>> DegreesTypeInterface =
+					MakeShareable(new TNumericUnitTypeInterface<FRotator::FReal>(EUnit::Degrees));
+				W.ValueContent()
+				 .MinDesiredWidth(125.0f * 3.0f)
+				 .MaxDesiredWidth(125.0f * 3.0f)
+				 .VAlign(VAlign_Center)
+				[
+					SNew(SNumericRotatorInputBox<FRotator::FReal>)
+				.TypeInterface(DegreesTypeInterface)
+				.AllowSpin(true).bColorAxisLabels(true)
+				.Pitch_Lambda(Pitch)
+				.Yaw_Lambda(Yaw)
+				.Roll_Lambda(Roll)
+				.OnRollChanged_Lambda(OnRollChanged)
+				.OnPitchChanged_Lambda(OnPitchChanged)
+				.OnYawChanged_Lambda(OnYawChanged)
 				];
 			}
 			if (Tag == ERustPropertyTag::Class)

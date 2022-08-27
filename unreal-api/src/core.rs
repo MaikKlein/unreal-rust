@@ -299,6 +299,28 @@ unsafe extern "C" fn has_component(entity: ffi::Entity, uuid: ffi::Uuid) -> u32 
     result.unwrap_or(0)
 }
 
+unsafe extern "C" fn is_editor_component(uuid: ffi::Uuid) -> u32 {
+    fn is_editor_component_inner(uuid: ffi::Uuid) -> Option<u32> {
+        let global = unsafe { crate::module::MODULE.as_mut() }?;
+        let uuid = from_ffi_uuid(uuid);
+        Some(
+            if global
+                .core
+                .module
+                .reflection_registry
+                .insert_editor_component
+                .contains_key(&uuid)
+            {
+                1
+            } else {
+                0
+            },
+        )
+    }
+    let result = std::panic::catch_unwind(|| is_editor_component_inner(uuid).unwrap_or(0));
+    result.unwrap_or(0)
+}
+
 unsafe extern "C" fn get_field_name(uuid: ffi::Uuid, idx: u32, out: *mut ffi::Utf8Str) -> u32 {
     fn get_field_name(uuid: ffi::Uuid, idx: u32) -> Option<&'static str> {
         let global = unsafe { crate::module::MODULE.as_mut() }?;
@@ -362,6 +384,7 @@ pub fn to_ffi_uuid(uuid: Uuid) -> ffi::Uuid {
 
 pub fn create_reflection_fns() -> ffi::ReflectionFns {
     ffi::ReflectionFns {
+        is_editor_component,
         has_component,
         get_field_bool_value,
         get_field_float_value,
