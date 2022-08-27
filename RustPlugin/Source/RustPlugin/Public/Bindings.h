@@ -89,13 +89,6 @@ struct Uuid {
 
 using UObjectOpague = void;
 
-using UOSoundBaseOpague = void;
-
-struct SoundSettings {
-  float volume;
-  float pitch;
-};
-
 struct Entity {
   uint64_t id;
 };
@@ -161,6 +154,13 @@ struct CollisionShape {
 struct OverlapResult {
   AActorOpaque *actor;
   UPrimtiveOpaque *primtive;
+};
+
+using USoundBaseOpague = void;
+
+struct SoundSettings {
+  float volume;
+  float pitch;
 };
 
 using GetSpatialDataFn = void(*)(const AActorOpaque *actor, Vector3 *position, Quaternion *rotation, Vector3 *scale);
@@ -280,7 +280,7 @@ struct EditorComponentFns {
   GetEditorComponentUObjectFn get_editor_component_uobject;
 };
 
-using PlaySoundAtLocationFn = void(*)(const UOSoundBaseOpague *sound, Vector3 location, Quaternion rotation, const SoundSettings *settings);
+using PlaySoundAtLocationFn = void(*)(const USoundBaseOpague *sound, Vector3 location, Quaternion rotation, const SoundSettings *settings);
 
 struct SoundFns {
   PlaySoundAtLocationFn play_sound_at_location;
@@ -440,11 +440,6 @@ extern uint32_t GetEditorComponentUObject(const AActorOpaque *actor,
                                           UObjectType ty,
                                           UObjectOpague **out);
 
-extern void PlaySoundAtLocation(const UOSoundBaseOpague *sound,
-                                Vector3 location,
-                                Quaternion rotation,
-                                const SoundSettings *settings);
-
 extern void RegisterActorOnHit(AActorOpaque *actor);
 
 extern void RegisterActorOnOverlap(AActorOpaque *actor);
@@ -512,5 +507,10 @@ extern uint32_t OverlapMulti(CollisionShape collision_shape,
                              OverlapResult **result);
 
 extern uint32_t GetCollisionShape(const UPrimtiveOpaque *primitive, CollisionShape *shape);
+
+extern void PlaySoundAtLocation(const USoundBaseOpague *sound,
+                                Vector3 location,
+                                Quaternion rotation,
+                                const SoundSettings *settings);
 
 } // extern "C"

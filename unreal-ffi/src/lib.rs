@@ -2,9 +2,11 @@ use glam::{Quat, Vec3};
 use std::{ffi::c_void, os::raw::c_char};
 pub mod actor;
 pub mod physics;
+pub mod sound;
 
 pub use actor::*;
 pub use physics::*;
+pub use sound::*;
 
 #[repr(u8)]
 #[derive(Debug)]
@@ -131,7 +133,7 @@ pub type UPrimtiveOpaque = c_void;
 pub type UCapsuleOpaque = c_void;
 pub type UClassOpague = c_void;
 pub type UObjectOpague = c_void;
-pub type UOSoundBaseOpague = c_void;
+pub type USoundBaseOpague = c_void;
 
 pub type LogFn = extern "C" fn(*const c_char, i32);
 pub type IterateActorsFn = unsafe extern "C" fn(array: *mut *mut AActorOpaque, len: *mut u64);
@@ -483,38 +485,4 @@ pub struct EditorComponentFns {
     pub get_editor_component_bool: GetEditorComponentBoolFn,
     pub get_editor_component_float: GetEditorComponentFloatFn,
     pub get_editor_component_uobject: GetEditorComponentUObjectFn,
-}
-
-#[repr(C)]
-pub struct SoundSettings {
-    pub volume: f32,
-    pub pitch: f32,
-}
-impl Default for SoundSettings {
-    fn default() -> Self {
-        Self {
-            volume: 1.0,
-            pitch: 1.0,
-        }
-    }
-}
-
-extern "C" {
-    pub fn PlaySoundAtLocation(
-        sound: *const UOSoundBaseOpague,
-        location: Vector3,
-        rotation: Quaternion,
-        settings: *const SoundSettings,
-    );
-}
-pub type PlaySoundAtLocationFn = unsafe extern "C" fn(
-    sound: *const UOSoundBaseOpague,
-    location: Vector3,
-    rotation: Quaternion,
-    settings: *const SoundSettings,
-);
-
-#[repr(C)]
-pub struct SoundFns {
-    pub play_sound_at_location: PlaySoundAtLocationFn,
 }

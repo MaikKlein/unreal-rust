@@ -3,7 +3,6 @@
 
 #include "RustProperty.h"
 
-#include "ContentBrowserModule.h"
 #include "DetailLayoutBuilder.h"
 #include "RustPlugin.h"
 #include "RustUtils.h"
@@ -52,31 +51,21 @@ void FDynamicRustComponent::Reload(TSharedPtr<IPropertyHandle> Handle, FGuid Gui
 	TSharedPtr<IPropertyHandle> FieldsProperty = Handle->GetChildHandle(
 		GET_MEMBER_NAME_CHECKED(FDynamicRustComponent, Fields));
 
-	auto Fns = &GetRustModule().Plugin.Rust.reflection_fns;
 	Uuid Id = ToUuid(Guid);
 
-	uint32_t NumberOfFields = 0;
-	Fns->number_of_fields(Id, &NumberOfFields);
-
-	for (uint32_t Idx = 0; Idx < NumberOfFields; ++Idx)
+	auto Reflection =  GetRustModule().Plugin.ReflectionData.Types.Find(Guid);
+	for(auto& Elem: Reflection->FieldNameToType)
 	{
-		Utf8Str NamePtr;
-		Fns->get_field_name(Id, Idx, &NamePtr);
-		FString FieldName = ToFString(NamePtr);
-
-		ReflectionType Type;
-		Fns->get_field_type(Id, Idx, &Type);
-
-		if (Fields.Find(FieldName) == nullptr)
+		if (Fields.Find(Elem.Key) == nullptr)
 		{
 			uint32 IndexAdded = 0;
 			FieldsProperty->GetNumChildren(IndexAdded);
 			FieldsProperty->AsMap()->AddItem();
 
 			auto RustPropertyEntry = FieldsProperty->GetChildHandle(IndexAdded);
-			FRustProperty::Initialize(RustPropertyEntry, Type);
+			FRustProperty::Initialize(RustPropertyEntry, Elem.Value);
 			auto KeyHandle = RustPropertyEntry->GetKeyHandle();
-			KeyHandle->SetValue(FieldName);
+			KeyHandle->SetValue(Elem.Key);
 		}
 	}
 }
@@ -88,34 +77,23 @@ void FDynamicRustComponent::Initialize(TSharedPtr<IPropertyHandle> Handle, FGuid
 	TSharedPtr<IPropertyHandle> RustPropertyMap = Handle->GetChildHandle(
 		GET_MEMBER_NAME_CHECKED(FDynamicRustComponent, Fields));
 
-	auto Fns = &GetRustModule().Plugin.Rust.reflection_fns;
-	//Guid = InitGuid;
 	Uuid Id = ToUuid(InitGuid);
 
-	Utf8Str TypeNamePtr;
-	Fns->get_type_name(Id, &TypeNamePtr);
-	FString Name = ToFString(TypeNamePtr);
+	auto Reflection =  GetRustModule().Plugin.ReflectionData.Types.Find(InitGuid);
+	NameProperty->SetValue(Reflection->Name);
 
-	NameProperty->SetValue(Name);
-
-	uint32_t NumberOfFields = 0;
-	Fns->number_of_fields(Id, &NumberOfFields);
+	uint32_t NumberOfFields = Reflection->IndexToFieldName.Num();
 
 	for (uint32_t Idx = 0; Idx < NumberOfFields; ++Idx)
 	{
-		Utf8Str NamePtr;
-		Fns->get_field_name(Id, Idx, &NamePtr);
-		FString FieldName = ToFString(NamePtr);
+		auto& FieldName = *Reflection->IndexToFieldName.Find(Idx);
+		auto Type = *Reflection->FieldNameToType.Find(FieldName);
 
-		ReflectionType Type;
-		Fns->get_field_type(Id, Idx, &Type);
-
-
-		uint32 FieldIndex = 0;
-		RustPropertyMap->GetNumChildren(FieldIndex);
+		uint32 FieldPropertyIndex = 0;
+		RustPropertyMap->GetNumChildren(FieldPropertyIndex);
 		RustPropertyMap->AsMap()->AddItem();
 
-		auto RustPropertyEntry = RustPropertyMap->GetChildHandle(FieldIndex);
+		auto RustPropertyEntry = RustPropertyMap->GetChildHandle(FieldPropertyIndex);
 		RustPropertyEntry->GetKeyHandle()->SetValue(FieldName);
 		FRustProperty::Initialize(RustPropertyEntry, Type);
 	}

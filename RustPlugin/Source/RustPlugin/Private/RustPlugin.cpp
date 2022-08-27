@@ -114,18 +114,17 @@ void FPlugin::CallEntryPoints()
 		return;
 
 	// Pass unreal function pointers to Rust, and also retrieve function pointers from Rust so we can call into Rust
-	if(Bindings(CreateBindings(), &Rust))
+	if (Bindings(CreateBindings(), &Rust))
 	{
-		RetrieveUuids();
+		RetrieveReflectionData();
 	}
 	else
 	{
 		// TODO: We had a panic when calling the entry point. We need to handle that better, otherwise unreal will segfault because the rust bindings are nullptrs
-		
 	}
 }
 
-void FPlugin::RetrieveUuids()
+void FPlugin::RetrieveReflectionData()
 {
 	uintptr_t len = 0;
 	Rust.retrieve_uuids(nullptr, &len);
@@ -133,7 +132,32 @@ void FPlugin::RetrieveUuids()
 	LocalUuids.Reserve(len);
 	Rust.retrieve_uuids(LocalUuids.GetData(), &len);
 	LocalUuids.SetNum(len);
-	Uuids = LocalUuids;
+
+	ReflectionData.Types.Reset();
+
+	for (Uuid Id : LocalUuids)
+	{
+		uint32_t NumberOfFields = 0;
+		Rust.reflection_fns.number_of_fields(Id, &NumberOfFields);
+		Utf8Str TypeNameStr;
+		// TODO: Better error handling here. None of this should fail though
+		check(Rust.reflection_fns.get_type_name(Id, &TypeNameStr));
+
+		FRustReflection Reflection;
+		Reflection.Name = ToFString(TypeNameStr);
+		for (uint32_t Idx = 0; Idx < NumberOfFields; Idx++)
+		{
+			Utf8Str FieldNamePtr;
+			check(Rust.reflection_fns.get_field_name(Id, Idx, &FieldNamePtr));
+			ReflectionType Type = ReflectionType::Bool;
+			check(Rust.reflection_fns.get_field_type(Id, Idx, &Type));
+
+			FString FieldName = ToFString(FieldNamePtr);
+			Reflection.IndexToFieldName.Add(Idx, FieldName);
+			Reflection.FieldNameToType.Add(FieldName, Type);
+		}
+		ReflectionData.Types.Add(ToFGuid(Id), Reflection);
+	}
 }
 
 void FRustPluginModule::StartupModule()
@@ -156,7 +180,8 @@ void FRustPluginModule::StartupModule()
 
 	//FGlobalTabmanager::Get()->RegisterNomadTabSpawner(RustPluginTabName, FOnSpawnTab::CreateRaw(this, &FRustPluginModule::OnSpawnPluginTab)).SetDisplayName(LOCTEXT("FRustPluginTabTitle", "RustPlugin")).SetMenuType(ETabSpawnerMenuType::Hidden);
 
-	IDirectoryWatcher* watcher = FModuleManager::LoadModuleChecked<FDirectoryWatcherModule>(TEXT("DirectoryWatcher")).
+	IDirectoryWatcher* watcher = FModuleManager::LoadModuleChecked<FDirectoryWatcherModule>(
+			TEXT("DirectoryWatcher")).
 		Get();
 	watcher->RegisterDirectoryChangedCallback_Handle(
 		*Plugin.PluginFolderPath(),

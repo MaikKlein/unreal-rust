@@ -602,7 +602,7 @@ uint32_t GetEditorComponentUObject(const AActorOpaque* actor, Uuid uuid, Utf8Str
 	return 0;
 }
 
-void PlaySoundAtLocation(const UOSoundBaseOpague* sound, Vector3 location, Quaternion rotation,
+void PlaySoundAtLocation(const USoundBaseOpague* sound, Vector3 location, Quaternion rotation,
                          const SoundSettings* settings)
 {
 	auto World = GetRustModule().GameMode->GetWorld();

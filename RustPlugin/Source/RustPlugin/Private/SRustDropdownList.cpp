@@ -16,16 +16,13 @@ void SRustDropdownList::Construct(const FArguments& InArgs)
 {
 	OnUuidPicked = InArgs._OnUuidPickedDelegate;
 
-	for (Uuid Id : GetRustModule().Plugin.Uuids)
+	for (auto& Elem : GetRustModule().Plugin.ReflectionData.Types)
 	{
-		Utf8Str Name;
-		if (GetRustModule().Plugin.Rust.reflection_fns.get_type_name(Id, &Name))
-		{
-			FUuidViewNode* Node = new FUuidViewNode();
-			Node->Name = ToFString(Name);
-			Node->Id = ToFGuid(Id);
-			AllItems.Add(MakeShareable(Node));
-		}
+		FUuidViewNode* Node = new FUuidViewNode();
+		UE_LOG(LogTemp, Warning, TEXT("%s %s"), *Elem.Value.Name, *Elem.Key. ToString());
+		Node->Name = Elem.Value.Name;
+		Node->Id = Elem.Key;
+		AllItems.Add(MakeShareable(Node));
 	}
 
 	Items = AllItems;

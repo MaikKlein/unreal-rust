@@ -14,6 +14,19 @@ struct FFileChangeData;
 class FString;
 class ARustGameModeBase;
 
+struct FRustReflection
+{
+	FString Name;
+	uint32 NumberOfFields;
+	TMap<uint32, FString> IndexToFieldName;
+	TMap<FString, ReflectionType> FieldNameToType;
+};
+
+struct FReflectionData
+{
+	TMap<FGuid, FRustReflection> Types;
+};
+
 struct FPlugin {
 	FString TargetPath;
 	void* Handle;
@@ -24,12 +37,12 @@ struct FPlugin {
 	bool IsLoaded();
 	bool TryLoad();
 	void CallEntryPoints();
-	void RetrieveUuids();
+	void RetrieveReflectionData();
 	FString PluginFolderPath();
 	FString PluginPath();
 	FString PluginFileName();
 
-	TArray<Uuid> Uuids;
+	FReflectionData ReflectionData;
 	FPlugin();
 };
 

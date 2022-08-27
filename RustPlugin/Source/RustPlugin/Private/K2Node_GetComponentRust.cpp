@@ -35,47 +35,55 @@ void UK2Node_GetComponentRust::AllocateDefaultPins()
 	const auto& Module = GetRustModule();
 
 	FGuid Id = SelectedNode.Id;
-	uint32_t NumberOfFields = 0;
-	Module.Plugin.Rust.reflection_fns.number_of_fields(ToUuid(Id), &NumberOfFields);
+	auto Reflection = Module.Plugin.ReflectionData.Types.Find(Id);
+	if (Reflection == nullptr)
+		return;
 
-	for (uint32_t Idx = 0; Idx < NumberOfFields; Idx++)
+	uint32 NumberOfFields = Reflection->IndexToFieldName.Num();
+	for (uint32 Idx = 0; Idx < NumberOfFields; ++Idx)
 	{
-		Utf8Str Name;
-		if (Module.Plugin.Rust.reflection_fns.get_field_name(ToUuid(Id), Idx, &Name))
-		{
-			FString IdxName = FString::FromInt(Idx);
-			auto IdxPin = CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Int, *IdxName);
-			IdxPin->bHidden = true;
-			IdxPin->DefaultValue = IdxName;
+		FString IdxName = FString::FromInt(Idx);
+		auto IdxPin = CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Int, *IdxName);
+		IdxPin->bHidden = true;
+		IdxPin->DefaultValue = IdxName;
+		auto FieldName = Reflection->IndexToFieldName.Find(Idx);
+		if (!FieldName)
+			continue;
 
-			ReflectionType Type = ReflectionType::Bool;
-			if (Module.Plugin.Rust.reflection_fns.get_field_type(ToUuid(Id), Idx, &Type))
-			{
-				if (Type == ReflectionType::Composite)
-					// TODO: Implement composite types
-					continue;
-				FString VarName = ToFString(Name);
-				if (Type == ReflectionType::Vector3)
-				{
-					CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Struct, TBaseStructure<FVector>::Get(),
-					          *VarName);
-				}
-				if (Type == ReflectionType::Bool)
-				{
-					CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Boolean,
-					          *VarName);
-				}
-				if (Type == ReflectionType::Float)
-				{
-					CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Real, UEdGraphSchema_K2::PC_Float,
-					          *VarName);
-				}
-				if (Type == ReflectionType::Quaternion)
-				{
-					CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Struct, TBaseStructure<FQuat>::Get(),
-					          *VarName);
-				}
-			}
+		auto FieldTypePtr = Reflection->FieldNameToType.Find(*FieldName);
+		if (!FieldTypePtr)
+			continue;
+
+		ReflectionType Type = *FieldTypePtr;
+
+		if (Type == ReflectionType::Composite)
+			// TODO: Implement composite types
+			continue;
+
+		const FString& VarName = *FieldName;
+
+		if (Type == ReflectionType::Vector3)
+		{
+			CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Struct, TBaseStructure<FVector>::Get(),
+			          *VarName);
+		}
+
+		if (Type == ReflectionType::Bool)
+		{
+			CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Boolean,
+			          *VarName);
+		}
+
+		if (Type == ReflectionType::Float)
+		{
+			CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Real, UEdGraphSchema_K2::PC_Float,
+			          *VarName);
+		}
+
+		if (Type == ReflectionType::Quaternion)
+		{
+			CreatePin(EGPD_Output, UEdGraphSchema_K2::PC_Struct, TBaseStructure<FQuat>::Get(),
+			          *VarName);
 		}
 	}
 }
@@ -86,8 +94,11 @@ void UK2Node_GetComponentRust::ExpandNode(class FKismetCompilerContext& Compiler
 
 	Uuid Id = ToUuid(SelectedNode.Id);
 	const auto& Module = GetRustModule();
-	uint32_t NumberOfFields = 0;
-	Module.Plugin.Rust.reflection_fns.number_of_fields(Id, &NumberOfFields);
+
+	auto Reflection = Module.Plugin.ReflectionData.Types.Find(SelectedNode.Id);
+	if (Reflection == nullptr)
+		return;
+
 	auto UuidPin = CreatePin(EGPD_Input, UEdGraphSchema_K2::PC_Object, UUuid::StaticClass(), UuidParamName);
 	UuidPin->bHidden = true;
 	auto UuidObject = NewObject<UUuid>();
@@ -124,54 +135,55 @@ void UK2Node_GetComponentRust::ExpandNode(class FKismetCompilerContext& Compiler
 
 	UEdGraphPin* PrevExecPin = HasComponentBranch->GetThenPin();
 
+	uint32_t NumberOfFields = Reflection->IndexToFieldName.Num();
 	for (uint32_t Idx = 0; Idx < NumberOfFields; Idx++)
 	{
-		Utf8Str Name;
-		if (Module.Plugin.Rust.reflection_fns.get_field_name(Id, Idx, &Name))
+		FString IdxName = FString::FromInt(Idx);
+		auto InputIdxPin = FindPinChecked(*IdxName);
+		auto FieldName = Reflection->IndexToFieldName.Find(Idx);
+		if (!FieldName)
+			continue;
+
+		auto FieldTypePtr = Reflection->FieldNameToType.Find(*FieldName);
+		if (!FieldTypePtr)
+			continue;
+
+		ReflectionType Type = *FieldTypePtr;
+		const FString& VarName = *FieldName;
+
+		if (Type == ReflectionType::Composite)
+			// TODO: Implement composite types
+			continue;
+		UEdGraphPin* OutputPin = FindPinChecked(*VarName, EGPD_Output);
+		UFunction* Function = nullptr;
+
+		if (Type == ReflectionType::Vector3)
 		{
-			FString IdxName = FString::FromInt(Idx);
-			auto InputIdxPin = FindPinChecked(*IdxName);
-
-
-			ReflectionType Type = ReflectionType::Bool;
-			if (Module.Plugin.Rust.reflection_fns.get_field_type(Id, Idx, &Type))
-			{
-				if (Type == ReflectionType::Composite)
-					// TODO: Implement composite types
-					continue;
-				FString VarName = ToFString(Name);
-				UEdGraphPin* OutputPin = FindPinChecked(*VarName, EGPD_Output);
-				UFunction* Function = nullptr;
-
-				if (Type == ReflectionType::Vector3)
-				{
-					Function = GetDefault<URustReflectionLibrary>()->FindFunctionChecked(
-						GET_FUNCTION_NAME_CHECKED(URustReflectionLibrary, K2_GetReflectionVector3));
-				}
-				if (Type == ReflectionType::Bool)
-				{
-					Function = GetDefault<URustReflectionLibrary>()->FindFunctionChecked(
-						GET_FUNCTION_NAME_CHECKED(URustReflectionLibrary, K2_GetReflectionBool));
-				}
-				if (Type == ReflectionType::Float)
-				{
-					Function = GetDefault<URustReflectionLibrary>()->FindFunctionChecked(
-						GET_FUNCTION_NAME_CHECKED(URustReflectionLibrary, K2_GetReflectionFloat));
-				}
-				if (Type == ReflectionType::Quaternion)
-				{
-					Function = GetDefault<URustReflectionLibrary>()->FindFunctionChecked(
-						GET_FUNCTION_NAME_CHECKED(URustReflectionLibrary, K2_GetReflectionQuat));
-				}
-				if (Function != nullptr)
-				{
-					UEdGraphPin* CurrentExecPin = CallReflection(CompilerContext, SourceGraph, Function, UuidPin,
-					                                             EntityPin,
-					                                             InputIdxPin,
-					                                             OutputPin, PrevExecPin);
-					PrevExecPin = CurrentExecPin;
-				}
-			}
+			Function = GetDefault<URustReflectionLibrary>()->FindFunctionChecked(
+				GET_FUNCTION_NAME_CHECKED(URustReflectionLibrary, K2_GetReflectionVector3));
+		}
+		if (Type == ReflectionType::Bool)
+		{
+			Function = GetDefault<URustReflectionLibrary>()->FindFunctionChecked(
+				GET_FUNCTION_NAME_CHECKED(URustReflectionLibrary, K2_GetReflectionBool));
+		}
+		if (Type == ReflectionType::Float)
+		{
+			Function = GetDefault<URustReflectionLibrary>()->FindFunctionChecked(
+				GET_FUNCTION_NAME_CHECKED(URustReflectionLibrary, K2_GetReflectionFloat));
+		}
+		if (Type == ReflectionType::Quaternion)
+		{
+			Function = GetDefault<URustReflectionLibrary>()->FindFunctionChecked(
+				GET_FUNCTION_NAME_CHECKED(URustReflectionLibrary, K2_GetReflectionQuat));
+		}
+		if (Function != nullptr)
+		{
+			UEdGraphPin* CurrentExecPin = CallReflection(CompilerContext, SourceGraph, Function, UuidPin,
+			                                             EntityPin,
+			                                             InputIdxPin,
+			                                             OutputPin, PrevExecPin);
+			PrevExecPin = CurrentExecPin;
 		}
 	}
 	CompilerContext.MovePinLinksToIntermediate(*ThenPin, *PrevExecPin);
@@ -199,14 +211,14 @@ FText UK2Node_GetComponentRust::GetNodeTitle(ENodeTitleType::Type TitleType) con
 
 TSharedPtr<SGraphNode> UK2Node_GetComponentRust::CreateVisualWidget()
 {
-	
 	FText NewText = FText::FromString(SelectedNode.Name);
 	return SNew(SGraphNodeGetComponent, this)
 		// TODO: This doesn't seem to work. `NewText` here is always empty.
 		//       Maybe `CreateVisualWidget` is called before `SelectedNode` is ready. 
 		.SelectedComponentText(NewText)
 		.OnUuidPickedDelegate(
-			FOnUuidPicked::CreateUObject(this, &UK2Node_GetComponentRust::OnUuidPicked));
+		                                         FOnUuidPicked::CreateUObject(
+			                                         this, &UK2Node_GetComponentRust::OnUuidPicked));
 }
 
 void UK2Node_GetComponentRust::OnUuidPicked(FUuidViewNode* Node)
@@ -267,7 +279,7 @@ UEdGraphPin* UK2Node_GetComponentRust::CallReflection(class FKismetCompilerConte
 	UEdGraphPin* CallOut = CallFunctionNode->FindPinChecked(ReflectOutputParamName, EGPD_Output);
 
 	PrevExecPin->MakeLinkTo(CallExecPin);
-	
+
 	CompilerContext.CopyPinLinksToIntermediate(*UuidPin, *CallUUid);
 	CompilerContext.CopyPinLinksToIntermediate(*EntityIdPin, *CallEntity);
 	CompilerContext.MovePinLinksToIntermediate(*InputIdxPin, *CallIndex);
