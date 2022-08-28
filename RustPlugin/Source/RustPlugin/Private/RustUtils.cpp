@@ -43,6 +43,7 @@ UnrealBindings CreateBindings()
 	actor_fns.register_actor_on_overlap = &RegisterActorOnOverlap;
 	actor_fns.register_actor_on_hit = &RegisterActorOnHit;
 	actor_fns.get_root_component = &GetRootComponent;
+	actor_fns.destroy_actor = &DestroyActor;
 	
 	UnrealBindings b = {};
 	b.actor_fns = actor_fns;

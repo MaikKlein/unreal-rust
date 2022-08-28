@@ -43,4 +43,7 @@ public:
 	
 	UFUNCTION()
     void OnActorHit(AActor* SelfActor, AActor* OtherActor, FVector NormalImpulse, const FHitResult& Hit);
+	
+	UFUNCTION()
+    void OnActorDestroyed(AActor* Actor);
 };

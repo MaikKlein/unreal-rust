@@ -76,6 +76,14 @@ void ARustGameModeBase::OnActorHit(AActor* SelfActor, AActor* OtherActor, FVecto
 	GetRustModule().Plugin.Rust.unreal_event(&Type, (void*)&Event);
 }
 
+void ARustGameModeBase::OnActorDestroyed(AActor* Actor)
+{
+	EventType Type = EventType::ActorDestroy;
+	ActorDestroyEvent Event;
+	Event.actor = (AActorOpaque*)Actor;
+	GetRustModule().Plugin.Rust.unreal_event(&Type, (void*)&Event);
+}
+
 void ARustGameModeBase::PostLogin(APlayerController* NewPlayer)
 {
 	Super::PostLogin(NewPlayer);
@@ -120,6 +128,8 @@ void ARustGameModeBase::StartPlay()
 	}
 	for (TActorIterator<AActor> ActorItr(GetWorld()); ActorItr; ++ActorItr)
 	{
-		OnActorSpawnedHandler(*ActorItr);
+		AActor* Actor = *ActorItr;
+		Actor->OnDestroyed.AddUniqueDynamic(this, &ARustGameModeBase::OnActorDestroyed);
+		OnActorSpawnedHandler(Actor);
 	}
 }

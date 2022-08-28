@@ -1,4 +1,4 @@
-use bevy_ecs::prelude::*;
+use bevy_ecs::{prelude::*, system::Command};
 use ffi::{ActorComponentPtr, ActorComponentType, EventType, Quaternion};
 use std::ffi::c_void;
 
@@ -44,9 +44,12 @@ impl Plugin for CorePlugin {
             .add_event::<OnActorEndOverlapEvent>()
             .add_event::<OnActorHitEvent>()
             .add_event::<ActorSpawnedEvent>()
+            .add_event::<ActorDestroyEvent>()
             .add_system_set_to_stage(
                 CoreStage::RegisterEvent,
-                SystemSet::new().with_system(process_actor_spawned),
+                SystemSet::new()
+                    .with_system(process_actor_spawned)
+                    .with_system(process_actor_destroyed),
             )
             .add_system_set_to_stage(
                 CoreStage::PreUpdate,
@@ -130,6 +133,10 @@ pub struct OnActorHitEvent {
     pub normal_impulse: Vec3,
 }
 
+pub struct ActorDestroyEvent {
+    pub actor: ActorPtr,
+}
+
 pub unsafe extern "C" fn unreal_event(ty: *const EventType, data: *const c_void) {
     if let Some(global) = crate::module::MODULE.as_mut() {
         match *ty {
@@ -163,6 +170,12 @@ pub unsafe extern "C" fn unreal_event(ty: *const EventType, data: *const c_void)
                     self_actor: ActorPtr((*hit).self_actor),
                     other: ActorPtr((*hit).other),
                     normal_impulse: (*hit).normal_impulse.into(),
+                });
+            }
+            EventType::ActorDestroy => {
+                let destroy = data as *const ffi::ActorDestroyEvent;
+                global.core.module.world.send_event(ActorDestroyEvent {
+                    actor: ActorPtr((*destroy).actor),
                 });
             }
         }
@@ -658,6 +671,42 @@ fn upload_transform_to_unreal(query: Query<(&ActorComponent, &TransformComponent
 
 fn update_input(mut input: ResMut<Input>) {
     input.update();
+}
+#[derive(Debug)]
+pub struct Despawn {
+    pub entity: Entity,
+}
+
+impl Command for Despawn {
+    fn write(self, world: &mut World) {
+        world.despawn(self.entity);
+        if let Some(mut api) = world.get_resource_mut::<UnrealApi>() {
+            // If this entity had an actor, we will also remove it from the map. Otherwise
+            // `actor_to_entity` will grow indefinitely
+            if let Some(actor) = api.entity_to_actor.remove(&self.entity) {
+                api.actor_to_entity.remove(&actor);
+                unsafe {
+                    (bindings().actor_fns.destroy_actor)(actor.0);
+                }
+            }
+        }
+    }
+}
+
+/// It can can that actors are destroyed inside unreal for example from the kill plane. We need to
+/// make sure to unregister them, otherwise we will end up with a dangling pointer in Rust.
+/// Here we actually despawn the whole entity instead of just removing the `ActorComponent` because
+/// it would be strange to keep the rust entity part alive, if the actor has been removed.
+fn process_actor_destroyed(
+    mut api: ResMut<UnrealApi>,
+    mut reader: EventReader<ActorDestroyEvent>,
+    mut commands: Commands,
+) {
+    for event in reader.iter() {
+        if let Some(entity) = api.actor_to_entity.remove(&event.actor) {
+            commands.add(Despawn { entity });
+        }
+    }
 }
 
 fn process_actor_spawned(

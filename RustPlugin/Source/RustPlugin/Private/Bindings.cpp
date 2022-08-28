@@ -635,3 +635,9 @@ void RegisterActorOnHit(AActorOpaque* actor)
 		return;
 	Actor->OnActorHit.AddUniqueDynamic(GameMode, &ARustGameModeBase::OnActorHit);
 }
+
+void DestroyActor(const AActorOpaque* actor)
+{
+	// TODO: What do we do if we can't destroy the actor?
+	ToAActor(actor)->Destroy();
+}

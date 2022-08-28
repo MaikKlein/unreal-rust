@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use bevy_ecs::prelude::*;
 use unreal_api::api::UnrealApi;
-use unreal_api::core::OnActorHitEvent;
+use unreal_api::core::{Despawn, OnActorHitEvent};
 use unreal_api::registry::USound;
 use unreal_api::sound::{play_sound_at_location, SoundSettings};
 use unreal_api::Component;
@@ -89,6 +89,8 @@ impl PlayerInput {
     pub const TOGGLE_CAMERA: &'static str = "ToggleCamera";
     pub const JUMP: &'static str = "Jump";
 }
+
+// TODO: We probably don't need that anymore
 fn register_class_resource(mut commands: Commands) {
     let mut len: usize = 0;
     unsafe {
@@ -103,7 +105,6 @@ fn register_class_resource(mut commands: Commands) {
     let mut classes_resource = ClassesResource::default();
 
     for (id, class_ptr) in classes.into_iter().enumerate() {
-        log::info!("register {:?} {:?}", id, class_ptr);
         if let Some(class) = Class::from(id as u32) {
             classes_resource.classes.insert(class_ptr, class);
         }
@@ -123,6 +124,7 @@ fn play_sound_on_hit(
     api: Res<UnrealApi>,
     mut events: EventReader<OnActorHitEvent>,
     query: Query<(&TransformComponent, &PlaySoundOnImpactComponent)>,
+    mut commands: Commands,
 ) {
     for event in events.iter() {
         if event.normal_impulse.length() <= 30000.0 {
@@ -137,6 +139,7 @@ fn play_sound_on_hit(
                     &SoundSettings::default(),
                 )
             }
+            commands.add(Despawn { entity });
         }
         log::info!("HIT {}", event.normal_impulse.length());
     }

@@ -45,6 +45,8 @@ pub type RegisterActorOnHitFn = unsafe extern "C" fn(actor: *mut AActorOpaque);
 
 pub type SetViewTargetFn = unsafe extern "C" fn(actor: *const AActorOpaque);
 
+pub type DestroyActorFn = unsafe extern "C" fn(actor: *const AActorOpaque);
+
 extern "C" {
     pub fn RegisterActorOnHit(actor: *mut AActorOpaque);
     pub fn RegisterActorOnOverlap(actor: *mut AActorOpaque);
@@ -81,6 +83,8 @@ extern "C" {
     pub fn IsMoveable(actor: *const AActorOpaque) -> u32;
 
     pub fn GetActorName(actor: *const AActorOpaque, data: *mut RustAlloc);
+
+    pub fn DestroyActor(actor: *const AActorOpaque);
 }
 
 #[repr(C)]
@@ -98,4 +102,5 @@ pub struct ActorFns {
     pub get_actor_name: GetActorNameFn,
     pub set_owner: SetOwnerFn,
     pub is_moveable: IsMoveableFn,
+    pub destroy_actor: DestroyActorFn,
 }

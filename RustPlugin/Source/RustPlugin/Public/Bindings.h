@@ -32,6 +32,7 @@ enum class EventType : uint32_t {
   ActorBeginOverlap = 1,
   ActorEndOverlap = 2,
   ActorOnHit = 3,
+  ActorDestroy = 4,
 };
 
 enum class ReflectionType : uint32_t {
@@ -189,6 +190,8 @@ using SetOwnerFn = void(*)(AActorOpaque *actor, const AActorOpaque *new_owner);
 
 using IsMoveableFn = uint32_t(*)(const AActorOpaque *actor);
 
+using DestroyActorFn = void(*)(const AActorOpaque *actor);
+
 struct ActorFns {
   GetSpatialDataFn get_spatial_data;
   SetSpatialDataFn set_spatial_data;
@@ -203,6 +206,7 @@ struct ActorFns {
   GetActorNameFn get_actor_name;
   SetOwnerFn set_owner;
   IsMoveableFn is_moveable;
+  DestroyActorFn destroy_actor;
 };
 
 using GetVelocityFn = Vector3(*)(const UPrimtiveOpaque *primitive);
@@ -380,6 +384,10 @@ struct ActorHitEvent {
   Vector3 normal_impulse;
 };
 
+struct ActorDestroyEvent {
+  AActorOpaque *actor;
+};
+
 extern "C" {
 
 extern void TickActor(AActorOpaque *actor, float dt);
@@ -472,6 +480,8 @@ extern UClassOpague *GetClass(const AActorOpaque *actor);
 extern uint32_t IsMoveable(const AActorOpaque *actor);
 
 extern void GetActorName(const AActorOpaque *actor, RustAlloc *data);
+
+extern void DestroyActor(const AActorOpaque *actor);
 
 extern Vector3 GetVelocity(const UPrimtiveOpaque *primitive);
 

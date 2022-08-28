@@ -51,7 +51,10 @@ void FRustDetailCustomization::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 		}
 	}
 
+
 	IDetailCategoryBuilder& RustCategory = DetailBuilder.EditCategory(TEXT("Rust"));
+	FDynamicRustComponent::Render(ComponentsHandle, RustCategory, DetailBuilder);
+
 	auto OnPicked = [Component, &DetailBuilder, ComponentsHandle](FUuidViewNode* Node)
 	{
 		if (Node == nullptr || Component == nullptr)
@@ -63,10 +66,10 @@ void FRustDetailCustomization::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 		}
 
 		{
+			uint32 Index = 0;
+			ComponentsHandle->GetNumChildren(Index);
 			ComponentsHandle->AsMap()->AddItem();
-			uint32 NumChildren = 0;
-			ComponentsHandle->GetNumChildren(NumChildren);
-			auto ChildProp = ComponentsHandle->GetChildHandle(NumChildren - 1);
+			auto ChildProp = ComponentsHandle->GetChildHandle(Index);
 			auto KeyProp = ChildProp->GetKeyHandle();
 
 			KeyProp->SetValue(Node->Id.ToString());
@@ -74,8 +77,6 @@ void FRustDetailCustomization::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 		}
 		DetailBuilder.ForceRefreshDetails();
 	};
-
-	FDynamicRustComponent::Render(ComponentsHandle, RustCategory, DetailBuilder);
 
 	RustCategory.AddCustomRow(LOCTEXT("Picker", "Picker")).WholeRowContent()[
 		SNew(SRustDropdownList).OnlyShowEditorComponents(true).OnUuidPickedDelegate(
