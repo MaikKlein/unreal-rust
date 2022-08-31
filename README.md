@@ -45,13 +45,12 @@ We start by cloning this repository
 
 ```
 git clone https://github.com/MaikKlein/unreal-rust
-
 ```
+
 Next we clone the submodule. This will download the actual example with all the assets.
 
 ```
 git submodule update --init
-
 ```
 
 Next we need to setup the example
@@ -64,9 +63,11 @@ This will symlink the `RustPlugin` into the unreal `example/RustExample/Plugin` 
 Now we need to build the actual Rust code:
 
 Simply run
+
 ```
 cargo build --release
 ```
+
 This will build whole project. This also produces our dll that we are going to load into Unreal.
 
 Copy the dll/so file into the project 
