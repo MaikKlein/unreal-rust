@@ -34,10 +34,10 @@ void GetSpatialData(const AActorOpaque* actor,
                     Quaternion* rotation,
                     Vector3* scale)
 {
-	auto t = ToAActor(actor)->GetTransform();
-	*position = ToVector3(t.GetTranslation());
-	*rotation = ToQuaternion(t.GetRotation());
-	*scale = ToVector3(t.GetScale3D());
+	const auto Transform = ToAActor(actor)->GetTransform();
+	*position = ToVector3(Transform.GetTranslation());
+	*rotation = ToQuaternion(Transform.GetRotation());
+	*scale = ToVector3(Transform.GetScale3D());
 }
 
 void Log(const char* s, int32 len)

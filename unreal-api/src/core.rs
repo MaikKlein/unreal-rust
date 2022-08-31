@@ -42,7 +42,7 @@ impl Plugin for CorePlugin {
             // TODO: Order matters here. Needs to be defined after the stages
             .add_event::<OnActorBeginOverlapEvent>()
             .add_event::<OnActorEndOverlapEvent>()
-            .add_event::<OnActorHitEvent>()
+            .add_event::<ActorHitEvent>()
             .add_event::<ActorSpawnedEvent>()
             .add_event::<ActorDestroyEvent>()
             .add_system_set_to_stage(
@@ -127,7 +127,7 @@ pub struct OnActorEndOverlapEvent {
     pub other: ActorPtr,
 }
 
-pub struct OnActorHitEvent {
+pub struct ActorHitEvent {
     pub self_actor: ActorPtr,
     pub other: ActorPtr,
     pub normal_impulse: Vec3,
@@ -166,7 +166,7 @@ pub unsafe extern "C" fn unreal_event(ty: *const EventType, data: *const c_void)
             }
             EventType::ActorOnHit => {
                 let hit = data as *const ffi::ActorHitEvent;
-                global.core.module.world.send_event(OnActorHitEvent {
+                global.core.module.world.send_event(ActorHitEvent {
                     self_actor: ActorPtr((*hit).self_actor),
                     other: ActorPtr((*hit).other),
                     normal_impulse: (*hit).normal_impulse.into(),
@@ -494,6 +494,12 @@ pub struct ActorComponent {
 }
 
 impl ActorComponent {
+    pub fn register_on_hit(&mut self) {
+        unsafe {
+            (bindings().actor_fns.register_actor_on_hit)(self.actor.0);
+        }
+    }
+
     pub fn set_owner(&mut self, new_owner: Option<&Self>) {
         unsafe {
             let ptr = new_owner
@@ -502,6 +508,7 @@ impl ActorComponent {
             (bindings().actor_fns.set_owner)(self.actor.0, ptr);
         }
     }
+
     pub fn get_actor_name(&self) -> String {
         unsafe {
             let mut alloc = ffi::RustAlloc::empty();

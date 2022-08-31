@@ -2,7 +2,7 @@ use std::collections::HashMap;
 
 use bevy_ecs::prelude::*;
 use unreal_api::api::UnrealApi;
-use unreal_api::core::{Despawn, OnActorHitEvent};
+use unreal_api::core::{ActorHitEvent, Despawn};
 use unreal_api::registry::USound;
 use unreal_api::sound::{play_sound_at_location, SoundSettings};
 use unreal_api::Component;
@@ -61,6 +61,9 @@ impl CameraMode {
 pub struct PlaySoundOnImpactComponent {
     pub sound: USound,
 }
+impl PlaySoundOnImpactComponent {
+    const MINIMUM_FORCE: f32 = 30000.0;
+}
 
 #[derive(Debug, Component)]
 #[uuid = "52788d7e-017b-42cd-b3bf-aa616315c0c4"]
@@ -111,25 +114,26 @@ fn register_class_resource(mut commands: Commands) {
     }
     commands.insert_resource(classes_resource);
 }
-fn register_hit_events(query: Query<(&ActorComponent, Added<PlaySoundOnImpactComponent>)>) {
-    for (actor, added) in &query {
+
+fn register_hit_events(mut query: Query<(&mut ActorComponent, Added<PlaySoundOnImpactComponent>)>) {
+    for (mut actor, added) in &mut query {
         if added {
-            unsafe {
-                (bindings().actor_fns.register_actor_on_hit)(actor.actor.0);
-            }
+            actor.register_on_hit();
         }
     }
 }
+
 fn play_sound_on_hit(
     api: Res<UnrealApi>,
-    mut events: EventReader<OnActorHitEvent>,
+    mut events: EventReader<ActorHitEvent>,
     query: Query<(&TransformComponent, &PlaySoundOnImpactComponent)>,
     mut commands: Commands,
 ) {
     for event in events.iter() {
-        if event.normal_impulse.length() <= 30000.0 {
+        if event.normal_impulse.length() <= PlaySoundOnImpactComponent::MINIMUM_FORCE {
             continue;
         }
+
         if let Some(&entity) = api.actor_to_entity.get(&event.self_actor) {
             if let Ok((trans, sound)) = query.get(entity) {
                 play_sound_at_location(
@@ -141,7 +145,6 @@ fn play_sound_on_hit(
             }
             commands.add(Despawn { entity });
         }
-        log::info!("HIT {}", event.normal_impulse.length());
     }
 }
 
@@ -241,7 +244,7 @@ fn rotate_camera(mut query: Query<(&mut TransformComponent, &mut CameraComponent
         cam.x += x * speed;
         cam.y = f32::clamp(cam.y + y * speed, -max_angle, max_angle);
 
-        let smooth = 0.8;
+        let smooth = 0.4;
         cam.current_x = lerp(cam.current_x, cam.x, smooth);
         cam.current_y = lerp(cam.current_y, cam.y, smooth);
 

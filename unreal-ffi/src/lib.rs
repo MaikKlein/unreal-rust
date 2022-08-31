@@ -325,6 +325,7 @@ pub struct RustBindings {
     pub reflection_fns: ReflectionFns,
     pub allocate_fns: AllocateFns,
 }
+
 pub type UnrealEventFn = unsafe extern "C" fn(ty: *const EventType, data: *const c_void);
 
 #[repr(u32)]
