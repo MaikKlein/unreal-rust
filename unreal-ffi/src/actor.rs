@@ -85,6 +85,8 @@ extern "C" {
     pub fn GetActorName(actor: *const AActorOpaque, data: *mut RustAlloc);
 
     pub fn DestroyActor(actor: *const AActorOpaque);
+
+    pub fn SetViewTarget(actor: *const AActorOpaque);
 }
 
 #[repr(C)]

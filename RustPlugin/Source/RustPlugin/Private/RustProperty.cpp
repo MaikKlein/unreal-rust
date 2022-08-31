@@ -11,6 +11,8 @@
 #include "EditorWidgets/Public/SAssetDropTarget.h"
 #include "GameFramework/GameModeBase.h"
 #include "Widgets/Input/SVectorInputBox.h"
+#include "Widgets/Layout/SBox.h"
+#include "Widgets/Input//SButton.h"
 
 #define LOCTEXT_NAMESPACE "RustProperty"
 

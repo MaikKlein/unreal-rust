@@ -5,9 +5,11 @@
 #include "CoreMinimal.h"
 #include "Bindings.h"
 #include "DetailCategoryBuilder.h"
+#include "Templates/SubclassOf.h"
 #include "UObject/Object.h"
 #include "RustProperty.generated.h"
 
+class USoundBase;
 DECLARE_DELEGATE_RetVal(FReply, FOnComponentRemoved);
 
 UENUM()

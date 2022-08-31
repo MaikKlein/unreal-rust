@@ -2,6 +2,7 @@
 
 #include "CoreMinimal.h"
 #include "Bindings.h"
+#include "CollisionShape.h"
 
 class AActor;
 class FRustPluginModule;

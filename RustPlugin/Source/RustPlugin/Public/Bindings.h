@@ -483,6 +483,8 @@ extern void GetActorName(const AActorOpaque *actor, RustAlloc *data);
 
 extern void DestroyActor(const AActorOpaque *actor);
 
+extern void SetViewTarget(const AActorOpaque *actor);
+
 extern Vector3 GetVelocity(const UPrimtiveOpaque *primitive);
 
 extern void SetVelocity(UPrimtiveOpaque *primitive, Vector3 velocity);

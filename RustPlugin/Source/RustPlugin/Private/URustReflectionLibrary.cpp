@@ -34,7 +34,7 @@ void URustReflectionLibrary::K2_GetReflectionBool(UUuid* Id, FEntity EntityId, i
 	if (Module.Plugin.IsLoaded())
 	{
 		Module.Plugin.Rust.reflection_fns.get_field_bool_value(Id->Id, E, Index, &Result);
-		Out = Result;
+		Out = Result == 1;
 	}
 }
 

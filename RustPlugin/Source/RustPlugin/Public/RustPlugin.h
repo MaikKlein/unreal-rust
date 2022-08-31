@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Bindings.h"
 #include "Containers/Array.h"
+#include "Modules/ModuleInterface.h"
 
 
 class FToolBarBuilder;

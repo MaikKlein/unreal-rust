@@ -1,4 +1,6 @@
 #include "SGraphNodeGetComponent.h"
+
+#include "K2Node.h"
 #include "SListViewSelectorDropdownMenu.h"
 #include "Widgets/Layout/SScrollBox.h"
 

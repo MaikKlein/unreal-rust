@@ -8,6 +8,8 @@
 #include "Widgets/Input/SSearchBox.h"
 #include "Widgets/Layout/SScrollBox.h"
 #include "SListViewSelectorDropdownMenu.h"
+#include "Widgets/Views/SListView.h"
+#include "Widgets/Input/SComboButton.h"
 
 BEGIN_SLATE_FUNCTION_BUILD_OPTIMIZATION
 #define LOCTEXT_NAMESPACE "RustDropdownList"

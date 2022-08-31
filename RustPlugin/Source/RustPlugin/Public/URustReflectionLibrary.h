@@ -1,6 +1,7 @@
 #pragma once
 
 #include "EntityComponent.h"
+#include "Kismet/BlueprintFunctionLibrary.h"
 #include "URustReflectionLibrary.generated.h"
 
 UCLASS()

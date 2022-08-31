@@ -4,8 +4,12 @@
 
 #include "CoreMinimal.h"
 #include "Widgets/SCompoundWidget.h"
+#include "Widgets/Views/SListView.h"
 #include "SRustDropdownList.generated.h"
 
+class SSearchBox;
+class STableViewBase;
+class ITableRow;
 USTRUCT()
 struct FUuidViewNode
 {

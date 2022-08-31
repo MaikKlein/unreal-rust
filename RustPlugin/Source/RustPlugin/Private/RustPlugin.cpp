@@ -15,9 +15,12 @@
 #include "FUuidGraphPanelPinFactory.h"
 #include "Modules/ModuleManager.h"
 #include "RustUtils.h"
+#include "Bindings.h"
 #include "Framework/Notifications/NotificationManager.h"
+#include "HAL/PlatformFileManager.h"
 #include "Widgets/Notifications/SNotificationList.h"
 
+#include <stdint.h>
 static const FName RustPluginTabName("RustPlugin");
 
 #define LOCTEXT_NAMESPACE "FRustPluginModule"

@@ -11,6 +11,7 @@
 #include "GameFramework/PlayerInput.h"
 #include "EntityComponent.h"
 #include "Camera/CameraActor.h"
+#include "Components/PrimitiveComponent.h"
 #include "Sound/SoundBase.h"
 #include "VisualLogger/VisualLogger.h"
 
@@ -200,12 +201,12 @@ void GetActorComponents(const AActorOpaque* actor, ActorComponentPtr* data, uint
 
 void AddForce(UPrimtiveOpaque* actor, Vector3 force)
 {
-	((UPrimitiveComponent*)actor)->AddForce(ToFVector(force), FName{}, false);
+	static_cast<UPrimitiveComponent*>(actor)->AddForce(ToFVector(force), FName{}, false);
 }
 
 void AddImpulse(UPrimtiveOpaque* actor, Vector3 force)
 {
-	((UPrimitiveComponent*)actor)->AddImpulse(ToFVector(force), FName{}, false);
+	static_cast<UPrimitiveComponent*>(actor)->AddImpulse(ToFVector(force), FName{}, false);
 }
 
 uint32_t IsSimulating(const UPrimtiveOpaque* primitive)
