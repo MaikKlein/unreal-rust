@@ -35,29 +35,53 @@ I am releasing `unreal-rust` on github to develop it in the open.
 
 _I am aware that these are a lot of steps. I am sorry, I will try to simplify this in the future_
 
-- Clone this repository `git clone https://github.com/MaikKlein/unreal-rust`
-- Make sure to clone the submodules as well `git submodule update --init`
+* Prerequisites:
+* * [Unreal Engine 5](https://www.unrealengine.com/en-US/unreal-engine-5). For Linux users you can get it [here](https://www.unrealengine.com/en-US/linux)
+* * Get [git lfs](https://git-lfs.github.com/), and run `git lfs install`
+* * [ue4cli](https://docs.adamrehn.com/ue4cli/overview/introduction-to-ue4cli), You can get it with `pip3 install ue4cli`. This step is optional but I will use `ue4cli` in this guide.
+* * [Rust](https://www.rust-lang.org/tools/install)
 
-- Run the setup
+We start by cloning this repository 
+
+```
+git clone https://github.com/MaikKlein/unreal-rust
+
+```
+Next we clone the submodule. This will download the actual example with all the assets.
+
+```
+git submodule update --init
+
+```
+
+Next we need to setup the example
+
 - - Linux `sh setup.sh`
-- - Windows Copy or symlink `RustPlugin` into `examples/RustExample/Plugins`
-- Build the rust code
-- - `cargo build --release`
-- - Copy the dll/so file into the project `cp target/release/libunreal_rust_example.so example/RustExample/Binaries/rustplugin.so`
-- - Bonus: You can use `cargo-watch` to automatically rebuild your code on file changes. `cargo watch -i "*.so" -s "cargo build --release; cp target/release/libunreal_rust_example.so example/RustExample/Binaries/rustplugin.so"` You can install it with `cargo install cargo-watch`
+- - Windows `TODO add setup.bat`
 
-- Build `example/RustExample`
-- - I recommend installing [ue4cli](https://docs.adamrehn.com/ue4cli/overview/introduction-to-ue4cli)
-- - `cd example/RustExample`
-- - `ue4 build Development Editor`
-- - and run the editor `ue4 run`
+This will symlink the `RustPlugin` into the unreal `example/RustExample/Plugin` folder.
 
-### Minimal
+Now we need to build the actual Rust code:
 
-- Move the `RustPlugin` folder into your projects `Plugins` folder
-- Start with the `example/minimal`
-- Run `cargo build --release`. This will produce a C dll in `target/release`
-- Copy the dll into the `Binaries` folder of your project, and name it `rustplugin.so`
+Simply run
+```
+cargo build --release
+```
+This will build whole project. This also produces our dll that we are going to load into Unreal.
+
+Copy the dll/so file into the project 
+
+* Linux: `cp target/release/libunreal_rust_example.so example/RustExample/Binaries/rustplugin.so`
+* Windows: `TODO`
+
+Now we need to build the unreal example
+
+```
+cd example/RustExample
+ue4 build Development Editor
+```
+
+Now you can run the example with `ue4 run`
 
 ## Supported versions
 
