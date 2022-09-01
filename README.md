@@ -50,13 +50,14 @@ git clone https://github.com/MaikKlein/unreal-rust
 Next we clone the submodule. This will download the actual example with all the assets.
 
 ```
+cd unreal-rust
 git submodule update --init
 ```
 
 Next we need to setup the example
 
 - - Linux `sh setup.sh`
-- - Windows `TODO add setup.bat`
+- - Windows `setup.bat`
 
 This will symlink the `RustPlugin` into the unreal `example/RustExample/Plugin` folder.
 
@@ -73,7 +74,7 @@ This will build whole project. This also produces our dll that we are going to l
 Copy the dll/so file into the project 
 
 * Linux: `cp target/release/libunreal_rust_example.so example/RustExample/Binaries/rustplugin.so`
-* Windows: `xcopy.exe .\target\release\libunreal_rust_example.dll .\example\RustExample\Binaries\rustplugin.dll`
+* Windows: `xcopy.exe /Y .\target\release\unreal_rust_example.dll .\example\RustExample\Binaries\rustplugin.dll`
 
 Now we need to build the unreal example
 
