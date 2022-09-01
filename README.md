@@ -74,7 +74,7 @@ This will build whole project. This also produces our dll that we are going to l
 Copy the dll/so file into the project 
 
 * Linux: `cp target/release/libunreal_rust_example.so example/RustExample/Binaries/rustplugin.so`
-* Windows: `xcopy.exe /Y .\target\release\unreal_rust_example.dll .\example\RustExample\Binaries\rustplugin.dll`
+* Windows: `copy .\target\release\unreal_rust_example.dll .\example\RustExample\Binaries\rustplugin.dll`
 
 Now we need to build the unreal example
 
