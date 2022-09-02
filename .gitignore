@@ -14,3 +14,4 @@ rusttemp
 *.pdb
 *.exp
 *.dll
+*.code-workspace
