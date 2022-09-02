@@ -98,7 +98,7 @@ void ARustGameModeBase::Tick(float Dt)
 	{
 		StartPlay();
 	}
-	if (Module.Plugin.Rust.tick(Dt) == ResultCode::Panic)
+	if (Module.Plugin.IsLoaded() && Module.Plugin.Rust.tick(Dt) == ResultCode::Panic)
 	{
 		Module.Exit();
 	}
@@ -118,7 +118,7 @@ void ARustGameModeBase::StartPlay()
 	}
 
 	FRustPluginModule& Module = GetRustModule();
-	if (Module.Plugin.Rust.begin_play() == ResultCode::Panic)
+	if (Module.Plugin.IsLoaded() && Module.Plugin.Rust.begin_play() == ResultCode::Panic)
 	{
 		Module.Exit();
 	}

@@ -71,7 +71,6 @@ bool FPlugin::TryLoad()
 		}
 	}
 
-	//UE_LOG(LogTemp, Warning, TEXT("Copy From %s to %s"), *Path, *LocalTargetPath);
 	if (!FPlatformFileManager::Get().GetPlatformFile().CopyFile(*LocalTargetPath, *Path))
 	{
 		UE_LOG(LogTemp, Warning, TEXT("Unable to copy File from %s to %s"), *Path, *LocalTargetPath);
@@ -149,7 +148,7 @@ void FPlugin::RetrieveReflectionData()
 		FRustReflection Reflection;
 		Reflection.Name = ToFString(TypeNameStr);
 		Reflection.IsEditorComponent = Rust.reflection_fns.is_editor_component(Id) == 1;
-		
+
 		for (uint32_t Idx = 0; Idx < NumberOfFields; Idx++)
 		{
 			Utf8Str FieldNamePtr;
@@ -161,7 +160,7 @@ void FPlugin::RetrieveReflectionData()
 			Reflection.IndexToFieldName.Add(Idx, FieldName);
 			Reflection.FieldNameToType.Add(FieldName, Type);
 		}
-		
+
 		ReflectionData.Types.Add(ToFGuid(Id), Reflection);
 	}
 }
