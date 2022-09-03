@@ -1,3 +1,5 @@
+// This code was copied and modified from https://github.com/bevyengine/bevy/blob/f000c2b951f4c519416ffda70281b2284d37f9f8/crates/bevy_reflect/bevy_reflect_derive/src/type_uuid.rs
+
 extern crate proc_macro;
 
 use quote::{quote, ToTokens};

@@ -25,8 +25,8 @@ I am releasing `unreal-rust` on github to develop it in the open.
 
 ## 🖥️ Supported Platforms
 
-* Linux
-* Windows
+* 🐧 Linux
+* 🪟 Windows
 
 Potential future platforms: iOS, macOS, Android, html5/browser(possibly)
 
@@ -96,7 +96,7 @@ ue4 build Development Editor
 
 Now you can run the example with `ue4 run`
 
-## Supported versions
+## 🚀 Supported versions
 
 - `5.0`
 
@@ -106,7 +106,12 @@ This project will always try to support the latest version.
 - Latest version of Rust
 - Latest version of all dependencies
 
-## Alternatives
+## 🤝 Alternatives
 
 * [Unreal Angelscript](https://angelscript.hazelight.se/)
 * [UnrealCLR](https://github.com/nxrighthere/UnrealCLR)
+
+## 🥰 Thank you
+
+* [kenney](https://kenney.nl/), [quaternius](https://www.patreon.com/quaternius)
+* [bevy](https://bevyengine.org/)
