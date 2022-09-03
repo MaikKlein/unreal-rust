@@ -32,9 +32,11 @@ Potential future platforms: iOS, macOS, Android, html5/browser(possibly)
 
 Consoles are unsupported. I simply can not offer console support as it is a closed off ecosystem. Nor do I have access to any developer kits myself.
 
-## 💌 Blog posts
+## 💌 Blog posts / media
 
-* SOON
+* Announcement: SOON
+* [unreal-rust youtube playlist](https://www.youtube.com/playlist?list=PLps1NSMUeqzicmTej83z-n1J383u1UVq1)
+
 
 ## 🚩 Known problems
 
