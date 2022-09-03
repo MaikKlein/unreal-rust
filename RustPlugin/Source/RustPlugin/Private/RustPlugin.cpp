@@ -55,6 +55,16 @@ FPlugin::FPlugin()
 
 bool FPlugin::TryLoad()
 {
+    // Loading ddls is a bit tricky, see https://fasterthanli.me/articles/so-you-want-to-live-reload-rust
+    // The gist is we can't easily hot reload a dll if the dll uses the thread local storage (TLS).
+    // The TLS will prevent the dll from being unloaded even when we call `dlclose`. And `dlopen` will return
+    // the pointer to the previously loaded dll.
+    // Essentially this means hot reloading will do nothing as we can't unload the currently loaded dll.
+    // The workaround for this is give each dll a unique name. Here we append the unix timestamp at
+    // the end of the file. That way we can force `dlopen` to load the dll.
+    // Please note this is a hack, and this _should_ leak and increase the memory every time you hot reload.
+    // This behavior is the same on Linux, Windows and most likely all the other platforms.
+
 	FString Path = PluginPath();
 	FString LocalTargetPath = FPaths::Combine(*PluginFolderPath(),
 	                                          *FString::Printf(
@@ -65,6 +75,7 @@ bool FPlugin::TryLoad()
 		FPlatformProcess::FreeDllHandle(this->Handle);
 		this->Handle = nullptr;
 		// This is leaky. If we close the editor this will not delete the file
+        // TODO: Cleanup unused dlls here
 		if (!FPlatformFileManager::Get().GetPlatformFile().DeleteFile(*this->TargetPath))
 		{
 			UE_LOG(LogTemp, Warning, TEXT("Unable to delete File %s"), *this->TargetPath);
