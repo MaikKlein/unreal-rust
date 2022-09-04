@@ -34,8 +34,8 @@ Consoles are unsupported. I simply can not offer console support as it is a clos
 
 ## 💌 Blog posts / media
 
-* Announcement: SOON
-* [unreal-rust youtube playlist](https://www.youtube.com/playlist?list=PLps1NSMUeqzicmTej83z-n1J383u1UVq1)
+* [Announcing Unreal Rust](https://maikklein.github.io/unreal-rust-1/)
+* [unreal-rust devlog](https://www.youtube.com/playlist?list=PLps1NSMUeqzicmTej83z-n1J383u1UVq1)
 
 
 ## 🚩 Known problems
