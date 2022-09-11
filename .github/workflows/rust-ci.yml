@@ -11,12 +11,13 @@ jobs:
   unreal:
     name: Unreal
     runs-on: ubuntu-latest
-    steps:
-      - uses: docker/epicgames/unreal-engine:dev-5.0
+    container:
+      image: epicgames/unreal-engine:dev-5.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+    steps:
       - name: Build
        run: |
          echo "Hello World"
