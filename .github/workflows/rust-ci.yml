@@ -15,11 +15,10 @@ jobs:
       - uses: docker/login-action@v2
         with:
           registry: ghcr.io
-          username: ${{ github.actor }}
+          username: maikklein
           password: ${{ secrets.GITHUB_TOKEN }}
       - name: Build
         run: |
-          echo ${{ secrets.GITHUB_TOKEN }} | docker login ghcr.io -u maikklein --password-stdin
           docker pull ghcr.io/epicgames/unreal-engine:dev-5.0
           echo "Hello World"
   lint:
