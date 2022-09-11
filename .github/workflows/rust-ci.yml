@@ -8,6 +8,18 @@ on:
 
 name: CI
 jobs:
+  unreal:
+    name: Unreal
+    runs-on: ubuntu-latest
+    steps:
+      - uses: docker/epicgames/unreal-engine:dev-5.0
+      - with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Build
+       run: |
+         echo "Hello World"
   lint:
     name: Lint
     runs-on: ubuntu-latest
