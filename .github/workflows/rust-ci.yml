@@ -11,8 +11,6 @@ jobs:
   unreal:
     name: Unreal
     runs-on: ubuntu-latest
-    container:
-      image: epicgames/unreal-engine:dev-5.0
     steps:
       - uses: docker/login-action@v2
         with:
