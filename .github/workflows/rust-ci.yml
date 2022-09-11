@@ -17,6 +17,9 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          docker pull ghcr.io/epicgames/unreal-engine:dev-5.0
+          echo "Hello World"
       - name: Build
         run: |
           docker pull ghcr.io/epicgames/unreal-engine:dev-5.0
