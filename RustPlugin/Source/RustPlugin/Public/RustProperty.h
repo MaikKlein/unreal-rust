@@ -38,25 +38,25 @@ struct FRustProperty
 	//UPROPERTY(EditAnywhere)
 	//TEnumAsByte<ERustPropertyTag> Tag;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category=Rust)
 	int32 Tag;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category=Rust)
 	float Float;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category=Rust)
 	bool Bool;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category=Rust)
 	FVector Vector;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category=Rust)
 	FRotator Rotation;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category=Rust)
 	TSubclassOf<AActor> Class;
 	
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category=Rust)
 	TObjectPtr<USoundBase> Sound;
 	static void Initialize(TSharedPtr<IPropertyHandle> Handle, ReflectionType Type);
 };
@@ -67,10 +67,10 @@ struct FDynamicRustComponent
 {
 	GENERATED_BODY()
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category=Rust)
 	TMap<FString, FRustProperty> Fields;
 
-	UPROPERTY(EditAnywhere)
+	UPROPERTY(EditAnywhere, Category=Rust)
 	FString Name;
 
 	void Reload(TSharedPtr<IPropertyHandle> Handle, FGuid Guid);

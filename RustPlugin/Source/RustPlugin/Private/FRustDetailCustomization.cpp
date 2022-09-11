@@ -1,7 +1,8 @@
 #include "FRustDetailCustomization.h"
 
 // MyCustomization.cpp
-#include "PropertyEditing.h"
+#include "DetailLayoutBuilder.h"
+#include "DetailWidgetRow.h"
 #include "Widgets/Input/SVectorInputBox.h"
 #include "RustActor.h"
 #include "RustProperty.h"
