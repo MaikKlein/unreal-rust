@@ -11,17 +11,17 @@ jobs:
   unreal:
     name: Unreal
     runs-on: ubuntu-latest
-    uses: docker/login-action@v2
-    with:
-      registry: ghcr.io
-      username: ${{ secrets.GITLAB_USERNAME }}
-      password: ${{ secrets.GITLAB_PASSWORD }}
+    - uses: docker/login-action@v2
+      with:
+        registry: ghcr.io
+        username: ${{ secrets.GITLAB_USERNAME }}
+        password: ${{ secrets.GITLAB_PASSWORD }}
     container:
       image: epicgames/unreal-engine:dev-5.0
     steps:
       - name: Build
-       run: |
-         echo "Hello World"
+        run: |
+          echo "Hello World"
   lint:
     name: Lint
     runs-on: ubuntu-latest
