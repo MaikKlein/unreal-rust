@@ -8,7 +8,7 @@ Opinionated Rust integration for Unreal Engine
 
 ## ☣️ Warning
 
-`unreal-rust` is not ready to be used in a real project. `unreal-rust` is in a very early state and nothing more that a proof of concept right now. The API will change quite frequently. Things might crash, or not work as intended. The user experience will not be great.
+`unreal-rust` is not ready to be used in a real project. `unreal-rust` is in a very early state and nothing more than a proof of concept right now. The API will change quite frequently. Things might crash, or not work as intended. The user experience will not be great.
 
 I am releasing `unreal-rust` on github to develop it in the open.
 
@@ -82,7 +82,7 @@ Simply run
 cargo build --release
 ```
 
-This will build whole project. This also produces our dll that we are going to load into Unreal.
+This will build the whole project. This also produces our dll that we are going to load into Unreal.
 
 Copy the dll/so file into the project 
 
