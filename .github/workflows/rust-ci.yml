@@ -11,6 +11,7 @@ jobs:
   unreal:
     name: Unreal
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     container:
       image: ghcr.io/epicgames/unreal-engine:dev-slim-5.0.3
       credentials:
