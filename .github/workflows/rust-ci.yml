@@ -29,7 +29,11 @@ jobs:
       #    echo "Hello World"
       - name: Build
         run: |
+          ls -a
           echo "Hello World"
+          cd RustPlugin
+          pip install ue4cli
+          ue4 build
   lint:
     name: Lint
     runs-on: ubuntu-latest
