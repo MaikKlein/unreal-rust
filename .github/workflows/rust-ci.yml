@@ -11,6 +11,12 @@ jobs:
   unreal:
     name: Unreal
     runs-on: ubuntu-latest
+    container:
+      image: ghcr.io/epicgames/unreal-engine:dev-5.0
+      credentials:
+         username: ${{ github.actor }}
+         password: ${{ secrets.UNREAL }}
+
     steps:
       - uses: docker/login-action@v2
         with:
