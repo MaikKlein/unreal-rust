@@ -18,14 +18,17 @@ jobs:
          password: ${{ secrets.UNREAL }}
 
     steps:
-      - uses: docker/login-action@v2
-        with:
-          registry: ghcr.io
-          username: maikklein
-          password: ${{ secrets.UNREAL }}
+      #- uses: docker/login-action@v2
+      #  with:
+      #    registry: ghcr.io
+      #    username: maikklein
+      #    password: ${{ secrets.UNREAL }}
+      #- name: Build
+      #  run: |
+      #    docker pull ghcr.io/epicgames/unreal-engine:dev-5.0
+      #    echo "Hello World"
       - name: Build
         run: |
-          docker pull ghcr.io/epicgames/unreal-engine:dev-5.0
           echo "Hello World"
   lint:
     name: Lint
