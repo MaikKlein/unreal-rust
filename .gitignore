@@ -8,6 +8,7 @@ Intermediate
 Saved
 Script
 Plugins/RustPlugin/Intermediate
+example/*
 rusttemp
 *.exe
 *.lib

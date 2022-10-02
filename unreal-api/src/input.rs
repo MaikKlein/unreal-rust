@@ -18,6 +18,15 @@ pub struct Input {
     axis_bindings: Vec<Binding>,
 }
 impl Input {
+    pub fn get_mouse_delta(&self) -> (f32, f32) {
+        let mut x = 0.0;
+        let mut y = 0.0;
+
+        unsafe {
+            (bindings().get_mouse_delta)(&mut x, &mut y);
+        }
+        (x, y)
+    }
     pub fn register_action_binding(&mut self, binding: Binding) {
         self.action_bindings.push(binding);
     }
@@ -27,7 +36,6 @@ impl Input {
 
     pub fn update(&mut self) {
         self.axis.clear();
-        self.action.clear();
 
         for binding in &self.action_bindings {
             let check_state = |state: ActionState| -> bool {

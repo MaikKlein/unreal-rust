@@ -5,6 +5,7 @@ members = [
     "unreal-reflect",
     "unreal-api-derive",
     "unreal-rust-example",
+    "slash-example",
     "gameplay-plugins/unreal-movement",
 ]
 #[profile.release]

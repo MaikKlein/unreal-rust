@@ -345,11 +345,11 @@ impl<'w> MovementQueryItem<'w> {
             (self.controller.horizontal_velocity + self.controller.vertical_velocity + velocity)
                 * dt;
 
-        if self.controller.horizontal_velocity.length() > 0.2 {
-            let velocity_dir = self.controller.horizontal_velocity.normalize_or_zero();
-            let target_rot = Quat::from_rotation_z(f32::atan2(velocity_dir.y, velocity_dir.x));
-            self.transform.rotation = Quat::lerp(self.transform.rotation, target_rot, dt * 10.0);
-        }
+        //if self.controller.horizontal_velocity.length() > 0.2 {
+        //    let velocity_dir = self.controller.horizontal_velocity.normalize_or_zero();
+        //    let target_rot = Quat::from_rotation_z(f32::atan2(velocity_dir.y, velocity_dir.x));
+        //    self.transform.rotation = Quat::lerp(self.transform.rotation, target_rot, dt * 10.0);
+        //}
     }
     pub fn movement_hit(&self, velocity: Vec3, dt: f32, api: &UnrealApi) -> Option<MovementHit> {
         let params = SweepParams::default().add_ignored_entity(self.entity);

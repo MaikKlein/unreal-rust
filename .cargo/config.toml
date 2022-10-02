@@ -2,3 +2,5 @@
 rustflags = [
     "-C", "link-args=-fuse-ld=lld-link"
 ]
+[target.x86_64-pc-windows-gnu]
+rustflags = ["-C", "link-arg=-fuse-ld=lld"]

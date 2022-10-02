@@ -42,10 +42,15 @@ ARustGameModeBase::ARustGameModeBase()
 
 void ARustGameModeBase::OnActorSpawnedHandler(AActor* actor)
 {
+	auto Module = GetRustModule();
+	if(!Module.Plugin.IsLoaded()){
+		return;
+	}
+
 	EventType Type = EventType::ActorSpawned;
 	ActorSpawnedEvent Event;
 	Event.actor = (AActorOpaque*)actor;
-	GetRustModule().Plugin.Rust.unreal_event(&Type, (void*)&Event);
+	Module.Plugin.Rust.unreal_event(&Type, (void*)&Event);
 }
 
 void ARustGameModeBase::OnActorBeginOverlap(AActor* OverlappedActor, AActor* OtherActor)
@@ -94,11 +99,16 @@ void ARustGameModeBase::Tick(float Dt)
 	Super::Tick(Dt);
 	FRustPluginModule& Module = GetRustModule();
 
+	if(!Module.Plugin.IsLoaded()) {
+		Module.Exit();
+		return;
+	}
+
 	if (Module.Plugin.NeedsInit)
 	{
 		StartPlay();
 	}
-	if (Module.Plugin.IsLoaded() && Module.Plugin.Rust.tick(Dt) == ResultCode::Panic)
+	if (Module.Plugin.Rust.tick(Dt) == ResultCode::Panic)
 	{
 		Module.Exit();
 	}
@@ -107,6 +117,13 @@ void ARustGameModeBase::Tick(float Dt)
 void ARustGameModeBase::StartPlay()
 {
 	Super::StartPlay();
+	FRustPluginModule& Module = GetRustModule();
+
+	if(!Module.Plugin.IsLoaded()) {
+		Module.Exit();
+		return;
+	}
+
 	GetWorld()->AddOnActorSpawnedHandler(
 		FOnActorSpawned::FDelegate::CreateUObject(this, &ARustGameModeBase::OnActorSpawnedHandler));
 
@@ -117,8 +134,7 @@ void ARustGameModeBase::StartPlay()
 		InputComponent->BindAxis(Mapping.AxisName);
 	}
 
-	FRustPluginModule& Module = GetRustModule();
-	if (Module.Plugin.IsLoaded() && Module.Plugin.Rust.begin_play() == ResultCode::Panic)
+	if (Module.Plugin.Rust.begin_play() == ResultCode::Panic)
 	{
 		Module.Exit();
 	}
