@@ -300,6 +300,7 @@ impl UserModule for MyModule {
             => module
         };
 
+        
         module
             .add_plugin(MovementPlugin)
             .add_startup_system_set(SystemSet::new().with_system(register_player_input))
