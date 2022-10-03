@@ -8,6 +8,33 @@ on:
 
 name: CI
 jobs:
+  unreal:
+    name: Unreal
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    container:
+      image: ghcr.io/epicgames/unreal-engine:dev-slim-5.0.3
+      credentials:
+         username: ${{ github.actor }}
+         password: ${{ secrets.UNREAL }}
+
+    steps:
+      #- uses: docker/login-action@v2
+      #  with:
+      #    registry: ghcr.io
+      #    username: maikklein
+      #    password: ${{ secrets.UNREAL }}
+      #- name: Build
+      #  run: |
+      #    docker pull ghcr.io/epicgames/unreal-engine:dev-5.0
+      #    echo "Hello World"
+      - name: Build
+        run: |
+          ls -a
+          echo "Hello World"
+          cd RustPlugin
+          pip install ue4cli
+          ue4 build
   lint:
     name: Lint
     runs-on: ubuntu-latest
