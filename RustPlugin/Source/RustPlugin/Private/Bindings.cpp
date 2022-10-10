@@ -253,7 +253,7 @@ uint32_t OverlapMulti(CollisionShape shape,
                       Quaternion rotation,
                       LineTraceParams params,
                       uintptr_t max_results,
-                      OverlapResult** results)
+                      OverlapResult* results)
 {
 	TArray<FOverlapResult> Out;
 	auto CollisionParams = FCollisionQueryParams();
@@ -273,7 +273,7 @@ uint32_t OverlapMulti(CollisionShape shape,
 		uintptr_t Length = FGenericPlatformMath::Min(max_results, (uintptr_t)Out.Num());
 		for (uintptr_t i = 0; i < Length; ++i)
 		{
-			OverlapResult* result = results[i];
+			OverlapResult* result = &results[i];
 			FOverlapResult* Hit = &Out[i];
 			result->actor = (AActorOpaque*)Hit->GetActor();
 			result->primtive = (UPrimtiveOpaque*)Hit->GetComponent();
@@ -304,15 +304,9 @@ void VisualLogCapsule(
 	                ToFColor(color), TEXT(""));
 }
 
-void GetRootComponent(const AActorOpaque* actor, ActorComponentPtr* data)
+void GetRootComponent(const AActorOpaque* actor, USceneComponentOpague **data)
 {
-	USceneComponent* Root = ToAActor(actor)->GetRootComponent();
-
-	if (Cast<UPrimitiveComponent>(Root) != nullptr)
-	{
-		*data = ActorComponentPtr{ActorComponentType::Primitive, (void*)Root};
-		return;
-	}
+	*data = static_cast<USceneComponentOpague*>(ToAActor(actor)->GetRootComponent());
 }
 
 Vector3 GetBoundingBoxExtent(const UPrimtiveOpaque* primitive)
@@ -641,4 +635,84 @@ void DestroyActor(const AActorOpaque* actor)
 {
 	// TODO: What do we do if we can't destroy the actor?
 	ToAActor(actor)->Destroy();
+}
+
+void GetMousePosition(LocalPlayerId player, float* x, float* y)
+{
+	APlayerController* PC = UGameplayStatics::GetPlayerController(GetRustModule().GameMode, player);
+
+	if (PC)
+	{
+		double MouseX, MouseY = 0.0;
+		PC->GetMousePosition(MouseX, MouseY);
+		*x = MouseX;
+		*y = MouseY;
+	}
+}
+
+void SetMouseState(LocalPlayerId player, MouseState state)
+{
+	APlayerController* PC = UGameplayStatics::GetPlayerController(GetRustModule().GameMode, player);
+
+	if (PC)
+	{
+		if(state == MouseState::Visible)
+			PC->SetShowMouseCursor(true);
+		if(state == MouseState::Hidden)
+			PC->SetShowMouseCursor(false);
+	}
+}
+
+void GetViewportSize(LocalPlayerId player, float* x, float* y)
+{
+	APlayerController* PC = UGameplayStatics::GetPlayerController(GetRustModule().GameMode, player);
+
+	if (PC)
+	{
+		int32 ScreenX, ScreenY = 0;
+		PC->GetViewportSize(ScreenX, ScreenY);
+		*x = static_cast<float>(ScreenX);
+		*y = static_cast<float>(ScreenY);
+	}
+}
+
+uint32_t IsA(UObjectOpague* object, UObjectType ty)
+{
+	if(object == nullptr)
+		return 0;
+	
+	auto Object = static_cast<UObject*>(object);
+
+	bool Result = false;
+	switch (ty) {
+		case UObjectType::UPrimtiveComponent:
+			Result = Cast<UPrimitiveComponent>(Object) != nullptr;
+			break;
+		
+		case UObjectType::USceneComponent:
+			Result = Cast<USceneComponent>(Object) != nullptr;
+			break;
+		
+		case UObjectType::UClass:
+			Result = Cast<UClass>(Object) != nullptr;
+			break;
+		
+		default:
+			break;
+	}
+
+	if(Result)
+	{
+		return 1;
+	}
+	else
+	{
+		return 0;
+	}
+}
+
+uint32_t GetParentActor(const AActorOpaque* actor, AActorOpaque** parent)
+{
+	*parent = static_cast<AActorOpaque*>(ToAActor(actor)->GetParentActor());
+	return 1;
 }

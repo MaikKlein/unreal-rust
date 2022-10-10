@@ -1,0 +1,7 @@
+{
+	"BuildId": "19505902",
+	"Modules": 
+	{
+		"RustPlugin": "UnrealEditor-RustPlugin.dll"
+	}
+}

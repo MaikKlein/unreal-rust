@@ -6,9 +6,13 @@
 
 UnrealBindings CreateBindings()
 {
+	ViewportFns viewport_fns;
+	viewport_fns.get_mouse_position = GetMousePosition;
+	viewport_fns.set_mouse_state = SetMouseState;
+	viewport_fns.get_viewport_size = GetViewportSize;
 	SoundFns sound_fns;
 	sound_fns.play_sound_at_location = PlaySoundAtLocation;
-	
+
 	EditorComponentFns editor_component_fns;
 	editor_component_fns.get_editor_component_bool = &GetEditorComponentBool;
 	editor_component_fns.get_editor_component_float = &GetEditorComponentFloat;
@@ -18,16 +22,17 @@ UnrealBindings CreateBindings()
 	editor_component_fns.get_editor_components = &GetEditorComponentUuids;
 
 	PhysicsFns physics_fns = {};
-	 physics_fns.add_force = &AddForce;
-	 physics_fns.add_impulse = &AddImpulse;
-	 physics_fns.set_velocity = &SetVelocity;
-	 physics_fns.get_velocity = &GetVelocity;
-	 physics_fns.is_simulating = &IsSimulating;
-	 physics_fns.line_trace = &LineTrace;
-	 physics_fns.get_bounding_box_extent = &GetBoundingBoxExtent;
-	 physics_fns.sweep = &Sweep;
-	 physics_fns.sweep_multi = &SweepMulti;
-	 physics_fns.get_collision_shape = &GetCollisionShape;
+	physics_fns.add_force = &AddForce;
+	physics_fns.add_impulse = &AddImpulse;
+	physics_fns.set_velocity = &SetVelocity;
+	physics_fns.get_velocity = &GetVelocity;
+	physics_fns.is_simulating = &IsSimulating;
+	physics_fns.line_trace = &LineTrace;
+	physics_fns.get_bounding_box_extent = &GetBoundingBoxExtent;
+	physics_fns.sweep = &Sweep;
+	physics_fns.sweep_multi = &SweepMulti;
+	physics_fns.overlap_multi = OverlapMulti;
+	physics_fns.get_collision_shape = &GetCollisionShape;
 
 	ActorFns actor_fns = {};
 	actor_fns.get_spatial_data = &GetSpatialData;
@@ -44,8 +49,11 @@ UnrealBindings CreateBindings()
 	actor_fns.register_actor_on_hit = &RegisterActorOnHit;
 	actor_fns.get_root_component = &GetRootComponent;
 	actor_fns.destroy_actor = &DestroyActor;
-	
+	actor_fns.get_parent_actor = GetParentActor;
+
 	UnrealBindings b = {};
+	b.is_a = IsA;
+	b.viewport_fns = viewport_fns;
 	b.actor_fns = actor_fns;
 	b.sound_fns = sound_fns;
 	b.physics_fns = physics_fns;
@@ -155,9 +163,9 @@ FCollisionShape ToFCollisionShape(CollisionShape Shape)
 
 FString ToFString(Utf8Str Str)
 {
-	if(Str.len == 0)
+	if (Str.len == 0)
 		return FString();
-	
+
 	return FString(Str.len, UTF8_TO_TCHAR(Str.ptr));
 }
 
@@ -170,7 +178,7 @@ FRustProperty* GetRustProperty(const AActorOpaque* actor, Uuid uuid, Utf8Str fie
 	UEntityComponent* EntityComponent = Actor->FindComponentByClass<UEntityComponent>();
 	if (EntityComponent == nullptr)
 		return nullptr;
-	
+
 	FString FieldName = ToFString(field);
 
 	FDynamicRustComponent* Comp = EntityComponent->Components.Find(ToFGuid(uuid).ToString());

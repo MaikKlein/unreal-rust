@@ -3,10 +3,12 @@ use std::{ffi::c_void, os::raw::c_char};
 pub mod actor;
 pub mod physics;
 pub mod sound;
+pub mod viewport;
 
 pub use actor::*;
 pub use physics::*;
 pub use sound::*;
+pub use viewport::*;
 
 #[repr(u8)]
 #[derive(Debug)]
@@ -18,6 +20,8 @@ pub enum ResultCode {
 #[derive(Copy, Clone)]
 pub enum UObjectType {
     UClass,
+    USceneComponent,
+    UPrimtiveComponent,
 }
 
 #[repr(C)]
@@ -81,6 +85,13 @@ impl Color {
 
 #[repr(C)]
 #[derive(Default, Debug, Copy, Clone)]
+pub struct Vector2 {
+    pub x: f32,
+    pub y: f32,
+}
+
+#[repr(C)]
+#[derive(Default, Debug, Copy, Clone)]
 pub struct Vector3 {
     pub x: f32,
     pub y: f32,
@@ -134,6 +145,7 @@ pub type UCapsuleOpaque = c_void;
 pub type UClassOpague = c_void;
 pub type UObjectOpague = c_void;
 pub type USoundBaseOpague = c_void;
+pub type USceneComponentOpague = c_void;
 
 pub type LogFn = extern "C" fn(*const c_char, i32);
 pub type IterateActorsFn = unsafe extern "C" fn(array: *mut *mut AActorOpaque, len: *mut u64);
@@ -167,7 +179,10 @@ pub type VisualLogLocationFn = unsafe extern "C" fn(
     color: Color,
 );
 
+pub type IsAFn = unsafe extern "C" fn(object: *mut UObjectOpague, ty: UObjectType) -> u32;
+
 extern "C" {
+    pub fn IsA(object: *mut UObjectOpague, ty: UObjectType) -> u32;
     pub fn TickActor(actor: *mut AActorOpaque, dt: f32);
     pub fn Log(s: *const c_char, len: i32);
     pub fn IterateActors(array: *mut *mut AActorOpaque, len: *mut u64);
@@ -215,6 +230,8 @@ pub struct UnrealBindings {
     pub visual_log_location: VisualLogLocationFn,
     pub editor_component_fns: EditorComponentFns,
     pub sound_fns: SoundFns,
+    pub viewport_fns: ViewportFns,
+    pub is_a: IsAFn,
 }
 unsafe impl Sync for UnrealBindings {}
 unsafe impl Send for UnrealBindings {}

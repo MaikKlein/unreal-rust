@@ -69,6 +69,46 @@ impl UnrealApi {
         self.actor_to_entity.insert(actor, entity);
         self.entity_to_actor.insert(entity, actor);
     }
+    
+    pub fn overlap_multi(
+        &self,
+        position: Vec3,
+        rotation: Quat,
+        collision_shape: CollisionShape,
+        params: SweepParams,
+        max_results: usize,
+    ) -> Vec<Entity> {
+        let ignored_actors: Vec<_> = params
+            .ignored_entities
+            .iter()
+            .filter_map(|entity| self.entity_to_actor.get(entity))
+            .map(|actor| actor.0)
+            .collect();
+        let params = ffi::LineTraceParams {
+            ignored_actors: ignored_actors.as_ptr(),
+            ignored_actors_len: ignored_actors.len(),
+        };
+
+        let mut hits = Vec::new();
+        hits.resize_with(max_results, ffi::OverlapResult::default);
+        unsafe {
+            if (bindings().physics_fns.overlap_multi)(
+                collision_shape.into(),
+                position.into(),
+                rotation.into(),
+                params,
+                max_results,
+                hits.as_mut_ptr(),
+            ) == 1
+            {
+                hits.into_iter()
+                    .filter_map(|hit| self.actor_to_entity.get(&ActorPtr(hit.actor)).copied())
+                    .collect()
+            } else {
+                Vec::new()
+            }
+        }
+    }
     pub fn sweep(
         &self,
         start: Vec3,

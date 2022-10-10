@@ -141,7 +141,7 @@ pub type OverlapMultiFn = unsafe extern "C" fn(
     rotation: Quaternion,
     params: LineTraceParams,
     max_results: usize,
-    result: *mut *mut OverlapResult,
+    result: *mut OverlapResult,
 ) -> u32;
 
 pub type GetCollisionShapeFn =
@@ -202,7 +202,7 @@ extern "C" {
         rotation: Quaternion,
         params: LineTraceParams,
         max_results: usize,
-        result: *mut *mut OverlapResult,
+        result: *mut OverlapResult,
     ) -> u32;
 
     pub fn GetCollisionShape(primitive: *const UPrimtiveOpaque, shape: *mut CollisionShape) -> u32;

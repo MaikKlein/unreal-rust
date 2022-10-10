@@ -35,6 +35,11 @@ enum class EventType : uint32_t {
   ActorDestroy = 4,
 };
 
+enum class MouseState : uint32_t {
+  Visible,
+  Hidden,
+};
+
 enum class ReflectionType : uint32_t {
   Float,
   Vector3,
@@ -52,7 +57,11 @@ enum class ResultCode : uint8_t {
 
 enum class UObjectType : uint32_t {
   UClass,
+  USceneComponent,
+  UPrimtiveComponent,
 };
+
+using UObjectOpague = void;
 
 using AActorOpaque = void;
 
@@ -88,8 +97,6 @@ struct Uuid {
   uint32_t d;
 };
 
-using UObjectOpague = void;
-
 struct Entity {
   uint64_t id;
 };
@@ -98,6 +105,8 @@ struct ActorComponentPtr {
   ActorComponentType ty;
   void *ptr;
 };
+
+using USceneComponentOpague = void;
 
 using UClassOpague = void;
 
@@ -164,6 +173,8 @@ struct SoundSettings {
   float pitch;
 };
 
+using LocalPlayerId = uint32_t;
+
 using GetSpatialDataFn = void(*)(const AActorOpaque *actor, Vector3 *position, Quaternion *rotation, Vector3 *scale);
 
 using SetSpatialDataFn = void(*)(AActorOpaque *actor, Vector3 position, Quaternion rotation, Vector3 scale);
@@ -176,7 +187,7 @@ using RegisterActorOnOverlapFn = void(*)(AActorOpaque *actor);
 
 using RegisterActorOnHitFn = void(*)(AActorOpaque *actor);
 
-using GetRootComponentFn = void(*)(const AActorOpaque *actor, ActorComponentPtr *data);
+using GetRootComponentFn = void(*)(const AActorOpaque *actor, USceneComponentOpague **data);
 
 using GetRegisteredClassesFn = void(*)(UClassOpague **classes, uintptr_t *len);
 
@@ -191,6 +202,8 @@ using SetOwnerFn = void(*)(AActorOpaque *actor, const AActorOpaque *new_owner);
 using IsMoveableFn = uint32_t(*)(const AActorOpaque *actor);
 
 using DestroyActorFn = void(*)(const AActorOpaque *actor);
+
+using GetParentActorFn = uint32_t(*)(const AActorOpaque *actor, AActorOpaque **parent);
 
 struct ActorFns {
   GetSpatialDataFn get_spatial_data;
@@ -207,6 +220,7 @@ struct ActorFns {
   SetOwnerFn set_owner;
   IsMoveableFn is_moveable;
   DestroyActorFn destroy_actor;
+  GetParentActorFn get_parent_actor;
 };
 
 using GetVelocityFn = Vector3(*)(const UPrimtiveOpaque *primitive);
@@ -227,7 +241,7 @@ using SweepFn = uint32_t(*)(Vector3 start, Vector3 end, Quaternion rotation, Lin
 
 using SweepMultiFn = uint32_t(*)(Vector3 start, Vector3 end, Quaternion rotation, LineTraceParams params, CollisionShape collision_shape, uintptr_t max_results, HitResult *results);
 
-using OverlapMultiFn = uint32_t(*)(CollisionShape collision_shape, Vector3 position, Quaternion rotation, LineTraceParams params, uintptr_t max_results, OverlapResult **result);
+using OverlapMultiFn = uint32_t(*)(CollisionShape collision_shape, Vector3 position, Quaternion rotation, LineTraceParams params, uintptr_t max_results, OverlapResult *result);
 
 using GetCollisionShapeFn = uint32_t(*)(const UPrimtiveOpaque *primitive, CollisionShape *shape);
 
@@ -290,6 +304,20 @@ struct SoundFns {
   PlaySoundAtLocationFn play_sound_at_location;
 };
 
+using GetViewportSizeFn = void(*)(LocalPlayerId player, float *x, float *y);
+
+using SetMouseStateFn = void(*)(LocalPlayerId player, MouseState state);
+
+using GetMousePositionFn = void(*)(LocalPlayerId player, float *x, float *y);
+
+struct ViewportFns {
+  GetViewportSizeFn get_viewport_size;
+  SetMouseStateFn set_mouse_state;
+  GetMousePositionFn get_mouse_position;
+};
+
+using IsAFn = uint32_t(*)(UObjectOpague *object, UObjectType ty);
+
 struct UnrealBindings {
   ActorFns actor_fns;
   PhysicsFns physics_fns;
@@ -304,6 +332,8 @@ struct UnrealBindings {
   VisualLogLocationFn visual_log_location;
   EditorComponentFns editor_component_fns;
   SoundFns sound_fns;
+  ViewportFns viewport_fns;
+  IsAFn is_a;
 };
 
 using RetrieveUuids = void(*)(Uuid *ptr, uintptr_t *len);
@@ -390,6 +420,8 @@ struct ActorDestroyEvent {
 
 extern "C" {
 
+extern uint32_t IsA(UObjectOpague *object, UObjectType ty);
+
 extern void TickActor(AActorOpaque *actor, float dt);
 
 extern void Log(const char *s, int32_t len);
@@ -471,7 +503,7 @@ extern void SetEntityForActor(AActorOpaque *name, Entity entity);
 
 extern void GetActorComponents(const AActorOpaque *actor, ActorComponentPtr *data, uintptr_t *len);
 
-extern void GetRootComponent(const AActorOpaque *actor, ActorComponentPtr *data);
+extern void GetRootComponent(const AActorOpaque *actor, USceneComponentOpague **data);
 
 extern void GetRegisteredClasses(UClassOpague **classes, uintptr_t *len);
 
@@ -484,6 +516,8 @@ extern void GetActorName(const AActorOpaque *actor, RustAlloc *data);
 extern void DestroyActor(const AActorOpaque *actor);
 
 extern void SetViewTarget(const AActorOpaque *actor);
+
+extern uint32_t GetParentActor(const AActorOpaque *actor, AActorOpaque **parent);
 
 extern Vector3 GetVelocity(const UPrimtiveOpaque *primitive);
 
@@ -519,7 +553,7 @@ extern uint32_t OverlapMulti(CollisionShape collision_shape,
                              Quaternion rotation,
                              LineTraceParams params,
                              uintptr_t max_results,
-                             OverlapResult **result);
+                             OverlapResult *result);
 
 extern uint32_t GetCollisionShape(const UPrimtiveOpaque *primitive, CollisionShape *shape);
 
@@ -527,5 +561,11 @@ extern void PlaySoundAtLocation(const USoundBaseOpague *sound,
                                 Vector3 location,
                                 Quaternion rotation,
                                 const SoundSettings *settings);
+
+extern void GetViewportSize(LocalPlayerId player, float *x, float *y);
+
+extern void SetMouseState(LocalPlayerId player, MouseState state);
+
+extern void GetMousePosition(LocalPlayerId player, float *x, float *y);
 
 } // extern "C"

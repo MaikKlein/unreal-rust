@@ -80,4 +80,9 @@ impl Input {
             .get(binding)
             .map_or(false, |state| matches!(state, Action::Pressed))
     }
+    pub fn is_action_released(&self, binding: Binding) -> bool {
+        self.action
+            .get(binding)
+            .map_or(false, |state| matches!(state, Action::Released))
+    }
 }

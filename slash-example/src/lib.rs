@@ -1,8 +1,11 @@
 use std::collections::HashMap;
 
 use bevy_ecs::prelude::*;
-use unreal_api::api::UnrealApi;
+use unreal_api::api::{SweepParams, UnrealApi};
 use unreal_api::core::{ActorHitEvent, Despawn, Frame};
+use unreal_api::ffi::Sweep;
+use unreal_api::math::Vec2;
+use unreal_api::physics::PhysicsComponent;
 use unreal_api::registry::USound;
 use unreal_api::sound::{play_sound_at_location, SoundSettings};
 use unreal_api::Component;
@@ -42,12 +45,26 @@ impl PlayerInput {
     pub const TOGGLE_CAMERA: &'static str = "ToggleCamera";
     pub const JUMP: &'static str = "Jump";
     pub const ROTATE_CAMERA: &'static str = "RotateCamera";
+    pub const PRIMARY_ATTACK: &'static str = "PrimaryAttack";
 }
 
 #[derive(Component)]
 #[uuid = "cdbbc147-058c-4079-aa85-a93a30d1edfc"]
 #[reflect(editor)]
 pub struct PlayerComponent;
+
+#[derive(Component)]
+#[uuid = "e9815aea-f4e2-4953-9553-079e6a7b8055"]
+#[reflect(editor)]
+pub struct WeaponComponent;
+
+#[derive(Default, Component)]
+#[uuid = "065f42a3-1925-4305-be29-9bb60a4ba510"]
+pub struct HeroComponent {
+    pub is_attacking: bool,
+    #[reflect(skip)]
+    pub weapon: Option<Entity>,
+}
 
 #[derive(Component)]
 #[uuid = "26e67b30-9dc4-4a57-92e0-00e5f49ef18c"]
@@ -58,27 +75,20 @@ pub struct TopdownCameraComponent {
     pub target_position: Vec3,
 }
 
-//// TODO: We probably don't need that anymore
-//fn register_class_resource(mut commands: Commands) {
-//    let mut len: usize = 0;
-//    unsafe {
-//        (bindings().actor_fns.get_registered_classes)(std::ptr::null_mut(), &mut len);
-//    }
-//    let mut classes: Vec<*mut UClassOpague> = Vec::with_capacity(len);
-//    unsafe {
-//        (bindings().actor_fns.get_registered_classes)(classes.as_mut_ptr(), &mut len);
-//        classes.set_len(len);
-//    }
-//
-//    let mut classes_resource = ClassesResource::default();
-//
-//    for (id, class_ptr) in classes.into_iter().enumerate() {
-//        if let Some(class) = Class::from(id as u32) {
-//            classes_resource.classes.insert(class_ptr, class);
-//        }
-//    }
-//    commands.insert_resource(classes_resource);
-//}
+#[derive(Default, Component)]
+#[uuid = "2f2b4a61-0d7b-45a8-a42d-7b2af69598be"]
+pub struct CursorComponent {
+    // TODO: should be vec2
+    pub position: Vec3,
+    pub is_visible: bool,
+}
+
+#[derive(Default, Component)]
+#[uuid = "85165d56-db4b-471d-a346-bd13287f4d88"]
+pub struct PlayerStateComponent {
+    pub cursor_position: Vec3,
+    pub is_cursor_visible: bool,
+}
 
 fn create_player(
     query: Query<(Entity, &ActorComponent), Added<PlayerComponent>>,
@@ -91,122 +101,151 @@ fn create_player(
         unsafe {
             (bindings().actor_fns.register_actor_on_hit)(actor.actor.0);
         }
-        unsafe {
-            commands.entity(entity).insert_bundle((
-                CharacterConfigComponent::default(),
-                CharacterControllerComponent::default(),
-                MovementComponent::default(),
-            ));
-        }
+        commands.entity(entity).insert_bundle((
+            CharacterConfigComponent::default(),
+            CharacterControllerComponent::default(),
+            MovementComponent::default(),
+            PlayerStateComponent::default(),
+            CursorComponent::default(),
+            HeroComponent::default(),
+        ));
     }
 }
-//fn spawn_class(
-//    class_resource: Res<ClassesResource>,
-//    query: Query<(Entity, &ActorComponent), Added<ActorComponent>>,
-//    mut commands: Commands,
-//) {
-//    for (entity, actor) in query.iter() {
-//        unsafe {
-//            (bindings().actor_fns.register_actor_on_overlap)(actor.actor.0);
-//        }
-//        unsafe {
-//            (bindings().actor_fns.register_actor_on_hit)(actor.actor.0);
-//        }
-//        unsafe {
-//            let class_ptr = (bindings().actor_fns.get_class)(actor.actor.0);
-//            if let Some(&class) = class_resource.classes.get(&class_ptr) {
-//                match class {
-//                    Class::Player => {
-//                        commands.entity(entity).insert_bundle((
-//                            CharacterConfigComponent::default(),
-//                            CharacterControllerComponent::default(),
-//                            MovementComponent::default(),
-//                        ));
-//                    }
-//                }
-//            }
-//        }
-//    }
-//}
 
 fn register_player_input(mut input: ResMut<Input>) {
     input.register_axis_binding(PlayerInput::MOVE_FORWARD);
     input.register_axis_binding(PlayerInput::MOVE_RIGHT);
-
     input.register_action_binding(PlayerInput::ROTATE_CAMERA);
-    //input.register_axis_binding(PlayerInput::LOOK_UP);
-    //input.register_axis_binding(PlayerInput::TURN_RIGHT);
-    //input.register_action_binding(PlayerInput::JUMP);
+    input.register_action_binding(PlayerInput::PRIMARY_ATTACK);
 }
 
-//fn toggle_camera(
-//    input: Res<Input>,
-//    mut camera_query: Query<(Entity, &mut CameraComponent, &ParentComponent)>,
-//    mut actor_query: Query<&mut ActorComponent>,
-//    sound: Query<(&TransformComponent, &CharacterSoundsComponent)>,
-//) {
-//    if input.is_action_pressed(PlayerInput::TOGGLE_CAMERA) {
-//        for (entity, mut camera, parent) in camera_query.iter_mut() {
-//            camera.mode.toggle();
-//            if let Ok([camera_actor, mut parent_actor]) =
-//                actor_query.get_many_mut([entity, parent.parent])
-//            {
-//                match camera.mode {
-//                    CameraMode::FirstPerson => parent_actor.set_owner(Some(&camera_actor)),
-//                    CameraMode::ThirdPerson => parent_actor.set_owner(None),
-//                };
-//            }
-//
-//            if let Ok((transform, sound)) = sound.get(parent.parent) {
-//                play_sound_at_location(
-//                    sound.camera_toggle,
-//                    transform.position,
-//                    transform.rotation,
-//                    &ffi::SoundSettings::default(),
-//                )
-//            }
-//        }
-//    }
-//}
-//fn rotate_camera(mut query: Query<(&mut TransformComponent, &mut CameraComponent)>) {
-//    fn lerp(start: f32, end: f32, t: f32) -> f32 {
-//        start * (1.0 - t) + end * t
-//    }
-//    let mut x = 0.0;
-//    let mut y = 0.0;
-//
-//    let max_angle = 85.0f32.to_radians();
-//    unsafe {
-//        (bindings().get_mouse_delta)(&mut x, &mut y);
-//    }
-//
-//    for (mut spatial, mut cam) in query.iter_mut() {
-//        let speed = 0.05;
-//        cam.x += x * speed;
-//        cam.y = f32::clamp(cam.y + y * speed, -max_angle, max_angle);
-//
-//        let smooth = 0.4;
-//        cam.current_x = lerp(cam.current_x, cam.x, smooth);
-//        cam.current_y = lerp(cam.current_y, cam.y, smooth);
-//
-//        spatial.rotation =
-//            Quat::from_rotation_z(cam.current_x) * Quat::from_rotation_y(-cam.current_y);
-//    }
-//}
-//
-//
-fn rotate_camera(input: Res<Input>, mut topdown: Query<&mut TopdownCameraComponent>, mut character: Query<&mut TransformComponent>) {
+fn player_attack(input: Res<Input>, mut query: Query<&mut HeroComponent>) {
+    let is_attacking = input.is_action_pressed(PlayerInput::PRIMARY_ATTACK);
+
+    for mut hero in &mut query {
+        hero.is_attacking = is_attacking;
+    }
+}
+
+fn register_weapon(
+    api: Res<UnrealApi>,
+    mut hero: Query<&mut HeroComponent>,
+    query: Query<(Entity, &ActorComponent, Added<WeaponComponent>)>,
+) {
+    for (entity, actor, added) in &query {
+        if !added {
+            if let Some(parent) = actor.get_parent(&api) {
+                if let Ok(mut hero) = hero.get_mut(parent) {
+                    hero.weapon = Some(entity);
+                }
+            }
+        }
+    }
+}
+
+fn apply_weapon_forces(
+    api: Res<UnrealApi>,
+    query: Query<(Entity, &HeroComponent)>,
+    weapon: Query<(
+        Entity,
+        &WeaponComponent,
+        &PhysicsComponent,
+        &TransformComponent,
+    )>,
+    mut physics_query: Query<(&mut PhysicsComponent, &ActorComponent, Without<WeaponComponent>)>,
+) {
+    for (entity, hero) in &query {
+        if let Ok((weapon_entity, _, p, transform)) = weapon.get(hero.weapon.unwrap()) {
+            let params = SweepParams::default()
+                .add_ignored_entity(entity)
+                .add_ignored_entity(weapon_entity);
+            let result = api.overlap_multi(
+                transform.position,
+                transform.rotation,
+                p.get_collision_shape(),
+                params,
+                10,
+            );
+
+            for entity in result {
+                match physics_query.get_mut(entity) {
+                    Ok((mut physics, actor, _)) => {
+                        log::info!("physics {:?}", actor.get_actor_name());
+                        physics.add_force(Vec3::X * 500000.0);
+                    }
+                    Err(err) => log::info!("{}", err),
+                }
+            }
+        }
+    }
+}
+fn update_player_state(
+    input: Res<Input>,
+    mut query: Query<(&CursorComponent, &mut PlayerStateComponent)>,
+) {
+    for (cursor, mut state) in &mut query {
+        state.is_cursor_visible = !input.is_action_pressed(PlayerInput::ROTATE_CAMERA);
+        state.cursor_position = cursor.position;
+    }
+}
+
+fn update_cursor(input: Res<Input>, mut cursor: Query<&mut CursorComponent>) {
+    for mut cursor in &mut cursor {
+        if !input.is_action_pressed(PlayerInput::ROTATE_CAMERA) {
+            let (x, y) = input.get_mouse_delta();
+            cursor.position += Vec3::new(x, -y, 0.0) * 15.0;
+        }
+    }
+}
+fn rotate_camera(
+    input: Res<Input>,
+    mut topdown: Query<&mut TopdownCameraComponent>,
+    mut character: Query<&mut TransformComponent>,
+    mut cursor: Query<&mut CursorComponent>,
+) {
     if input.is_action_pressed(PlayerInput::ROTATE_CAMERA) {
-        for mut cam in &mut topdown {
+        //unsafe { (bindings().viewport_fns.set_mouse_state)(0, ffi::MouseState::Hidden) };
+    }
+    if input.is_action_released(PlayerInput::ROTATE_CAMERA) {
+        //unsafe { (bindings().viewport_fns.set_mouse_state)(0, ffi::MouseState::Hidden) };
+    }
+
+    unsafe {
+        //(bindings().viewport_fns.get_mouse_position)(0, &mut x, &mut y);
+    };
+
+    for mut cam in &mut topdown {
+        let mouse = cursor
+            .get(cam.target)
+            .map_or(Vec3::ZERO, |cursor| cursor.position);
+
+        let mut screen_x = 0.0f32;
+        let mut screen_y = 0.0f32;
+        unsafe {
+            (bindings().viewport_fns.get_viewport_size)(0, &mut screen_x, &mut screen_y);
+        };
+
+        let mut dir = Vec2::new(mouse.x / screen_x, mouse.y / screen_y)
+            .mul_add(Vec2::splat(2.0), Vec2::splat(-1.0))
+            .normalize_or_zero();
+
+        dir.y *= -1.0;
+
+        let mut angle = f32::acos(Vec2::dot(dir, Vec2::Y));
+        if dir.x < 0.0 {
+            angle = 2.0 * std::f32::consts::PI - angle;
+        }
+
+        let rotation = if input.is_action_pressed(PlayerInput::ROTATE_CAMERA) {
             let (x, _) = input.get_mouse_delta();
             cam.rotation += x * 0.03;
-            
+            Quat::from_rotation_z(cam.rotation)
+        } else {
+            Quat::from_rotation_z(cam.rotation + angle)
+        };
 
-            if let Ok(mut transform) = character.get_mut(cam.target) {
-                
-                transform.rotation = Quat::from_rotation_z(cam.rotation);
-                
-            }
+        if let Ok(mut transform) = character.get_mut(cam.target) {
+            transform.rotation = Quat::slerp(transform.rotation, rotation, 0.2);
         }
     }
 }
@@ -239,23 +278,23 @@ fn update_camera(
         if let Ok([mut camera_trans, target_trans]) =
             transform.get_many_mut([entity, topdown.target])
         {
-            topdown.target_position = Vec3::lerp(
-                topdown.target_position,
-                target_trans.position,
-                    0.2,
-            );
+            topdown.target_position =
+                Vec3::lerp(topdown.target_position, target_trans.position, 0.2);
             camera_trans.position = topdown.target_position + camera_position;
             camera_trans.rotation = camera_rotation;
         }
     }
 }
 
-fn spawn_camera(mut commands: Commands, mut query: Query<(Entity, &TransformComponent, Added<PlayerComponent>)>) {
+fn spawn_camera(
+    mut commands: Commands,
+    mut query: Query<(Entity, &TransformComponent, Added<PlayerComponent>)>,
+) {
     for (entity, transform, added) in query.iter_mut() {
         if !added {
             continue;
         }
-        
+
         unsafe {
             let actor = (bindings().spawn_actor)(
                 ffi::ActorClass::CameraActor,
@@ -297,21 +336,32 @@ impl UserModule for MyModule {
         register_components! {
             PlayerComponent,
             TopdownCameraComponent,
+            CursorComponent,
+            PlayerStateComponent,
+            HeroComponent,
+            WeaponComponent,
             => module
         };
 
-        
         module
             .add_plugin(MovementPlugin)
             .add_startup_system_set(SystemSet::new().with_system(register_player_input))
             .add_system_set_to_stage(
                 CoreStage::Update,
                 SystemSet::new()
+                    .with_system(register_weapon)
+                    .with_system(apply_weapon_forces.after(register_weapon))
+                    .with_system(player_attack)
+                    .with_system(update_cursor)
                     .with_system(create_player)
                     .with_system(spawn_camera)
                     .with_system(rotate_camera)
                     .with_system(update_camera.after(rotate_camera))
                     .with_system(update_controller_view.after(rotate_camera)),
+            )
+            .add_system_set_to_stage(
+                CoreStage::PostUpdate,
+                SystemSet::new().with_system(update_player_state),
             );
     }
 }

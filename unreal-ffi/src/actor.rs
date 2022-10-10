@@ -1,7 +1,8 @@
 use std::os::raw::c_char;
 
 use crate::{
-    AActorOpaque, ActorComponentPtr, Entity, Quaternion, RustAlloc, UClassOpague, Vector3,
+    AActorOpaque, ActorComponentPtr, Entity, Quaternion, RustAlloc, UClassOpague,
+    USceneComponentOpague, Vector3,
 };
 
 pub type GetSpatialDataFn = extern "C" fn(
@@ -26,7 +27,7 @@ pub type GetActorComponentsFn =
     unsafe extern "C" fn(actor: *const AActorOpaque, data: *mut ActorComponentPtr, len: &mut usize);
 
 pub type GetRootComponentFn =
-    unsafe extern "C" fn(actor: *const AActorOpaque, data: *mut ActorComponentPtr);
+    unsafe extern "C" fn(actor: *const AActorOpaque, data: *mut *mut USceneComponentOpague);
 
 pub type GetRegisteredClassesFn =
     unsafe extern "C" fn(classes: *mut *mut UClassOpague, len: *mut usize);
@@ -46,6 +47,8 @@ pub type RegisterActorOnHitFn = unsafe extern "C" fn(actor: *mut AActorOpaque);
 pub type SetViewTargetFn = unsafe extern "C" fn(actor: *const AActorOpaque);
 
 pub type DestroyActorFn = unsafe extern "C" fn(actor: *const AActorOpaque);
+
+pub type GetParentActorFn = unsafe extern "C" fn(actor: *const AActorOpaque, parent: *mut *mut AActorOpaque) -> u32;
 
 extern "C" {
     pub fn RegisterActorOnHit(actor: *mut AActorOpaque);
@@ -74,7 +77,7 @@ extern "C" {
         len: &mut usize,
     );
 
-    pub fn GetRootComponent(actor: *const AActorOpaque, data: *mut ActorComponentPtr);
+    pub fn GetRootComponent(actor: *const AActorOpaque, data: *mut *mut USceneComponentOpague);
 
     pub fn GetRegisteredClasses(classes: *mut *mut UClassOpague, len: *mut usize);
 
@@ -87,6 +90,8 @@ extern "C" {
     pub fn DestroyActor(actor: *const AActorOpaque);
 
     pub fn SetViewTarget(actor: *const AActorOpaque);
+
+    pub fn GetParentActor(actor: *const AActorOpaque, parent: *mut *mut AActorOpaque) -> u32;
 }
 
 #[repr(C)]
@@ -105,4 +110,5 @@ pub struct ActorFns {
     pub set_owner: SetOwnerFn,
     pub is_moveable: IsMoveableFn,
     pub destroy_actor: DestroyActorFn,
+    pub get_parent_actor: GetParentActorFn,
 }

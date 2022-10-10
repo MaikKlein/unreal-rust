@@ -522,6 +522,24 @@ impl ActorComponent {
             name
         }
     }
+
+    pub fn get_parent(&self, api: &UnrealApi) -> Option<Entity> {
+        self.get_parent_actor()
+            .and_then(|actor| api.actor_to_entity.get(&actor).copied())
+    }
+
+    pub fn get_parent_actor(&self) -> Option<ActorPtr> {
+        unsafe {
+            let mut parent = std::ptr::null_mut();
+            (bindings().actor_fns.get_parent_actor)(self.actor.0, &mut parent);
+
+            if parent.is_null() {
+                None
+            } else {
+                Some(ActorPtr(parent))
+            }
+        }
+    }
 }
 
 #[derive(Default, Debug, Component, Clone)]
@@ -764,14 +782,19 @@ fn process_actor_spawned(
                 // Create a physics component if the root component is a primitive
                 // component
                 // TODO: We probably should get ALL the primitive components as well
-                let mut root_component = ActorComponentPtr::default();
+                let mut root_component = std::ptr::null_mut();
                 (bindings().actor_fns.get_root_component)(actor.0, &mut root_component);
-                if root_component.ty == ActorComponentType::Primitive
-                    && !root_component.ptr.is_null()
-                {
-                    let physics_component =
-                        PhysicsComponent::new(UnrealPtr::from_raw(root_component.ptr));
-                    commands.entity(entity).insert(physics_component);
+
+                if !root_component.is_null() {
+                    let is_primitive =
+                        (bindings().is_a)(root_component, ffi::UObjectType::UPrimtiveComponent)
+                            == 1;
+
+                    if is_primitive {
+                        let physics_component =
+                            PhysicsComponent::new(UnrealPtr::from_raw(root_component));
+                        commands.entity(entity).insert(physics_component);
+                    }
                 }
 
                 api.register_actor(actor, entity);
