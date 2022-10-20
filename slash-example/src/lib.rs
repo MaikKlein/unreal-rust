@@ -164,14 +164,17 @@ fn apply_weapon_forces(
                 transform.rotation,
                 p.get_collision_shape(),
                 params,
-                10,
+                2,
             );
 
             for entity in result {
                 match physics_query.get_mut(entity) {
                     Ok((mut physics, actor, _)) => {
-                        log::info!("physics {:?}", actor.get_actor_name());
-                        physics.add_force(Vec3::X * 500000.0);
+                            log::info!("test {} {}", actor.get_actor_name(), physics.ptr.ptr as usize);
+                        if physics.is_simulating {
+                            log::info!("hit {}", actor.get_actor_name());
+                            physics.add_impulse(Vec3::Z * 500000.0);
+                        }
                     }
                     Err(err) => log::info!("{}", err),
                 }

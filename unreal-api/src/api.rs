@@ -102,7 +102,9 @@ impl UnrealApi {
             ) == 1
             {
                 hits.into_iter()
-                    .filter_map(|hit| self.actor_to_entity.get(&ActorPtr(hit.actor)).copied())
+                    .filter_map(|hit| {
+                        log::info!("{}", hit.primtive as usize);
+                        self.actor_to_entity.get(&ActorPtr(hit.actor)).copied() })
                     .collect()
             } else {
                 Vec::new()
