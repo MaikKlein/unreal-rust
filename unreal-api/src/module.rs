@@ -10,7 +10,7 @@ use unreal_reflect::{registry::ReflectDyn, uuid, TypeUuid, World};
 
 use crate::{
     core::{CoreStage, StartupStage, UnrealCore},
-    editor_component::InsertEditorComponent,
+    editor_component::{InsertEditorComponent, InsertSerializedComponent},
     ffi::UnrealBindings,
     plugin::Plugin,
 };
@@ -43,6 +43,7 @@ pub struct ReflectionRegistry {
     pub uuid_set: HashSet<uuid::Uuid>,
     pub reflect: HashMap<uuid::Uuid, Box<dyn ReflectDyn>>,
     pub insert_editor_component: HashMap<uuid::Uuid, Box<dyn InsertEditorComponent>>,
+    pub insert_serialized_component: HashMap<uuid::Uuid, Box<dyn InsertSerializedComponent>>,
 }
 
 impl ReflectionRegistry {
@@ -65,7 +66,7 @@ impl ReflectionRegistry {
 pub struct Module {
     pub(crate) schedule: Schedule,
     pub(crate) startup: Schedule,
-    pub(crate) reflection_registry: ReflectionRegistry,
+    pub reflection_registry: ReflectionRegistry,
     pub(crate) world: World,
 }
 

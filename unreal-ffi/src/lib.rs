@@ -1,11 +1,13 @@
 use glam::{Quat, Vec3};
 use std::{ffi::c_void, os::raw::c_char};
 pub mod actor;
+pub mod events;
 pub mod physics;
 pub mod sound;
 pub mod viewport;
 
 pub use actor::*;
+pub use events::*;
 pub use physics::*;
 pub use sound::*;
 pub use viewport::*;
@@ -389,6 +391,28 @@ pub struct ReflectionFns {
 }
 
 #[repr(C)]
+pub struct StrRustAlloc {
+    pub alloc: RustAlloc,
+}
+impl StrRustAlloc {
+    pub fn empty() -> Self {
+        Self {
+            alloc: RustAlloc::empty()
+        }
+    }
+    pub fn into_string(self) -> String {
+        unsafe {
+            let name = {
+                let slice = std::slice::from_raw_parts(self.alloc.ptr, self.alloc.size);
+                let name = std::str::from_utf8(slice).unwrap();
+                name.to_string()
+            };
+            self.alloc.free();
+            name
+        }
+    }
+}
+#[repr(C)]
 pub struct RustAlloc {
     pub ptr: *mut u8,
     pub size: usize,
@@ -463,6 +487,11 @@ extern "C" {
         ty: UObjectType,
         out: *mut *mut UObjectOpague,
     ) -> u32;
+    pub fn GetSerializedJsonComponent(
+        actor: *const AActorOpaque,
+        uuid: Uuid,
+        out: *mut StrRustAlloc,
+    ) -> u32;
 }
 
 pub type GetEditorComponentUuidsFn =
@@ -495,6 +524,7 @@ pub type GetEditorComponentBoolFn = unsafe extern "C" fn(
     field: Utf8Str,
     out: *mut u32,
 ) -> u32;
+
 pub type GetEditorComponentUObjectFn = unsafe extern "C" fn(
     actor: *const AActorOpaque,
     uuid: Uuid,
@@ -502,6 +532,9 @@ pub type GetEditorComponentUObjectFn = unsafe extern "C" fn(
     ty: UObjectType,
     out: *mut *mut UObjectOpague,
 ) -> u32;
+
+pub type GetSerializedJsonComponentFn =
+    unsafe extern "C" fn(actor: *const AActorOpaque, uuid: Uuid, out: *mut StrRustAlloc) -> u32;
 
 #[repr(C)]
 pub struct EditorComponentFns {
@@ -511,4 +544,5 @@ pub struct EditorComponentFns {
     pub get_editor_component_bool: GetEditorComponentBoolFn,
     pub get_editor_component_float: GetEditorComponentFloatFn,
     pub get_editor_component_uobject: GetEditorComponentUObjectFn,
+    pub get_serialized_json_component: GetSerializedJsonComponentFn,
 }

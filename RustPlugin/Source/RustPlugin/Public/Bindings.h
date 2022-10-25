@@ -97,6 +97,16 @@ struct Uuid {
   uint32_t d;
 };
 
+struct RustAlloc {
+  uint8_t *ptr;
+  uintptr_t size;
+  uintptr_t align;
+};
+
+struct StrRustAlloc {
+  RustAlloc alloc;
+};
+
 struct Entity {
   uint64_t id;
 };
@@ -109,12 +119,6 @@ struct ActorComponentPtr {
 using USceneComponentOpague = void;
 
 using UClassOpague = void;
-
-struct RustAlloc {
-  uint8_t *ptr;
-  uintptr_t size;
-  uintptr_t align;
-};
 
 using UPrimtiveOpaque = void;
 
@@ -289,6 +293,8 @@ using GetEditorComponentFloatFn = uint32_t(*)(const AActorOpaque *actor, Uuid uu
 
 using GetEditorComponentUObjectFn = uint32_t(*)(const AActorOpaque *actor, Uuid uuid, Utf8Str field, UObjectType ty, UObjectOpague **out);
 
+using GetSerializedJsonComponentFn = uint32_t(*)(const AActorOpaque *actor, Uuid uuid, StrRustAlloc *out);
+
 struct EditorComponentFns {
   GetEditorComponentUuidsFn get_editor_components;
   GetEditorComponentQuatFn get_editor_component_quat;
@@ -296,6 +302,7 @@ struct EditorComponentFns {
   GetEditorComponentBoolFn get_editor_component_bool;
   GetEditorComponentFloatFn get_editor_component_float;
   GetEditorComponentUObjectFn get_editor_component_uobject;
+  GetSerializedJsonComponentFn get_serialized_json_component;
 };
 
 using PlaySoundAtLocationFn = void(*)(const USoundBaseOpague *sound, Vector3 location, Quaternion rotation, const SoundSettings *settings);
@@ -482,6 +489,8 @@ extern uint32_t GetEditorComponentUObject(const AActorOpaque *actor,
                                           Utf8Str field,
                                           UObjectType ty,
                                           UObjectOpague **out);
+
+extern uint32_t GetSerializedJsonComponent(const AActorOpaque *actor, Uuid uuid, StrRustAlloc *out);
 
 extern void RegisterActorOnHit(AActorOpaque *actor);
 

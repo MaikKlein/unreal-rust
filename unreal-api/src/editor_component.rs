@@ -18,6 +18,15 @@ pub trait InsertEditorComponent {
     );
 }
 
+pub trait InsertSerializedComponent {
+    /// # Safety
+    unsafe fn insert_serialized_component(
+        &self,
+        json: &str,
+        commands: &mut EntityCommands<'_, '_, '_>,
+    );
+}
+
 pub trait GetEditorComponentValue: Sized {
     unsafe fn get(actor: *const ffi::AActorOpaque, uuid: Uuid, field: &'static str)
         -> Option<Self>;

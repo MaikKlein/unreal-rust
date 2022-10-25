@@ -1,5 +1,5 @@
 use bevy_ecs::{prelude::*, system::Command};
-use ffi::{ActorComponentPtr, ActorComponentType, EventType, Quaternion};
+use ffi::{ActorComponentPtr, ActorComponentType, EventType, Quaternion, StrRustAlloc};
 use std::ffi::c_void;
 
 use crate::{
@@ -744,6 +744,8 @@ fn process_actor_spawned(
             for &ActorSpawnedEvent { actor } in reader.iter() {
                 let mut entity_cmds = commands.spawn();
 
+                
+
                 let mut len = 0;
                 (bindings().editor_component_fns.get_editor_components)(
                     actor.0,
@@ -763,16 +765,34 @@ fn process_actor_spawned(
                 // We register all the components that are on the actor in unreal and add
                 // them to the entity
                 for uuid in uuids {
+
+
+                    let mut alloc = StrRustAlloc::empty();
+                    (bindings().editor_component_fns.get_serialized_json_component)(actor.0, uuid, &mut alloc);
+
+                    let json = alloc.into_string();
+                    log::info!("Serialized: {}", json);
+                
                     let uuid = from_ffi_uuid(uuid);
                     if let Some(insert) = global
                         .core
                         .module
                         .reflection_registry
-                        .insert_editor_component
+                        .insert_serialized_component
                         .get(&uuid)
                     {
-                        insert.insert_component(actor.0, uuid, &mut entity_cmds);
+                        insert.insert_serialized_component(&json, &mut entity_cmds);
                     }
+
+                    //if let Some(insert) = global
+                    //    .core
+                    //    .module
+                    //    .reflection_registry
+                    //    .insert_editor_component
+                    //    .get(&uuid)
+                    //{
+                    //    insert.insert_component(actor.0, uuid, &mut entity_cmds);
+                    //}
                 }
 
                 let entity = entity_cmds

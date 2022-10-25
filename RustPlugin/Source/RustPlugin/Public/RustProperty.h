@@ -5,6 +5,7 @@
 #include "CoreMinimal.h"
 #include "Bindings.h"
 #include "DetailCategoryBuilder.h"
+#include "Dom/JsonValue.h"
 #include "Templates/SubclassOf.h"
 #include "UObject/Object.h"
 #include "RustProperty.generated.h"
@@ -55,7 +56,7 @@ struct FRustProperty
 
 	UPROPERTY(EditAnywhere, Category=Rust)
 	TSubclassOf<AActor> Class;
-	
+
 	UPROPERTY(EditAnywhere, Category=Rust)
 	TObjectPtr<USoundBase> Sound;
 	static void Initialize(TSharedPtr<IPropertyHandle> Handle, ReflectionType Type);
@@ -78,4 +79,23 @@ struct FDynamicRustComponent
 	static void Initialize(TSharedPtr<IPropertyHandle> Handle, FGuid InitGuid);
 	static void Render(TSharedRef<IPropertyHandle> MapHandle, IDetailCategoryBuilder& DetailBuilder,
 	                   IDetailLayoutBuilder& LayoutBuilder);
+
+	FString SerializeToJson();
+};
+
+// Unreal doesn't have a way to serialize uint64 to json 🤷‍
+class FJsonValueNumberUint64 : public FJsonValue
+{
+public:
+	FJsonValueNumberUint64(uint64 InNumber) : Value(InNumber) { Type = EJson::Number; }
+
+	virtual bool TryGetNumber(uint64& OutNumber) const override
+	{
+		OutNumber = Value;
+		return true;
+	}
+
+protected:
+	uint64 Value;
+	virtual FString GetType() const override { return TEXT("Number"); }
 };

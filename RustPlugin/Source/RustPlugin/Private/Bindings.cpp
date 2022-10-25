@@ -716,3 +716,26 @@ uint32_t GetParentActor(const AActorOpaque* actor, AActorOpaque** parent)
 	*parent = static_cast<AActorOpaque*>(ToAActor(actor)->GetParentActor());
 	return 1;
 }
+
+uint32_t GetSerializedJsonComponent(const AActorOpaque* actor, Uuid uuid, StrRustAlloc* out)
+{
+	AActor* Actor = ToAActor(actor);
+	if (Actor == nullptr)
+		return 0;
+
+	UEntityComponent* EntityComponent = Actor->FindComponentByClass<UEntityComponent>();
+	if (EntityComponent == nullptr)
+		return 0;
+
+	FDynamicRustComponent* Comp = EntityComponent->Components.Find(ToFGuid(uuid).ToString());
+	if (Comp == nullptr)
+		return 0;
+
+	auto Json = Comp->SerializeToJson();
+	
+	auto Utf8 = FTCHARToUTF8(*Json);
+	GetRustModule().Plugin.Rust.allocate_fns.allocate(Utf8.Length(), 1, &out->alloc);
+	FMemory::Memcpy(out->alloc.ptr, Utf8.Get(), out->alloc.size);
+
+	return 1;
+}

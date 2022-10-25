@@ -3,12 +3,12 @@ use std::collections::HashMap;
 use bevy_ecs::prelude::*;
 use unreal_api::api::{SweepParams, UnrealApi};
 use unreal_api::core::{ActorHitEvent, Despawn, Frame};
+use unreal_api::editor_component::InsertSerializedComponent;
 use unreal_api::ffi::Sweep;
 use unreal_api::math::Vec2;
 use unreal_api::physics::PhysicsComponent;
-use unreal_api::registry::USound;
+use unreal_api::registry::{UClass, USound};
 use unreal_api::sound::{play_sound_at_location, SoundSettings};
-use unreal_api::Component;
 use unreal_api::{
     core::{ActorComponent, ActorPtr, CoreStage, ParentComponent, TransformComponent},
     ffi::{self, UClassOpague},
@@ -17,6 +17,7 @@ use unreal_api::{
     module::{bindings, InitUserModule, Module, UserModule},
     register_components,
 };
+use unreal_api::{Component, TypeUuid};
 use unreal_movement::{
     CharacterConfigComponent, CharacterControllerComponent, MovementComponent, MovementPlugin,
 };
@@ -48,10 +49,24 @@ impl PlayerInput {
     pub const PRIMARY_ATTACK: &'static str = "PrimaryAttack";
 }
 
-#[derive(Component)]
+#[derive(Component, serde::Deserialize)]
 #[uuid = "cdbbc147-058c-4079-aa85-a93a30d1edfc"]
 #[reflect(editor)]
-pub struct PlayerComponent;
+pub struct PlayerComponent {
+    pub actor: UClass,
+}
+
+impl InsertSerializedComponent for PlayerComponentReflect {
+    unsafe fn insert_serialized_component(
+        &self,
+        json: &str,
+        commands: &mut bevy_ecs::system::EntityCommands<'_, '_, '_>,
+    ) {
+        log::info!("insert");
+        let component = serde_json::de::from_str::<PlayerComponent>(json).unwrap();
+        commands.insert(component);
+    }
+}
 
 #[derive(Component)]
 #[uuid = "e9815aea-f4e2-4953-9553-079e6a7b8055"]
@@ -82,7 +97,6 @@ pub struct CursorComponent {
     pub position: Vec3,
     pub is_visible: bool,
 }
-
 #[derive(Default, Component)]
 #[uuid = "85165d56-db4b-471d-a346-bd13287f4d88"]
 pub struct PlayerStateComponent {
@@ -152,7 +166,11 @@ fn apply_weapon_forces(
         &PhysicsComponent,
         &TransformComponent,
     )>,
-    mut physics_query: Query<(&mut PhysicsComponent, &ActorComponent, Without<WeaponComponent>)>,
+    mut physics_query: Query<(
+        &mut PhysicsComponent,
+        &ActorComponent,
+        Without<WeaponComponent>,
+    )>,
 ) {
     for (entity, hero) in &query {
         if let Ok((weapon_entity, _, p, transform)) = weapon.get(hero.weapon.unwrap()) {
@@ -170,7 +188,11 @@ fn apply_weapon_forces(
             for entity in result {
                 match physics_query.get_mut(entity) {
                     Ok((mut physics, actor, _)) => {
-                            log::info!("test {} {}", actor.get_actor_name(), physics.ptr.ptr as usize);
+                        log::info!(
+                            "test {} {}",
+                            actor.get_actor_name(),
+                            physics.ptr.ptr as usize
+                        );
                         if physics.is_simulating {
                             log::info!("hit {}", actor.get_actor_name());
                             physics.add_impulse(Vec3::Z * 500000.0);
@@ -336,6 +358,10 @@ impl InitUserModule for MyModule {
 
 impl UserModule for MyModule {
     fn initialize(&self, module: &mut Module) {
+        module
+            .reflection_registry
+            .insert_serialized_component
+            .insert(PlayerComponent::TYPE_UUID, Box::new(PlayerComponentReflect));
         register_components! {
             PlayerComponent,
             TopdownCameraComponent,

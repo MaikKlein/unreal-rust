@@ -13,3 +13,5 @@ unreal-ffi = { path = "../unreal-ffi" }
 bevy_ecs = "0.8"
 log = "0.4"
 glam = "0.21"
+
+serde = {version = "1", features = ["derive"]}

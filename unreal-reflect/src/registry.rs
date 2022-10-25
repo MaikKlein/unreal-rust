@@ -1,5 +1,8 @@
+use std::ffi::c_void;
+
 use bevy_ecs::{entity::Entity, prelude::World};
 use glam::{Quat, Vec3};
+use serde::de::Visitor;
 use unreal_ffi as ffi;
 
 #[derive(Copy, Clone, Debug)]
@@ -8,6 +11,33 @@ pub struct UClass {
 }
 unsafe impl Send for UClass {}
 unsafe impl Sync for UClass {}
+
+impl<'de> serde::Deserialize<'de> for UClass {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let ptr = deserializer.deserialize_str(StrVisitor)?;
+        Ok(Self { ptr })
+    }
+}
+struct StrVisitor;
+
+impl<'de> Visitor<'de> for StrVisitor {
+    type Value = *mut c_void;
+
+    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+        todo!()
+    }
+
+    fn visit_str<E>(self, v: &str) -> Result<Self::Value, E>
+    where
+        E: serde::de::Error,
+    {
+        let addr = str::parse::<usize>(v).unwrap();
+        Ok(addr as *mut c_void )
+    }
+}
 
 #[derive(Copy, Clone, Debug)]
 pub struct USound {

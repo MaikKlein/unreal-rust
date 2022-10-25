@@ -8,6 +8,8 @@
 #include "DetailWidgetRow.h"
 #include "IContentBrowserSingleton.h"
 #include "IDetailGroup.h"
+#include "JsonObjectConverter.h"
+#include "Dom/JsonObject.h"
 #include "EditorWidgets/Public/SAssetDropTarget.h"
 #include "GameFramework/GameModeBase.h"
 #include "Widgets/Input/SVectorInputBox.h"
@@ -209,6 +211,66 @@ void FDynamicRustComponent::Render(TSharedRef<IPropertyHandle> MapHandle, IDetai
 			}
 		}
 	}
+}
+
+FString FDynamicRustComponent::SerializeToJson()
+{
+	TSharedPtr<FJsonObject> Json = MakeShareable(new FJsonObject);
+	for (auto Elem : this->Fields)
+	{
+		auto Tag = Elem.Value.Tag;
+
+		if (Tag == ERustPropertyTag::Bool)
+		{
+			Json->SetBoolField(Elem.Key, Elem.Value.Bool);
+		}
+		if (Tag == ERustPropertyTag::Float)
+		{
+			Json->SetNumberField(Elem.Key, Elem.Value.Float);
+		}
+		if (Tag == ERustPropertyTag::Quat)
+		{
+			TSharedPtr<FJsonObject> QuatJson = MakeShareable(new FJsonObject);
+
+			auto Quat = Elem.Value.Rotation.Quaternion();
+
+			QuatJson->SetNumberField("x", Quat.X);
+			QuatJson->SetNumberField("y", Quat.Y);
+			QuatJson->SetNumberField("z", Quat.Z);
+			QuatJson->SetNumberField("w", Quat.W);
+
+			Json->SetObjectField(Elem.Key, QuatJson);
+		}
+		if (Tag == ERustPropertyTag::Vector)
+		{
+			//auto VectorJson =FJsonObjectConverter::UStructToJsonObject(Elem.Value.Vector);
+			//Json->SetObjectField(Elem.Key, VectorJson);
+			TSharedPtr<FJsonObject> VectorJson = MakeShareable(new FJsonObject);
+
+			auto Vector = Elem.Value.Vector;
+
+			VectorJson->SetNumberField("x", Vector.X);
+			VectorJson->SetNumberField("y", Vector.Y);
+			VectorJson->SetNumberField("z", Vector.Z);
+
+			Json->SetObjectField(Elem.Key, VectorJson);
+		}
+		if (Tag == ERustPropertyTag::Class)
+		{
+			size_t Ptr = reinterpret_cast<size_t>(Elem.Value.Class.Get());
+			Json->SetStringField(Elem.Key, FString::Format(TEXT("{0}"), {Ptr}));
+		}
+		if (Tag == ERustPropertyTag::Sound)
+		{
+			size_t Ptr = reinterpret_cast<size_t>(Elem.Value.Sound.Get());
+			Json->SetStringField(Elem.Key, FString::Format(TEXT("{0}"), {Ptr}));
+		}
+	}
+	FString OutputString;
+	TSharedRef<TJsonWriter<>> Writer = TJsonWriterFactory<>::Create(&OutputString);
+	FJsonSerializer::Serialize(Json.ToSharedRef(), Writer);
+
+	return OutputString;
 }
 
 #undef LOCTEXT_NAMESPACE

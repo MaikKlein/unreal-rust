@@ -25,6 +25,11 @@ void FRustDetailCustomization::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 
 	TWeakObjectPtr<UEntityComponent> Component = Cast<UEntityComponent>(Objects[0]);
 
+	for(auto Elem: Component->Components)
+	{
+		UE_LOG(LogTemp, Warning, TEXT("%s"), *Elem.Value.SerializeToJson());
+	}
+
 	TSharedRef<IPropertyHandle> ComponentsHandle = DetailBuilder.GetProperty(
 		GET_MEMBER_NAME_CHECKED(UEntityComponent, Components));
 	// Don't show the components map in the editor. This should only be edited through the custom ui below.

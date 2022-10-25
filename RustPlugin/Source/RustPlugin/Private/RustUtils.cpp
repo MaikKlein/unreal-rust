@@ -20,6 +20,7 @@ UnrealBindings CreateBindings()
 	editor_component_fns.get_editor_component_vector = &GetEditorComponentVector;
 	editor_component_fns.get_editor_component_uobject = &GetEditorComponentUObject;
 	editor_component_fns.get_editor_components = &GetEditorComponentUuids;
+	editor_component_fns.get_serialized_json_component = GetSerializedJsonComponent;
 
 	PhysicsFns physics_fns = {};
 	physics_fns.add_force = &AddForce;
