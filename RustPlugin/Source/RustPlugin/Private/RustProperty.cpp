@@ -230,30 +230,24 @@ FString FDynamicRustComponent::SerializeToJson()
 		}
 		if (Tag == ERustPropertyTag::Quat)
 		{
-			TSharedPtr<FJsonObject> QuatJson = MakeShareable(new FJsonObject);
-
 			auto Quat = Elem.Value.Rotation.Quaternion();
-
-			QuatJson->SetNumberField("x", Quat.X);
-			QuatJson->SetNumberField("y", Quat.Y);
-			QuatJson->SetNumberField("z", Quat.Z);
-			QuatJson->SetNumberField("w", Quat.W);
-
-			Json->SetObjectField(Elem.Key, QuatJson);
+			
+			TArray<TSharedPtr<FJsonValue>> Array;
+			Array.Push(MakeShared<FJsonValueNumber>(Quat.X));
+			Array.Push(MakeShared<FJsonValueNumber>(Quat.Y));
+			Array.Push(MakeShared<FJsonValueNumber>(Quat.Z));
+			Array.Push(MakeShared<FJsonValueNumber>(Quat.W));
+			Json->SetArrayField(Elem.Key, Array);
 		}
 		if (Tag == ERustPropertyTag::Vector)
 		{
-			//auto VectorJson =FJsonObjectConverter::UStructToJsonObject(Elem.Value.Vector);
-			//Json->SetObjectField(Elem.Key, VectorJson);
-			TSharedPtr<FJsonObject> VectorJson = MakeShareable(new FJsonObject);
-
 			auto Vector = Elem.Value.Vector;
-
-			VectorJson->SetNumberField("x", Vector.X);
-			VectorJson->SetNumberField("y", Vector.Y);
-			VectorJson->SetNumberField("z", Vector.Z);
-
-			Json->SetObjectField(Elem.Key, VectorJson);
+			
+			TArray<TSharedPtr<FJsonValue>> Array;
+			Array.Push(MakeShared<FJsonValueNumber>(Vector.X));
+			Array.Push(MakeShared<FJsonValueNumber>(Vector.Y));
+			Array.Push(MakeShared<FJsonValueNumber>(Vector.Z));
+			Json->SetArrayField(Elem.Key, Array);
 		}
 		if (Tag == ERustPropertyTag::Class)
 		{

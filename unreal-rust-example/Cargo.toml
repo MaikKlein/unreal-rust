@@ -13,5 +13,7 @@ bevy_ecs = "0.8"
 log = "0.4"
 unreal-movement = { path = "../gameplay-plugins/unreal-movement" }
 
+serde = {version = "1", features = ["derive"]}
+
 [lib]
 crate-type = ["cdylib"]   

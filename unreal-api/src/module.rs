@@ -42,8 +42,8 @@ pub trait InsertReflectionStruct {
 pub struct ReflectionRegistry {
     pub uuid_set: HashSet<uuid::Uuid>,
     pub reflect: HashMap<uuid::Uuid, Box<dyn ReflectDyn>>,
-    pub insert_editor_component: HashMap<uuid::Uuid, Box<dyn InsertEditorComponent>>,
     pub insert_serialized_component: HashMap<uuid::Uuid, Box<dyn InsertSerializedComponent>>,
+    pub editor_components: HashSet<uuid::Uuid>,
 }
 
 impl ReflectionRegistry {

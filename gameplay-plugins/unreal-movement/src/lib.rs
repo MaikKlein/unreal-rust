@@ -59,7 +59,7 @@ pub struct CharacterControllerComponent {
     pub visual_rotation: Quat,
 }
 
-#[derive(Debug, Component)]
+#[derive(Debug, Component, serde::Serialize, serde::Deserialize)]
 #[uuid = "16ca6de6-7a30-412d-8bef-4ee96e18a101"]
 #[reflect(editor)]
 pub struct CharacterConfigComponent {

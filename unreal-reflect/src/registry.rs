@@ -46,6 +46,17 @@ pub struct USound {
 unsafe impl Send for USound {}
 unsafe impl Sync for USound {}
 
+// TODO: Merge usound/uclass impl
+impl<'de> serde::Deserialize<'de> for USound {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: serde::Deserializer<'de>,
+    {
+        let ptr = deserializer.deserialize_str(StrVisitor)?;
+        Ok(Self { ptr })
+    }
+}
+
 pub enum ReflectValue {
     Float(f32),
     Vector3(Vec3),

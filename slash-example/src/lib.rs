@@ -62,16 +62,15 @@ impl InsertSerializedComponent for PlayerComponentReflect {
         json: &str,
         commands: &mut bevy_ecs::system::EntityCommands<'_, '_, '_>,
     ) {
-        log::info!("insert");
         let component = serde_json::de::from_str::<PlayerComponent>(json).unwrap();
         commands.insert(component);
     }
 }
 
-#[derive(Component)]
+#[derive(Component, serde::Serialize, serde::Deserialize)]
 #[uuid = "e9815aea-f4e2-4953-9553-079e6a7b8055"]
 #[reflect(editor)]
-pub struct WeaponComponent;
+pub struct WeaponComponent {}
 
 #[derive(Default, Component)]
 #[uuid = "065f42a3-1925-4305-be29-9bb60a4ba510"]
@@ -358,10 +357,6 @@ impl InitUserModule for MyModule {
 
 impl UserModule for MyModule {
     fn initialize(&self, module: &mut Module) {
-        module
-            .reflection_registry
-            .insert_serialized_component
-            .insert(PlayerComponent::TYPE_UUID, Box::new(PlayerComponentReflect));
         register_components! {
             PlayerComponent,
             TopdownCameraComponent,

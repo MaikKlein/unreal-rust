@@ -321,8 +321,8 @@ unsafe extern "C" fn is_editor_component(uuid: ffi::Uuid) -> u32 {
                 .core
                 .module
                 .reflection_registry
-                .insert_editor_component
-                .contains_key(&uuid)
+                .editor_components
+                .contains(&uuid)
             {
                 1
             } else {
@@ -770,8 +770,6 @@ fn process_actor_spawned(
                     let mut alloc = StrRustAlloc::empty();
                     (bindings().editor_component_fns.get_serialized_json_component)(actor.0, uuid, &mut alloc);
 
-                    let json = alloc.into_string();
-                    log::info!("Serialized: {}", json);
                 
                     let uuid = from_ffi_uuid(uuid);
                     if let Some(insert) = global
@@ -783,16 +781,6 @@ fn process_actor_spawned(
                     {
                         insert.insert_serialized_component(&json, &mut entity_cmds);
                     }
-
-                    //if let Some(insert) = global
-                    //    .core
-                    //    .module
-                    //    .reflection_registry
-                    //    .insert_editor_component
-                    //    .get(&uuid)
-                    //{
-                    //    insert.insert_component(actor.0, uuid, &mut entity_cmds);
-                    //}
                 }
 
                 let entity = entity_cmds

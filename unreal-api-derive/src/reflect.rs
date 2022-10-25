@@ -124,13 +124,30 @@ pub fn reflect_derive(ast: &DeriveInput) -> proc_macro2::TokenStream {
             quote! {}
         };
 
-        let register_editor_component = if is_editor_component {
+        let insert_serialized_component = if is_editor_component {
             quote! {
-                registry.insert_editor_component.insert(
+                impl unreal_api::editor_component::InsertSerializedComponent for #insert_struct_ident {
+                    unsafe fn insert_serialized_component(
+                        &self,
+                        json: &str,
+                        commands: &mut bevy_ecs::system::EntityCommands<'_, '_, '_>,
+                    ) {
+                        let component = unreal_api::serde_json::de::from_str::<#struct_ident>(json).unwrap();
+                        commands.insert(component);
+                    }
+                }
+            }
+        } else {
+            quote! {}
+        };
+
+        let register_insert_serialized = if is_editor_component {
+            quote! {
+                registry.insert_serialized_component.insert(
                     <#struct_ident as unreal_api::TypeUuid>::TYPE_UUID,
                     Box::new(#insert_struct_ident),
                 );
-
+                registry.editor_components.insert(<#struct_ident as unreal_api::TypeUuid>::TYPE_UUID);
             }
         } else {
             quote!()
@@ -162,7 +179,7 @@ pub fn reflect_derive(ast: &DeriveInput) -> proc_macro2::TokenStream {
                 type Storage = unreal_api::ecs::component::TableStorage;
             }
             pub struct #insert_struct_ident;
-            #insert_component
+            #insert_serialized_component
 
             impl unreal_api::module::InsertReflectionStruct for #struct_ident {
                 fn insert(registry: &mut unreal_api::module::ReflectionRegistry) {
@@ -170,7 +187,7 @@ pub fn reflect_derive(ast: &DeriveInput) -> proc_macro2::TokenStream {
                         <#struct_ident as unreal_api::TypeUuid>::TYPE_UUID,
                         Box::new(#reflect_struct_ident),
                     );
-                    #register_editor_component
+                    #register_insert_serialized
 
                 }
             }

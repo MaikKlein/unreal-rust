@@ -55,7 +55,7 @@ impl CameraMode {
         };
     }
 }
-#[derive(Debug, Component)]
+#[derive(Debug, Component, serde::Deserialize)]
 #[uuid = "b6addc7d-03b1-4b06-9328-f26c71997ee6"]
 #[reflect(editor)]
 pub struct PlaySoundOnImpactComponent {
@@ -65,7 +65,7 @@ impl PlaySoundOnImpactComponent {
     const MINIMUM_FORCE: f32 = 30000.0;
 }
 
-#[derive(Debug, Component)]
+#[derive(Debug, Component, serde::Deserialize)]
 #[uuid = "52788d7e-017b-42cd-b3bf-aa616315c0c4"]
 #[reflect(editor)]
 pub struct CharacterSoundsComponent {
