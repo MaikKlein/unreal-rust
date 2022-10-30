@@ -161,7 +161,6 @@ pub unsafe extern "C" fn send_actor_event(
     uuid: ffi::Uuid,
     json: ffi::Utf8Str,
 ) {
-    log::info!("send event {}", from_ffi_uuid(uuid));
     let _ = std::panic::catch_unwind(|| {
         if let Some(global) = crate::module::MODULE.as_mut() {
             if let Some(send_event) = global
@@ -179,7 +178,6 @@ pub unsafe extern "C" fn send_actor_event(
                     .unwrap();
                 let entity = *api.actor_to_entity.get(&ActorPtr(actor as _)).unwrap();
 
-                log::info!("send event 2");
                 send_event.send_entity_event(&mut global.core.module.world, entity, json.as_str());
             }
         }

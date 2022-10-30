@@ -66,7 +66,6 @@ pub struct WeaponStartEvent {
 impl SendEntityEvent for WeaponStartEventReflect {
     fn send_entity_event(&self, world: &mut World, entity: Entity, json: &str) {
         let event: WeaponStartEvent = serde_json::de::from_str(json).unwrap();
-        log::info!("Got {:?}", event);
         world.send_event(EntityEvent { entity, event });
     }
 }
@@ -138,6 +137,7 @@ fn player_attack(input: Res<Input>, mut query: Query<&mut HeroComponent>) {
         hero.is_attacking = is_attacking;
     }
 }
+
 fn weapon_start(
     mut events: EventReader<EntityEvent<WeaponStartEvent>>
 ) {

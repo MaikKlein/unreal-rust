@@ -4,6 +4,8 @@
 #include "AnimNotify_RustEvent.h"
 #include "DetailLayoutBuilder.h"
 #include "DetailWidgetRow.h"
+#include "IDetailChildrenBuilder.h"
+#include "IPropertyUtilities.h"
 #include "Widgets/Input/SVectorInputBox.h"
 #include "RustActor.h"
 #include "RustProperty.h"
@@ -11,46 +13,54 @@
 
 #define LOCTEXT_NAMESPACE "RustDetailCustomization"
 
-TSharedRef<IDetailCustomization> FRustAnimNotifyDetailCustomization::MakeInstance()
+TSharedRef<IPropertyTypeCustomization> FRustAnimNotifyDetailCustomization::MakeInstance()
 {
 	return MakeShareable(new FRustAnimNotifyDetailCustomization);
 }
 
-void FRustAnimNotifyDetailCustomization::CustomizeDetails(IDetailLayoutBuilder& DetailBuilder)
+void FRustAnimNotifyDetailCustomization::CustomizeHeader(TSharedRef<IPropertyHandle> PropertyHandle,
+                                                         FDetailWidgetRow& HeaderRow,
+                                                         IPropertyTypeCustomizationUtils& CustomizationUtils)
 {
-	UE_LOG(LogTemp, Warning, TEXT("Custom"));
-	TArray<TWeakObjectPtr<UObject>> Objects;
-	DetailBuilder.GetObjectsBeingCustomized(Objects);
+	UE_LOG(LogTemp, Warning, TEXT("Custom Header"));
+	TSharedPtr<IPropertyHandle> GuidHandle = PropertyHandle->GetChildHandle(
+		GET_MEMBER_NAME_CHECKED(FRustEvent, Guid));
 
-	if (Objects.IsEmpty())
-		return;
+	UE_LOG(LogTemp, Warning, TEXT("C Header: %i"), GuidHandle.IsValid());
+	UE_LOG(LogTemp, Warning, TEXT("Custom Header %s"), *PropertyHandle->GeneratePathToProperty());
+}
 
-	TWeakObjectPtr<UAnimNotify_RustEvent> RustEvent = Cast<UAnimNotify_RustEvent>(Objects[0]);
+void FRustAnimNotifyDetailCustomization::CustomizeChildren(TSharedRef<IPropertyHandle> PropertyHandle,
+                                                           IDetailChildrenBuilder& ChildBuilder,
+                                                           IPropertyTypeCustomizationUtils& CustomizationUtils)
+{
+	TSharedPtr<IPropertyUtilities> Utilities = CustomizationUtils.GetPropertyUtilities();
 
-	TSharedRef<IPropertyHandle> GuidHandle = DetailBuilder.GetProperty(
-		GET_MEMBER_NAME_CHECKED(UAnimNotify_RustEvent, Guid));
-	TSharedRef<IPropertyHandle> EventHandle = DetailBuilder.GetProperty(
-		GET_MEMBER_NAME_CHECKED(UAnimNotify_RustEvent, Event));
-	
+
+	TSharedPtr<IPropertyHandle> GuidHandle = PropertyHandle->GetChildHandle(
+		GET_MEMBER_NAME_CHECKED(FRustEvent, Guid));
+
+	TSharedPtr<IPropertyHandle> EventHandle = PropertyHandle->GetChildHandle(
+		GET_MEMBER_NAME_CHECKED(FRustEvent, Event));
+	UE_LOG(LogTemp, Warning, TEXT("Header: %i"), GuidHandle.IsValid());
+
 	// Don't show the components map in the editor. This should only be edited through the custom ui below.
-	DetailBuilder.HideProperty(GuidHandle);
-	DetailBuilder.HideProperty(EventHandle);
+	//DetailBuilder.HideProperty(GuidHandle);
+	//DetailBuilder.HideProperty(EventHandle);
 	{
-
 		FString GuidName;
 		GuidHandle->GetValue(GuidName);
 
 		FGuid Guid;
 		FGuid::Parse(GuidName, Guid);
-		
+
 		//RustEvent->Event.Reload(EventHandle, Guid);
 	}
 
 
-	IDetailCategoryBuilder& RustCategory = DetailBuilder.EditCategory(TEXT("Rust"));
-	FDynamicRustComponent::Render(EventHandle, RustCategory, DetailBuilder);
+	FDynamicRustComponent::Render(EventHandle, ChildBuilder);
 
-	auto OnPicked = [&DetailBuilder, GuidHandle, EventHandle](FUuidViewNode* Node)
+	auto OnPicked = [Utilities, GuidHandle, EventHandle](FUuidViewNode* Node)
 	{
 		if (Node == nullptr)
 			return;
@@ -59,10 +69,10 @@ void FRustAnimNotifyDetailCustomization::CustomizeDetails(IDetailLayoutBuilder& 
 			GuidHandle->SetValue(Node->Id.ToString());
 			FDynamicRustComponent::Initialize(EventHandle, Node->Id);
 		}
-		DetailBuilder.ForceRefreshDetails();
+		Utilities->ForceRefresh();
 	};
 
-	RustCategory.AddCustomRow(LOCTEXT("Picker", "Picker")).WholeRowContent()[
+	ChildBuilder.AddCustomRow(LOCTEXT("Picker", "Picker")).WholeRowContent()[
 		SNew(SRustDropdownList).OnlyShowEditorComponents(true).OnUuidPickedDelegate(
 			FOnUuidPicked::CreateLambda(OnPicked))
 	];

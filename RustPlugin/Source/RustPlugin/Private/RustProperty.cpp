@@ -7,8 +7,13 @@
 #include "RustUtils.h"
 #include "DetailWidgetRow.h"
 #include "IContentBrowserSingleton.h"
+#include "IDetailChildrenBuilder.h"
 #include "IDetailGroup.h"
 #include "JsonObjectConverter.h"
+#include "Chaos/AABB.h"
+#include "Chaos/AABB.h"
+#include "Chaos/AABB.h"
+#include "Chaos/AABB.h"
 #include "Dom/JsonObject.h"
 #include "EditorWidgets/Public/SAssetDropTarget.h"
 #include "GameFramework/GameModeBase.h"
@@ -237,8 +242,7 @@ void FDynamicRustComponent::RenderFields(TSharedPtr<IPropertyHandle> FieldsPrope
 	}
 }
 
-void FDynamicRustComponent::Render(TSharedRef<IPropertyHandle> Self, IDetailCategoryBuilder& DetailBuilder,
-                                   IDetailLayoutBuilder& LayoutBuilder)
+void FDynamicRustComponent::Render(TSharedPtr<IPropertyHandle> Self, IDetailChildrenBuilder& ChildBuilder)
 {
 	TSharedPtr<IPropertyHandle> NameProperty = Self->GetChildHandle(
 		GET_MEMBER_NAME_CHECKED(FDynamicRustComponent, Name));
@@ -254,7 +258,7 @@ void FDynamicRustComponent::Render(TSharedRef<IPropertyHandle> Self, IDetailCate
 	TSharedPtr<IPropertyHandle> FieldsProperty = Self->GetChildHandle(
 		GET_MEMBER_NAME_CHECKED(FDynamicRustComponent, Fields));
 
-	auto& ComponentGroup = DetailBuilder.AddGroup(FName("Component"), FText::FromString(Name), false, true);
+	auto& ComponentGroup = ChildBuilder.AddGroup(FName("Component"), FText::FromString(Name));
 	ComponentGroup.HeaderRow().NameContent()[
 			FieldsProperty->CreatePropertyNameWidget(FText::FromString(Name))
 		]

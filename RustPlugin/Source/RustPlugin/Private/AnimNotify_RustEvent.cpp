@@ -23,10 +23,10 @@ void UAnimNotify_RustEvent::Notify(USkeletalMeshComponent* MeshComp, UAnimSequen
 	}
 #endif
 	FGuid ParsedGuid;
-	FGuid::Parse(Guid, ParsedGuid);
+	FGuid::Parse(Event.Guid, ParsedGuid);
 
 
-	auto Json = Event.SerializeToJson();
+	auto Json = Event.Event.SerializeToJson();
 	auto ToUtf8 = FTCHARToUTF8(*Json);
 
 	Utf8Str Utf8;

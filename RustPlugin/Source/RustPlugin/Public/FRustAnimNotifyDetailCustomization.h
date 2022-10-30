@@ -2,13 +2,14 @@
 #pragma once
 
 #include "IDetailCustomization.h"
+#include "IPropertyTypeCustomization.h"
 
-class FRustAnimNotifyDetailCustomization: public IDetailCustomization
+class FRustAnimNotifyDetailCustomization : public IPropertyTypeCustomization
 {
 public:
-	// IDetailCustomization interface
-	virtual void CustomizeDetails(IDetailLayoutBuilder& DetailBuilder) override;
-	//
-
-	static TSharedRef< IDetailCustomization > MakeInstance();
+	static TSharedRef<IPropertyTypeCustomization> MakeInstance();
+	virtual void CustomizeHeader(TSharedRef<IPropertyHandle> PropertyHandle, FDetailWidgetRow& HeaderRow,
+	                             IPropertyTypeCustomizationUtils& CustomizationUtils) override;
+	virtual void CustomizeChildren(TSharedRef<IPropertyHandle> PropertyHandle, IDetailChildrenBuilder& ChildBuilder,
+	                               IPropertyTypeCustomizationUtils& CustomizationUtils) override;
 };

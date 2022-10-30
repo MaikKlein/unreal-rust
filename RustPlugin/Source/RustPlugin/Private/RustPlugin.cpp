@@ -221,15 +221,14 @@ void FRustPluginModule::StartupModule()
 		);
 
 		PropertyModule.RegisterCustomPropertyTypeLayout(
-			//UAnimNotify_RustEvent::StaticClass()->GetFName(),
-			"",
-		    FOnGetDetailCustomizationInstance::CreateStatic(&FRustAnimNotifyDetailCustomization::MakeInstance)
+			FRustEvent::StaticStruct()->GetFName(),
+			FOnGetPropertyTypeCustomizationInstance::CreateStatic(&FRustAnimNotifyDetailCustomization::MakeInstance)
 		);
 
-		PropertyModule.RegisterCustomClassLayout(
-			"AnimNotify_RustEvent",
-			FOnGetDetailCustomizationInstance::CreateStatic(&FRustAnimNotifyDetailCustomization::MakeInstance)
-		);
+		//PropertyModule.RegisterCustomClassLayout(
+		//	"AnimNotify_RustEvent",
+		//	FOnGetDetailCustomizationInstance::CreateStatic(&FRustAnimNotifyDetailCustomization::MakeInstance)
+		//);
 
 		PropertyModule.NotifyCustomizationModuleChanged();
 	}

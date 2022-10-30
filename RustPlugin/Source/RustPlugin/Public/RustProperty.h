@@ -80,8 +80,7 @@ struct FDynamicRustComponent
 	static void RenderComponents(TSharedRef<IPropertyHandle> MapHandle, IDetailCategoryBuilder& DetailBuilder,
 	                             IDetailLayoutBuilder& LayoutBuilder);
 	static void RenderFields(TSharedPtr<IPropertyHandle> FieldsProperty, IDetailGroup& ComponentGroup);
-	static void Render(TSharedRef<IPropertyHandle> Self, IDetailCategoryBuilder& DetailBuilder,
-	                         IDetailLayoutBuilder& LayoutBuilder);
+	static void Render(TSharedPtr<IPropertyHandle> Self, IDetailChildrenBuilder& ChildBuilder);
 
 	FString SerializeToJson();
 };
