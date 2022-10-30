@@ -81,6 +81,22 @@ void FDynamicRustComponent::Initialize(TSharedPtr<IPropertyHandle> Handle, FGuid
 	TSharedPtr<IPropertyHandle> RustPropertyMap = Handle->GetChildHandle(
 		GET_MEMBER_NAME_CHECKED(FDynamicRustComponent, Fields));
 
+	auto Map = RustPropertyMap->AsMap();
+
+	uint32 NumOfPreviousFields = 0;
+	Map->GetNumElements(NumOfPreviousFields);
+	for (uint32_t Idx = 0; Idx < NumOfPreviousFields; ++Idx)
+	{
+		Map->DeleteItem(Idx);
+	}
+	Map->Empty();
+	Map->GetNumElements(NumOfPreviousFields);
+	
+	UE_LOG(LogTemp, Warning, TEXT("Fields after delete %i"), NumOfPreviousFields);
+	if(NumOfPreviousFields != 0)
+		return;
+	
+
 	Uuid Id = ToUuid(InitGuid);
 
 	auto Reflection = GetRustModule().Plugin.ReflectionData.Types.Find(InitGuid);
@@ -94,8 +110,9 @@ void FDynamicRustComponent::Initialize(TSharedPtr<IPropertyHandle> Handle, FGuid
 		auto Type = *Reflection->FieldNameToType.Find(FieldName);
 
 		uint32 FieldPropertyIndex = 0;
-		RustPropertyMap->GetNumChildren(FieldPropertyIndex);
-		RustPropertyMap->AsMap()->AddItem();
+		Map->GetNumElements(FieldPropertyIndex);
+		UE_LOG(LogTemp, Warning, TEXT("Field index %i"), FieldPropertyIndex);
+		Map->AddItem();
 
 		auto RustPropertyEntry = RustPropertyMap->GetChildHandle(FieldPropertyIndex);
 		RustPropertyEntry->GetKeyHandle()->SetValue(FieldName);
@@ -103,8 +120,9 @@ void FDynamicRustComponent::Initialize(TSharedPtr<IPropertyHandle> Handle, FGuid
 	}
 }
 
-void FDynamicRustComponent::Render(TSharedRef<IPropertyHandle> MapHandle, IDetailCategoryBuilder& DetailBuilder,
-                                   IDetailLayoutBuilder& LayoutBuilder)
+void FDynamicRustComponent::RenderComponents(TSharedRef<IPropertyHandle> MapHandle,
+                                             IDetailCategoryBuilder& DetailBuilder,
+                                             IDetailLayoutBuilder& LayoutBuilder)
 {
 	uint32 NumberOfComponents;
 	MapHandle->GetNumChildren(NumberOfComponents);
@@ -124,9 +142,6 @@ void FDynamicRustComponent::Render(TSharedRef<IPropertyHandle> MapHandle, IDetai
 
 		TSharedPtr<IPropertyHandle> FieldsProperty = ComponentEntry->GetChildHandle(
 			GET_MEMBER_NAME_CHECKED(FDynamicRustComponent, Fields));
-
-		uint32 NumberOfFields = 0;
-		FieldsProperty->GetNumChildren(NumberOfFields);
 
 		auto& ComponentGroup = DetailBuilder.AddGroup(FName("Component"), FText::FromString(Name), false, true);
 		ComponentGroup.HeaderRow().NameContent()[
@@ -154,63 +169,118 @@ void FDynamicRustComponent::Render(TSharedRef<IPropertyHandle> MapHandle, IDetai
 					]
 				]
 			];
-		for (uint32 FieldIdx = 0; FieldIdx < NumberOfFields; ++FieldIdx)
+		FDynamicRustComponent::RenderFields(FieldsProperty, ComponentGroup);
+	}
+}
+
+void FDynamicRustComponent::RenderFields(TSharedPtr<IPropertyHandle> FieldsProperty, IDetailGroup& ComponentGroup)
+
+{
+	uint32 NumberOfFields = 0;
+	FieldsProperty->GetNumChildren(NumberOfFields);
+
+	for (uint32 FieldIdx = 0; FieldIdx < NumberOfFields; ++FieldIdx)
+	{
+		auto RustPropertyEntry = FieldsProperty->GetChildHandle(FieldIdx);
+		TSharedPtr<IPropertyHandle> TagProperty = RustPropertyEntry->GetChildHandle(
+			GET_MEMBER_NAME_CHECKED(FRustProperty, Tag));
+
+		int32 Tag = 0;
+		TagProperty->GetValue(Tag);
+
+		TSharedPtr<IPropertyHandle> FieldNameProperty = RustPropertyEntry->GetKeyHandle();
+
+		FString FieldPropertyName;
+		FieldNameProperty->GetValue(FieldPropertyName);
+		if (Tag == ERustPropertyTag::Float)
 		{
-			auto RustPropertyEntry = FieldsProperty->GetChildHandle(FieldIdx);
-			TSharedPtr<IPropertyHandle> TagProperty = RustPropertyEntry->GetChildHandle(
-				GET_MEMBER_NAME_CHECKED(FRustProperty, Tag));
-
-			int32 Tag = 0;
-			TagProperty->GetValue(Tag);
-
-			TSharedPtr<IPropertyHandle> FieldNameProperty = RustPropertyEntry->GetKeyHandle();
-
-			FString FieldPropertyName;
-			FieldNameProperty->GetValue(FieldPropertyName);
-			if (Tag == ERustPropertyTag::Float)
-			{
-				auto FloatProperty = RustPropertyEntry->GetChildHandle(
-					GET_MEMBER_NAME_CHECKED(FRustProperty, Float));
-				ComponentGroup.AddPropertyRow(FloatProperty.ToSharedRef()).DisplayName(
-					FText::FromString(FieldPropertyName));
-			}
-			if (Tag == ERustPropertyTag::Vector)
-			{
-				auto VectorProperty = RustPropertyEntry->GetChildHandle(
-					GET_MEMBER_NAME_CHECKED(FRustProperty, Vector));
-				ComponentGroup.AddPropertyRow(VectorProperty.ToSharedRef()).DisplayName(
-					FText::FromString(FieldPropertyName));
-			}
-			if (Tag == ERustPropertyTag::Bool)
-			{
-				auto BoolProperty = RustPropertyEntry->GetChildHandle(
-					GET_MEMBER_NAME_CHECKED(FRustProperty, Bool));
-				ComponentGroup.AddPropertyRow(BoolProperty.ToSharedRef()).DisplayName(
-					FText::FromString(FieldPropertyName));
-			}
-			if (Tag == ERustPropertyTag::Quat)
-			{
-				auto QuatProperty = RustPropertyEntry->GetChildHandle(
-					GET_MEMBER_NAME_CHECKED(FRustProperty, Rotation));
-				ComponentGroup.AddPropertyRow(QuatProperty.ToSharedRef()).DisplayName(
-					FText::FromString(FieldPropertyName));
-			}
-			if (Tag == ERustPropertyTag::Class)
-			{
-				auto ClassProperty = RustPropertyEntry->GetChildHandle(
-					GET_MEMBER_NAME_CHECKED(FRustProperty, Class));
-				ComponentGroup.AddPropertyRow(ClassProperty.ToSharedRef()).DisplayName(
-					FText::FromString(FieldPropertyName));
-			}
-			if (Tag == ERustPropertyTag::Sound)
-			{
-				auto SoundProperty = RustPropertyEntry->GetChildHandle(
-					GET_MEMBER_NAME_CHECKED(FRustProperty, Sound));
-				ComponentGroup.AddPropertyRow(SoundProperty.ToSharedRef()).DisplayName(
-					FText::FromString(FieldPropertyName));
-			}
+			auto FloatProperty = RustPropertyEntry->GetChildHandle(
+				GET_MEMBER_NAME_CHECKED(FRustProperty, Float));
+			ComponentGroup.AddPropertyRow(FloatProperty.ToSharedRef()).DisplayName(
+				FText::FromString(FieldPropertyName));
+		}
+		if (Tag == ERustPropertyTag::Vector)
+		{
+			auto VectorProperty = RustPropertyEntry->GetChildHandle(
+				GET_MEMBER_NAME_CHECKED(FRustProperty, Vector));
+			ComponentGroup.AddPropertyRow(VectorProperty.ToSharedRef()).DisplayName(
+				FText::FromString(FieldPropertyName));
+		}
+		if (Tag == ERustPropertyTag::Bool)
+		{
+			auto BoolProperty = RustPropertyEntry->GetChildHandle(
+				GET_MEMBER_NAME_CHECKED(FRustProperty, Bool));
+			ComponentGroup.AddPropertyRow(BoolProperty.ToSharedRef()).DisplayName(
+				FText::FromString(FieldPropertyName));
+		}
+		if (Tag == ERustPropertyTag::Quat)
+		{
+			auto QuatProperty = RustPropertyEntry->GetChildHandle(
+				GET_MEMBER_NAME_CHECKED(FRustProperty, Rotation));
+			ComponentGroup.AddPropertyRow(QuatProperty.ToSharedRef()).DisplayName(
+				FText::FromString(FieldPropertyName));
+		}
+		if (Tag == ERustPropertyTag::Class)
+		{
+			auto ClassProperty = RustPropertyEntry->GetChildHandle(
+				GET_MEMBER_NAME_CHECKED(FRustProperty, Class));
+			ComponentGroup.AddPropertyRow(ClassProperty.ToSharedRef()).DisplayName(
+				FText::FromString(FieldPropertyName));
+		}
+		if (Tag == ERustPropertyTag::Sound)
+		{
+			auto SoundProperty = RustPropertyEntry->GetChildHandle(
+				GET_MEMBER_NAME_CHECKED(FRustProperty, Sound));
+			ComponentGroup.AddPropertyRow(SoundProperty.ToSharedRef()).DisplayName(
+				FText::FromString(FieldPropertyName));
 		}
 	}
+}
+
+void FDynamicRustComponent::Render(TSharedRef<IPropertyHandle> Self, IDetailCategoryBuilder& DetailBuilder,
+                                   IDetailLayoutBuilder& LayoutBuilder)
+{
+	TSharedPtr<IPropertyHandle> NameProperty = Self->GetChildHandle(
+		GET_MEMBER_NAME_CHECKED(FDynamicRustComponent, Name));
+
+	if (!NameProperty.IsValid())
+	{
+		return;
+	}
+
+	FString Name;
+	NameProperty->GetValue(Name);
+
+	TSharedPtr<IPropertyHandle> FieldsProperty = Self->GetChildHandle(
+		GET_MEMBER_NAME_CHECKED(FDynamicRustComponent, Fields));
+
+	auto& ComponentGroup = DetailBuilder.AddGroup(FName("Component"), FText::FromString(Name), false, true);
+	ComponentGroup.HeaderRow().NameContent()[
+			FieldsProperty->CreatePropertyNameWidget(FText::FromString(Name))
+		]
+		.ExtensionContent()[
+			SNew(SBox)
+				.HAlign(HAlign_Center)
+				.VAlign(VAlign_Center)
+				.WidthOverride(22)
+				.HeightOverride(22)[
+				SNew(SButton)
+					.ButtonStyle(FAppStyle::Get(), "SimpleButton")
+					//.OnClicked(FOnComponentRemoved::CreateLambda([MapHandle, ComponentIdx, &LayoutBuilder]()
+				    //         {
+					//             MapHandle->AsMap()->DeleteItem(ComponentIdx);
+					//             LayoutBuilder.ForceRefreshDetails();
+					//             return FReply::Handled();
+				    //         }))
+					.ContentPadding(0)
+				[
+					SNew(SImage)
+						.Image(FEditorStyle::GetBrush("Icons.Delete"))
+						.ColorAndOpacity(FSlateColor::UseForeground())
+				]
+			]
+		];
+	FDynamicRustComponent::RenderFields(FieldsProperty, ComponentGroup);
 }
 
 FString FDynamicRustComponent::SerializeToJson()
@@ -231,7 +301,7 @@ FString FDynamicRustComponent::SerializeToJson()
 		if (Tag == ERustPropertyTag::Quat)
 		{
 			auto Quat = Elem.Value.Rotation.Quaternion();
-			
+
 			TArray<TSharedPtr<FJsonValue>> Array;
 			Array.Push(MakeShared<FJsonValueNumber>(Quat.X));
 			Array.Push(MakeShared<FJsonValueNumber>(Quat.Y));
@@ -242,7 +312,7 @@ FString FDynamicRustComponent::SerializeToJson()
 		if (Tag == ERustPropertyTag::Vector)
 		{
 			auto Vector = Elem.Value.Vector;
-			
+
 			TArray<TSharedPtr<FJsonValue>> Array;
 			Array.Push(MakeShared<FJsonValueNumber>(Vector.X));
 			Array.Push(MakeShared<FJsonValueNumber>(Vector.Y));

@@ -1,17 +1,16 @@
-use std::collections::HashMap;
+use std::default;
 
 use bevy_ecs::prelude::*;
 use unreal_api::api::{SweepParams, UnrealApi};
-use unreal_api::core::{ActorHitEvent, Despawn, Frame};
+use unreal_api::core::{EntityEvent, SendEntityEvent};
 use unreal_api::editor_component::InsertSerializedComponent;
-use unreal_api::ffi::Sweep;
+use unreal_api::ffi::SendActorEventFn;
 use unreal_api::math::Vec2;
 use unreal_api::physics::PhysicsComponent;
-use unreal_api::registry::{UClass, USound};
-use unreal_api::sound::{play_sound_at_location, SoundSettings};
+use unreal_api::registry::UClass;
 use unreal_api::{
-    core::{ActorComponent, ActorPtr, CoreStage, ParentComponent, TransformComponent},
-    ffi::{self, UClassOpague},
+    core::{ActorComponent, ActorPtr, CoreStage, TransformComponent},
+    ffi::{self},
     input::Input,
     math::{Quat, Vec3},
     module::{bindings, InitUserModule, Module, UserModule},
@@ -21,21 +20,6 @@ use unreal_api::{Component, TypeUuid};
 use unreal_movement::{
     CharacterConfigComponent, CharacterControllerComponent, MovementComponent, MovementPlugin,
 };
-
-#[repr(u32)]
-#[derive(Copy, Clone)]
-pub enum Class {
-    Player = 0,
-}
-
-impl Class {
-    pub fn from(i: u32) -> Option<Self> {
-        match i {
-            0 => Some(Self::Player),
-            _ => None,
-        }
-    }
-}
 
 pub struct PlayerInput;
 impl PlayerInput {
@@ -71,6 +55,21 @@ impl InsertSerializedComponent for PlayerComponentReflect {
 #[uuid = "e9815aea-f4e2-4953-9553-079e6a7b8055"]
 #[reflect(editor)]
 pub struct WeaponComponent {}
+
+#[derive(Debug, Component, serde::Serialize, serde::Deserialize)]
+#[uuid = "479006cc-3c8f-4d16-b7c2-1bb81bcf43f2"]
+#[reflect(editor)]
+pub struct WeaponStartEvent {
+    pub f: f32,
+}
+
+impl SendEntityEvent for WeaponStartEventReflect {
+    fn send_entity_event(&self, world: &mut World, entity: Entity, json: &str) {
+        let event: WeaponStartEvent = serde_json::de::from_str(json).unwrap();
+        log::info!("Got {:?}", event);
+        world.send_event(EntityEvent { entity, event });
+    }
+}
 
 #[derive(Default, Component)]
 #[uuid = "065f42a3-1925-4305-be29-9bb60a4ba510"]
@@ -139,6 +138,13 @@ fn player_attack(input: Res<Input>, mut query: Query<&mut HeroComponent>) {
         hero.is_attacking = is_attacking;
     }
 }
+fn weapon_start(
+    mut events: EventReader<EntityEvent<WeaponStartEvent>>
+) {
+    for event in events.iter() {
+        log::info!("Weapon start");
+    }
+}
 
 fn register_weapon(
     api: Res<UnrealApi>,
@@ -184,22 +190,22 @@ fn apply_weapon_forces(
                 2,
             );
 
-            for entity in result {
-                match physics_query.get_mut(entity) {
-                    Ok((mut physics, actor, _)) => {
-                        log::info!(
-                            "test {} {}",
-                            actor.get_actor_name(),
-                            physics.ptr.ptr as usize
-                        );
-                        if physics.is_simulating {
-                            log::info!("hit {}", actor.get_actor_name());
-                            physics.add_impulse(Vec3::Z * 500000.0);
-                        }
-                    }
-                    Err(err) => log::info!("{}", err),
-                }
-            }
+            //for entity in result {
+            //    match physics_query.get_mut(entity) {
+            //        Ok((mut physics, actor, _)) => {
+            //            log::info!(
+            //                "test {} {}",
+            //                actor.get_actor_name(),
+            //                physics.ptr.ptr as usize
+            //            );
+            //            if physics.is_simulating {
+            //                log::info!("hit {}", actor.get_actor_name());
+            //                physics.add_impulse(Vec3::Z * 500000.0);
+            //            }
+            //        }
+            //        Err(err) => log::info!("{}", err),
+            //    }
+            //}
         }
     }
 }
@@ -357,6 +363,10 @@ impl InitUserModule for MyModule {
 
 impl UserModule for MyModule {
     fn initialize(&self, module: &mut Module) {
+        module.reflection_registry.send_entity_event.insert(
+            WeaponStartEvent::TYPE_UUID,
+            Box::new(WeaponStartEventReflect),
+        );
         register_components! {
             PlayerComponent,
             TopdownCameraComponent,
@@ -364,16 +374,19 @@ impl UserModule for MyModule {
             PlayerStateComponent,
             HeroComponent,
             WeaponComponent,
+            WeaponStartEvent,
             => module
         };
 
         module
             .add_plugin(MovementPlugin)
+            .add_event::<EntityEvent<WeaponStartEvent>>()
             .add_startup_system_set(SystemSet::new().with_system(register_player_input))
             .add_system_set_to_stage(
                 CoreStage::Update,
                 SystemSet::new()
                     .with_system(register_weapon)
+                    .with_system(weapon_start)
                     .with_system(apply_weapon_forces.after(register_weapon))
                     .with_system(player_attack)
                     .with_system(update_cursor)

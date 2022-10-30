@@ -9,7 +9,7 @@ use bevy_ecs::{
 use unreal_reflect::{registry::ReflectDyn, uuid, TypeUuid, World};
 
 use crate::{
-    core::{CoreStage, StartupStage, UnrealCore},
+    core::{CoreStage, StartupStage, UnrealCore, SendEntityEvent},
     editor_component::{InsertEditorComponent, InsertSerializedComponent},
     ffi::UnrealBindings,
     plugin::Plugin,
@@ -43,7 +43,9 @@ pub struct ReflectionRegistry {
     pub uuid_set: HashSet<uuid::Uuid>,
     pub reflect: HashMap<uuid::Uuid, Box<dyn ReflectDyn>>,
     pub insert_serialized_component: HashMap<uuid::Uuid, Box<dyn InsertSerializedComponent>>,
+    pub send_entity_event: HashMap<uuid::Uuid, Box<dyn SendEntityEvent>>,
     pub editor_components: HashSet<uuid::Uuid>,
+    pub events: HashSet<uuid::Uuid>,
 }
 
 impl ReflectionRegistry {
@@ -199,6 +201,7 @@ macro_rules! implement_unreal_module {
                     unreal_event: $crate::core::unreal_event,
                     reflection_fns: $crate::core::create_reflection_fns(),
                     allocate_fns: $crate::core::create_allocate_fns(),
+                    send_actor_event: $crate::core::send_actor_event,
                 }
             });
             match r {

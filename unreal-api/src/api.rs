@@ -103,7 +103,6 @@ impl UnrealApi {
             {
                 hits.into_iter()
                     .filter_map(|hit| {
-                        log::info!("{}", hit.primtive as usize);
                         self.actor_to_entity.get(&ActorPtr(hit.actor)).copied() })
                     .collect()
             } else {

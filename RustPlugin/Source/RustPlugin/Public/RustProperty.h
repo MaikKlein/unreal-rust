@@ -77,8 +77,11 @@ struct FDynamicRustComponent
 	void Reload(TSharedPtr<IPropertyHandle> Handle, FGuid Guid);
 	// Initializes the property handle. It sets the same, and adds all the fields to the hashmap.
 	static void Initialize(TSharedPtr<IPropertyHandle> Handle, FGuid InitGuid);
-	static void Render(TSharedRef<IPropertyHandle> MapHandle, IDetailCategoryBuilder& DetailBuilder,
-	                   IDetailLayoutBuilder& LayoutBuilder);
+	static void RenderComponents(TSharedRef<IPropertyHandle> MapHandle, IDetailCategoryBuilder& DetailBuilder,
+	                             IDetailLayoutBuilder& LayoutBuilder);
+	static void RenderFields(TSharedPtr<IPropertyHandle> FieldsProperty, IDetailGroup& ComponentGroup);
+	static void Render(TSharedRef<IPropertyHandle> Self, IDetailCategoryBuilder& DetailBuilder,
+	                         IDetailLayoutBuilder& LayoutBuilder);
 
 	FString SerializeToJson();
 };

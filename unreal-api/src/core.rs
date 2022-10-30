@@ -1,6 +1,16 @@
-use bevy_ecs::{prelude::*, system::Command};
-use ffi::{ActorComponentPtr, ActorComponentType, EventType, Quaternion, StrRustAlloc};
+use bevy_ecs::prelude::*;
 use std::ffi::c_void;
+
+use std::panic;
+
+use bevy_ecs::schedule::{StageLabel, SystemSet};
+use bevy_ecs::system::Command;
+use ffi::{EventType, Quaternion, StrRustAlloc};
+use unreal_api::{module::ReflectionRegistry, Component};
+use unreal_reflect::{
+    registry::{ReflectType, ReflectValue},
+    Entity, Uuid, World,
+};
 
 use crate::{
     api::UnrealApi,
@@ -88,7 +98,7 @@ impl UnrealCore {
             time.time += dt as f64;
         }
         self.module.schedule.run_once(&mut self.module.world);
-        self.module.world.clear_trackers();
+        //self.module.world.clear_trackers();
     }
 }
 
@@ -135,6 +145,45 @@ pub struct ActorHitEvent {
 
 pub struct ActorDestroyEvent {
     pub actor: ActorPtr,
+}
+
+pub struct EntityEvent<E> {
+    pub entity: Entity,
+    pub event: E,
+}
+
+pub trait SendEntityEvent {
+    fn send_entity_event(&self, world: &mut World, entity: Entity, json: &str);
+}
+
+pub unsafe extern "C" fn send_actor_event(
+    actor: *const ffi::AActorOpaque,
+    uuid: ffi::Uuid,
+    json: ffi::Utf8Str,
+) {
+    log::info!("send event {}", from_ffi_uuid(uuid));
+    let _ = std::panic::catch_unwind(|| {
+        if let Some(global) = crate::module::MODULE.as_mut() {
+            if let Some(send_event) = global
+                .core
+                .module
+                .reflection_registry
+                .send_entity_event
+                .get(&from_ffi_uuid(uuid))
+            {
+                let api = global
+                    .core
+                    .module
+                    .world
+                    .get_resource::<UnrealApi>()
+                    .unwrap();
+                let entity = *api.actor_to_entity.get(&ActorPtr(actor as _)).unwrap();
+
+                log::info!("send event 2");
+                send_event.send_entity_event(&mut global.core.module.world, entity, json.as_str());
+            }
+        }
+    });
 }
 
 pub unsafe extern "C" fn unreal_event(ty: *const EventType, data: *const c_void) {
@@ -187,7 +236,7 @@ extern "C" fn get_field_float_value(
     idx: u32,
     out: *mut f32,
 ) -> u32 {
-    let result = std::panic::catch_unwind(|| {
+    let result = panic::catch_unwind(|| {
         if let Some(ReflectValue::Float(f)) = get_field_value(uuid, entity, idx) {
             unsafe {
                 *out = f;
@@ -205,7 +254,7 @@ extern "C" fn get_field_quat_value(
     idx: u32,
     out: *mut Quaternion,
 ) -> u32 {
-    let result = std::panic::catch_unwind(|| {
+    let result = panic::catch_unwind(|| {
         if let Some(ReflectValue::Quat(q)) = get_field_value(uuid, entity, idx) {
             unsafe {
                 *out = q.into();
@@ -224,7 +273,7 @@ extern "C" fn get_field_vector3_value(
     idx: u32,
     out: *mut ffi::Vector3,
 ) -> u32 {
-    let result = std::panic::catch_unwind(|| {
+    let result = panic::catch_unwind(|| {
         if let Some(ReflectValue::Vector3(v)) = get_field_value(uuid, entity, idx) {
             unsafe {
                 *out = v.into();
@@ -242,7 +291,7 @@ extern "C" fn get_field_bool_value(
     idx: u32,
     out: *mut u32,
 ) -> u32 {
-    let result = std::panic::catch_unwind(|| {
+    let result = panic::catch_unwind(|| {
         if let Some(ReflectValue::Bool(b)) = get_field_value(uuid, entity, idx) {
             unsafe {
                 *out = b as u32;
@@ -273,7 +322,7 @@ unsafe extern "C" fn number_of_fields(uuid: ffi::Uuid, out: *mut u32) -> u32 {
         let reflect = global.core.module.reflection_registry.reflect.get(&uuid)?;
         Some(reflect.number_of_fields() as u32)
     }
-    let result = std::panic::catch_unwind(|| {
+    let result = panic::catch_unwind(|| {
         if let Some(count) = get_number_fields(uuid) {
             *out = count;
             1
@@ -290,7 +339,7 @@ unsafe extern "C" fn get_type_name(uuid: ffi::Uuid, out: *mut ffi::Utf8Str) -> u
         let reflect = global.core.module.reflection_registry.reflect.get(&uuid)?;
         Some(reflect.name())
     }
-    let result = std::panic::catch_unwind(|| {
+    let result = panic::catch_unwind(|| {
         if let Some(name) = get_type_name(uuid) {
             *out = ffi::Utf8Str::from(name);
             1
@@ -308,7 +357,28 @@ unsafe extern "C" fn has_component(entity: ffi::Entity, uuid: ffi::Uuid) -> u32 
         let entity = Entity::from_bits(entity.id);
         Some(reflect.has_component(&global.core.module.world, entity) as u32)
     }
-    let result = std::panic::catch_unwind(|| has_component(entity, uuid).unwrap_or(0));
+    let result = panic::catch_unwind(|| has_component(entity, uuid).unwrap_or(0));
+    result.unwrap_or(0)
+}
+unsafe extern "C" fn is_event(uuid: ffi::Uuid) -> u32 {
+    fn is_editor_component_inner(uuid: ffi::Uuid) -> Option<u32> {
+        let global = unsafe { crate::module::MODULE.as_mut() }?;
+        let uuid = from_ffi_uuid(uuid);
+        Some(
+            if global
+                .core
+                .module
+                .reflection_registry
+                .events
+                .contains(&uuid)
+            {
+                1
+            } else {
+                0
+            },
+        )
+    }
+    let result = panic::catch_unwind(|| is_editor_component_inner(uuid).unwrap_or(0));
     result.unwrap_or(0)
 }
 
@@ -330,7 +400,7 @@ unsafe extern "C" fn is_editor_component(uuid: ffi::Uuid) -> u32 {
             },
         )
     }
-    let result = std::panic::catch_unwind(|| is_editor_component_inner(uuid).unwrap_or(0));
+    let result = panic::catch_unwind(|| is_editor_component_inner(uuid).unwrap_or(0));
     result.unwrap_or(0)
 }
 
@@ -341,7 +411,7 @@ unsafe extern "C" fn get_field_name(uuid: ffi::Uuid, idx: u32, out: *mut ffi::Ut
         let reflect = global.core.module.reflection_registry.reflect.get(&uuid)?;
         reflect.get_field_name(idx)
     }
-    let result = std::panic::catch_unwind(|| {
+    let result = panic::catch_unwind(|| {
         if let Some(name) = get_field_name(uuid, idx) {
             *out = ffi::Utf8Str::from(name);
             1
@@ -371,7 +441,7 @@ unsafe extern "C" fn get_field_type(
             ReflectType::Composite => ffi::ReflectionType::Composite,
         })
     }
-    let result = std::panic::catch_unwind(|| {
+    let result = panic::catch_unwind(|| {
         if let Some(ty) = get_field_type(uuid, idx) {
             *out = ty;
             1
@@ -397,6 +467,7 @@ pub fn to_ffi_uuid(uuid: Uuid) -> ffi::Uuid {
 
 pub fn create_reflection_fns() -> ffi::ReflectionFns {
     ffi::ReflectionFns {
+        is_event,
         is_editor_component,
         has_component,
         get_field_bool_value,
@@ -432,7 +503,7 @@ pub fn create_allocate_fns() -> ffi::AllocateFns {
 }
 
 pub extern "C" fn tick(dt: f32) -> crate::ffi::ResultCode {
-    let r = std::panic::catch_unwind(|| unsafe {
+    let r = panic::catch_unwind(|| unsafe {
         UnrealCore::tick(&mut crate::module::MODULE.as_mut().unwrap().core, dt);
     });
     match r {
@@ -442,7 +513,7 @@ pub extern "C" fn tick(dt: f32) -> crate::ffi::ResultCode {
 }
 
 pub extern "C" fn begin_play() -> ffi::ResultCode {
-    let r = std::panic::catch_unwind(|| unsafe {
+    let r = panic::catch_unwind(|| unsafe {
         let global = crate::module::MODULE.as_mut().unwrap();
         UnrealCore::begin_play(&mut global.core, global.module.as_ref());
     });
@@ -460,11 +531,6 @@ pub fn register_core_components(registry: &mut ReflectionRegistry) {
     registry.register::<PhysicsComponent>();
 }
 
-use unreal_api::{module::ReflectionRegistry, Component};
-use unreal_reflect::{
-    registry::{ReflectType, ReflectValue},
-    Uuid,
-};
 #[derive(Debug, Hash, PartialEq, Eq, Clone, StageLabel)]
 pub struct StartupStage;
 
@@ -744,8 +810,6 @@ fn process_actor_spawned(
             for &ActorSpawnedEvent { actor } in reader.iter() {
                 let mut entity_cmds = commands.spawn();
 
-                
-
                 let mut len = 0;
                 (bindings().editor_component_fns.get_editor_components)(
                     actor.0,
@@ -765,12 +829,15 @@ fn process_actor_spawned(
                 // We register all the components that are on the actor in unreal and add
                 // them to the entity
                 for uuid in uuids {
-
-
                     let mut alloc = StrRustAlloc::empty();
-                    (bindings().editor_component_fns.get_serialized_json_component)(actor.0, uuid, &mut alloc);
+                    (bindings()
+                        .editor_component_fns
+                        .get_serialized_json_component)(
+                        actor.0, uuid, &mut alloc
+                    );
 
-                
+                    let json = alloc.into_string();
+
                     let uuid = from_ffi_uuid(uuid);
                     if let Some(insert) = global
                         .core

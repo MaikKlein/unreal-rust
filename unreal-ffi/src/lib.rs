@@ -31,6 +31,11 @@ pub struct Utf8Str {
     pub ptr: *const c_char,
     pub len: usize,
 }
+impl Utf8Str {
+    pub fn as_str(&self) -> &str {
+        unsafe { std::str::from_utf8(std::slice::from_raw_parts(self.ptr as _, self.len)).unwrap() }
+    }
+}
 
 impl<'a> From<&'a str> for Utf8Str {
     fn from(s: &'a str) -> Self {
@@ -343,9 +348,12 @@ pub struct RustBindings {
     pub unreal_event: UnrealEventFn,
     pub reflection_fns: ReflectionFns,
     pub allocate_fns: AllocateFns,
+    pub send_actor_event: SendActorEventFn,
 }
 
 pub type UnrealEventFn = unsafe extern "C" fn(ty: *const EventType, data: *const c_void);
+pub type SendActorEventFn =
+    unsafe extern "C" fn(actor: *const AActorOpaque, uuid: Uuid, json: Utf8Str);
 
 #[repr(u32)]
 pub enum ReflectionType {
@@ -375,9 +383,11 @@ pub type GetFieldQuatValueFn =
     unsafe extern "C" fn(uuid: Uuid, entity: Entity, field_idx: u32, out: *mut Quaternion) -> u32;
 pub type HasComponentFn = unsafe extern "C" fn(entity: Entity, uuid: Uuid) -> u32;
 pub type IsEditorComponentFn = unsafe extern "C" fn(uuid: Uuid) -> u32;
+pub type IsEventFn = unsafe extern "C" fn(uuid: Uuid) -> u32;
 
 #[repr(C)]
 pub struct ReflectionFns {
+    pub is_event: IsEventFn,
     pub is_editor_component: IsEditorComponentFn,
     pub number_of_fields: NumberOfFieldsFn,
     pub has_component: HasComponentFn,
@@ -397,7 +407,7 @@ pub struct StrRustAlloc {
 impl StrRustAlloc {
     pub fn empty() -> Self {
         Self {
-            alloc: RustAlloc::empty()
+            alloc: RustAlloc::empty(),
         }
     }
     pub fn into_string(self) -> String {

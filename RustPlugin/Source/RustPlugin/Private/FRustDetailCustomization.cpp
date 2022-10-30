@@ -54,7 +54,7 @@ void FRustDetailCustomization::CustomizeDetails(IDetailLayoutBuilder& DetailBuil
 
 
 	IDetailCategoryBuilder& RustCategory = DetailBuilder.EditCategory(TEXT("Rust"));
-	FDynamicRustComponent::Render(ComponentsHandle, RustCategory, DetailBuilder);
+	FDynamicRustComponent::RenderComponents(ComponentsHandle, RustCategory, DetailBuilder);
 
 	auto OnPicked = [Component, &DetailBuilder, ComponentsHandle](FUuidViewNode* Node)
 	{

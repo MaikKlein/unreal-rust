@@ -351,6 +351,8 @@ using BeginPlayFn = ResultCode(*)();
 
 using UnrealEventFn = void(*)(const EventType *ty, const void *data);
 
+using IsEventFn = uint32_t(*)(Uuid uuid);
+
 using IsEditorComponentFn = uint32_t(*)(Uuid uuid);
 
 using NumberOfFieldsFn = uint32_t(*)(Uuid uuid, uint32_t *out);
@@ -372,6 +374,7 @@ using GetFieldFloatValueFn = uint32_t(*)(Uuid uuid, Entity entity, uint32_t fiel
 using GetFieldQuatValueFn = uint32_t(*)(Uuid uuid, Entity entity, uint32_t field_idx, Quaternion *out);
 
 struct ReflectionFns {
+  IsEventFn is_event;
   IsEditorComponentFn is_editor_component;
   NumberOfFieldsFn number_of_fields;
   HasComponentFn has_component;
@@ -390,6 +393,8 @@ struct AllocateFns {
   AllocateFn allocate;
 };
 
+using SendActorEventFn = void(*)(const AActorOpaque *actor, Uuid uuid, Utf8Str json);
+
 struct RustBindings {
   RetrieveUuids retrieve_uuids;
   TickFn tick;
@@ -397,6 +402,7 @@ struct RustBindings {
   UnrealEventFn unreal_event;
   ReflectionFns reflection_fns;
   AllocateFns allocate_fns;
+  SendActorEventFn send_actor_event;
 };
 
 using EntryUnrealBindingsFn = uint32_t(*)(UnrealBindings bindings, RustBindings *rust_bindings);
