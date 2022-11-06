@@ -51,7 +51,7 @@ impl AddSerializedComponent for PlayerComponentReflect {
 #[derive(Component, serde::Serialize, serde::Deserialize)]
 #[uuid = "e9815aea-f4e2-4953-9553-079e6a7b8055"]
 #[reflect(editor)]
-pub struct WeaponComponent {}
+pub struct WeaponComponentTag {}
 
 #[derive(Debug, Event, serde::Serialize, serde::Deserialize)]
 #[uuid = "479006cc-3c8f-4d16-b7c2-1bb81bcf43f2"]
@@ -136,7 +136,7 @@ fn weapon_start(mut events: EventReader<EntityEvent<WeaponStartEvent>>) {
 fn register_weapon(
     api: Res<UnrealApi>,
     mut hero: Query<&mut HeroComponent>,
-    query: Query<(Entity, &ActorComponent, Added<WeaponComponent>)>,
+    query: Query<(Entity, &ActorComponent, Added<WeaponComponentTag>)>,
 ) {
     for (entity, actor, added) in &query {
         if !added {
@@ -154,14 +154,14 @@ fn apply_weapon_forces(
     query: Query<(Entity, &HeroComponent)>,
     weapon: Query<(
         Entity,
-        &WeaponComponent,
+        &WeaponComponentTag,
         &PhysicsComponent,
         &TransformComponent,
     )>,
     _physics_query: Query<(
         &mut PhysicsComponent,
         &ActorComponent,
-        Without<WeaponComponent>,
+        Without<WeaponComponentTag>,
     )>,
 ) {
     for (entity, hero) in &query {
@@ -352,7 +352,7 @@ impl UserModule for MyModule {
     fn initialize(&self, module: &mut Module) {
         register_editor_components! {
             PlayerComponent,
-            WeaponComponent,
+            WeaponComponentTag,
             => module
         }
 
