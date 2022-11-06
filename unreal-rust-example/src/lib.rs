@@ -5,7 +5,6 @@ use unreal_api::api::UnrealApi;
 use unreal_api::core::{ActorHitEvent, Despawn};
 use unreal_api::registry::USound;
 use unreal_api::sound::{play_sound_at_location, SoundSettings};
-use unreal_api::Component;
 use unreal_api::{
     core::{ActorComponent, ActorPtr, CoreStage, ParentComponent, TransformComponent},
     ffi::{self, UClassOpague},
@@ -14,6 +13,7 @@ use unreal_api::{
     module::{bindings, InitUserModule, Module, UserModule},
     register_components,
 };
+use unreal_api::{register_editor_components, Component};
 use unreal_movement::{
     CharacterConfigComponent, CharacterControllerComponent, MovementComponent, MovementPlugin,
 };
@@ -318,12 +318,15 @@ impl InitUserModule for MyModule {
 
 impl UserModule for MyModule {
     fn initialize(&self, module: &mut Module) {
-        register_components! {
+        register_editor_components! {
             CharacterSoundsComponent,
             PlaySoundOnImpactComponent,
+            => module
+        }
+
+        register_components! {
             CameraComponent,
             => module
-
         };
 
         module

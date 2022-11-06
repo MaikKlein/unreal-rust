@@ -1,5 +1,3 @@
-use crate::Vector2;
-
 #[repr(u32)]
 pub enum MouseState {
     Visible,

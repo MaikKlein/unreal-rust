@@ -1,12 +1,8 @@
-use std::default;
-
 use bevy_ecs::prelude::*;
 use unreal_api::api::{SweepParams, UnrealApi};
-use unreal_api::core::{EntityEvent, SendEntityEvent};
+use unreal_api::core::EntityEvent;
 use unreal_api::editor_component::AddSerializedComponent;
-use unreal_api::ffi::SendActorEventFn;
 use unreal_api::math::Vec2;
-use unreal_api::module::{RegisterSerializedComponent, RegisterEvent};
 use unreal_api::physics::PhysicsComponent;
 use unreal_api::registry::UClass;
 use unreal_api::{
@@ -17,7 +13,7 @@ use unreal_api::{
     module::{bindings, InitUserModule, Module, UserModule},
     register_components,
 };
-use unreal_api::{Component, TypeUuid};
+use unreal_api::{register_editor_components, register_events, Component, Event};
 use unreal_movement::{
     CharacterConfigComponent, CharacterControllerComponent, MovementComponent, MovementPlugin,
 };
@@ -57,24 +53,10 @@ impl AddSerializedComponent for PlayerComponentReflect {
 #[reflect(editor)]
 pub struct WeaponComponent {}
 
-#[derive(Debug, Component, serde::Serialize, serde::Deserialize)]
+#[derive(Debug, Event, serde::Serialize, serde::Deserialize)]
 #[uuid = "479006cc-3c8f-4d16-b7c2-1bb81bcf43f2"]
-#[reflect(editor)]
 pub struct WeaponStartEvent {
     pub f: f32,
-}
-
-impl RegisterEvent for WeaponStartEvent {
-    fn register_event(registry: &mut unreal_api::module::ReflectionRegistry) {
-        registry.send_entity_event.insert(Self::TYPE_UUID, Box::new(WeaponStartEventReflect));
-    }
-}
-
-impl SendEntityEvent for WeaponStartEventReflect {
-    fn send_entity_event(&self, world: &mut World, entity: Entity, json: &str) {
-        let event: WeaponStartEvent = serde_json::de::from_str(json).unwrap();
-        world.send_event(EntityEvent { entity, event });
-    }
 }
 
 #[derive(Default, Component)]
@@ -145,10 +127,8 @@ fn player_attack(input: Res<Input>, mut query: Query<&mut HeroComponent>) {
     }
 }
 
-fn weapon_start(
-    mut events: EventReader<EntityEvent<WeaponStartEvent>>
-) {
-    for event in events.iter() {
+fn weapon_start(mut events: EventReader<EntityEvent<WeaponStartEvent>>) {
+    for _event in events.iter() {
         log::info!("Weapon start");
     }
 }
@@ -178,7 +158,7 @@ fn apply_weapon_forces(
         &PhysicsComponent,
         &TransformComponent,
     )>,
-    mut physics_query: Query<(
+    _physics_query: Query<(
         &mut PhysicsComponent,
         &ActorComponent,
         Without<WeaponComponent>,
@@ -189,7 +169,7 @@ fn apply_weapon_forces(
             let params = SweepParams::default()
                 .add_ignored_entity(entity)
                 .add_ignored_entity(weapon_entity);
-            let result = api.overlap_multi(
+            let _result = api.overlap_multi(
                 transform.position,
                 transform.rotation,
                 p.get_collision_shape(),
@@ -238,7 +218,7 @@ fn rotate_camera(
     input: Res<Input>,
     mut topdown: Query<&mut TopdownCameraComponent>,
     mut character: Query<&mut TransformComponent>,
-    mut cursor: Query<&mut CursorComponent>,
+    cursor: Query<&CursorComponent>,
 ) {
     if input.is_action_pressed(PlayerInput::ROTATE_CAMERA) {
         //unsafe { (bindings().viewport_fns.set_mouse_state)(0, ffi::MouseState::Hidden) };
@@ -247,9 +227,9 @@ fn rotate_camera(
         //unsafe { (bindings().viewport_fns.set_mouse_state)(0, ffi::MouseState::Hidden) };
     }
 
-    unsafe {
-        //(bindings().viewport_fns.get_mouse_position)(0, &mut x, &mut y);
-    };
+    //unsafe {
+    //    //(bindings().viewport_fns.get_mouse_position)(0, &mut x, &mut y);
+    //};
 
     for mut cam in &mut topdown {
         let mouse = cursor
@@ -370,24 +350,27 @@ impl InitUserModule for MyModule {
 
 impl UserModule for MyModule {
     fn initialize(&self, module: &mut Module) {
-        module.reflection_registry.send_entity_event.insert(
-            WeaponStartEvent::TYPE_UUID,
-            Box::new(WeaponStartEventReflect),
-        );
-        register_components! {
+        register_editor_components! {
             PlayerComponent,
+            WeaponComponent,
+            => module
+        }
+
+        register_components! {
             TopdownCameraComponent,
             CursorComponent,
             PlayerStateComponent,
             HeroComponent,
-            WeaponComponent,
-            WeaponStartEvent,
             => module
         };
 
+        register_events! {
+            WeaponStartEvent,
+            => module
+        }
+
         module
             .add_plugin(MovementPlugin)
-            .add_event::<EntityEvent<WeaponStartEvent>>()
             .add_startup_system_set(SystemSet::new().with_system(register_player_input))
             .add_system_set_to_stage(
                 CoreStage::Update,

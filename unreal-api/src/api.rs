@@ -69,7 +69,7 @@ impl UnrealApi {
         self.actor_to_entity.insert(actor, entity);
         self.entity_to_actor.insert(entity, actor);
     }
-    
+
     pub fn overlap_multi(
         &self,
         position: Vec3,
@@ -102,8 +102,7 @@ impl UnrealApi {
             ) == 1
             {
                 hits.into_iter()
-                    .filter_map(|hit| {
-                        self.actor_to_entity.get(&ActorPtr(hit.actor)).copied() })
+                    .filter_map(|hit| self.actor_to_entity.get(&ActorPtr(hit.actor)).copied())
                     .collect()
             } else {
                 Vec::new()

@@ -1,6 +1,5 @@
 use bevy_ecs::{prelude::*, query::WorldQuery};
 use unreal_api::api::{SweepHit, SweepParams, UnrealApi};
-use unreal_api::Component;
 use unreal_api::{
     core::{ActorComponent, CoreStage, Frame, TransformComponent},
     ffi,
@@ -12,6 +11,7 @@ use unreal_api::{
     plugin::Plugin,
     register_components,
 };
+use unreal_api::{register_editor_components, Component};
 fn project_onto_plane(dir: Vec3, normal: Vec3) -> Vec3 {
     dir - normal * Vec3::dot(dir, normal)
 }
@@ -453,9 +453,12 @@ pub struct MovementPlugin;
 
 impl Plugin for MovementPlugin {
     fn build(&self, module: &mut Module) {
+        register_editor_components! {
+            CharacterConfigComponent,
+            => module
+        }
         register_components! {
             MovementComponent,
-            CharacterConfigComponent,
             => module
         };
 

@@ -26,7 +26,7 @@ struct StrVisitor;
 impl<'de> Visitor<'de> for StrVisitor {
     type Value = *mut c_void;
 
-    fn expecting(&self, formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
+    fn expecting(&self, _formatter: &mut std::fmt::Formatter) -> std::fmt::Result {
         todo!()
     }
 
@@ -35,7 +35,7 @@ impl<'de> Visitor<'de> for StrVisitor {
         E: serde::de::Error,
     {
         let addr = str::parse::<usize>(v).unwrap();
-        Ok(addr as *mut c_void )
+        Ok(addr as *mut c_void)
     }
 }
 

@@ -1,6 +1,6 @@
 extern crate proc_macro;
 
-use darling::{FromDeriveInput, FromField};
+use darling::FromField;
 use proc_macro2::Span;
 use quote::quote;
 use syn::*;
@@ -13,17 +13,8 @@ pub struct ReflectField {
     #[darling(default)]
     skip: bool,
 }
-#[derive(Debug, FromDeriveInput)]
-#[darling(attributes(reflect))]
-pub struct ReflectEditor {
-    #[darling(default)]
-    editor: bool,
-}
 
 pub fn reflect_derive(ast: &DeriveInput) -> proc_macro2::TokenStream {
-    let is_editor_component =
-        ReflectEditor::from_derive_input(ast).map_or(false, |reflect| reflect.editor);
-
     if let Data::Struct(data) = &ast.data {
         let literal_name = LitStr::new(&ast.ident.to_string(), Span::call_site());
         let reflect_struct_ident = Ident::new(&format!("{}Reflect", ast.ident), Span::call_site());
@@ -101,58 +92,6 @@ pub fn reflect_derive(ast: &DeriveInput) -> proc_macro2::TokenStream {
             quote!()
         };
 
-        let insert_component = if is_editor_component {
-            quote! {
-                impl unreal_api::editor_component::InsertEditorComponent for #insert_struct_ident {
-                    unsafe fn insert_component(
-                        &self,
-                        actor: *const unreal_api::ffi::AActorOpaque,
-                        uuid: unreal_api::uuid::Uuid,
-                        commands: &mut unreal_api::ecs::system::EntityCommands<'_, '_, '_>,
-                    ) {
-                        use unreal_api::editor_component::GetEditorComponentValue;
-                        let component = #struct_ident {
-                            #(
-                                #field_idents: #field_types::get(actor, uuid, #field_names).expect(#field_names),
-                            )*
-                        };
-                        commands.insert(component);
-                    }
-                }
-            }
-        } else {
-            quote! {}
-        };
-
-        let insert_serialized_component = if is_editor_component {
-            quote! {
-                impl unreal_api::editor_component::AddSerializedComponent for #insert_struct_ident {
-                    unsafe fn add_serialized_component(
-                        &self,
-                        json: &str,
-                        commands: &mut bevy_ecs::system::EntityCommands<'_, '_, '_>,
-                    ) {
-                        let component = unreal_api::serde_json::de::from_str::<#struct_ident>(json).unwrap();
-                        commands.insert(component);
-                    }
-                }
-            }
-        } else {
-            quote! {}
-        };
-
-        let register_insert_serialized = if is_editor_component {
-            quote! {
-                registry.insert_serialized_component.insert(
-                    <#struct_ident as unreal_api::TypeUuid>::TYPE_UUID,
-                    Box::new(#insert_struct_ident),
-                );
-                registry.editor_components.insert(<#struct_ident as unreal_api::TypeUuid>::TYPE_UUID);
-            }
-        } else {
-            quote!()
-        };
-
         quote! {
             pub struct #reflect_struct_ident;
 
@@ -175,11 +114,7 @@ pub fn reflect_derive(ast: &DeriveInput) -> proc_macro2::TokenStream {
             impl unreal_api::registry::ReflectStatic for #reflect_struct_ident {
                 const TYPE: unreal_api::registry::ReflectType = unreal_api::registry::ReflectType::Composite;
             }
-            impl unreal_api::ecs::component::Component for #struct_ident {
-                type Storage = unreal_api::ecs::component::TableStorage;
-            }
             pub struct #insert_struct_ident;
-            #insert_serialized_component
 
             impl unreal_api::module::RegisterReflection for #struct_ident {
                 fn register_reflection(registry: &mut unreal_api::module::ReflectionRegistry) {
@@ -187,8 +122,6 @@ pub fn reflect_derive(ast: &DeriveInput) -> proc_macro2::TokenStream {
                         <#struct_ident as unreal_api::TypeUuid>::TYPE_UUID,
                         Box::new(#reflect_struct_ident),
                     );
-                    #register_insert_serialized
-
                 }
             }
         }

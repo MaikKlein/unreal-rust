@@ -48,7 +48,8 @@ pub type SetViewTargetFn = unsafe extern "C" fn(actor: *const AActorOpaque);
 
 pub type DestroyActorFn = unsafe extern "C" fn(actor: *const AActorOpaque);
 
-pub type GetParentActorFn = unsafe extern "C" fn(actor: *const AActorOpaque, parent: *mut *mut AActorOpaque) -> u32;
+pub type GetParentActorFn =
+    unsafe extern "C" fn(actor: *const AActorOpaque, parent: *mut *mut AActorOpaque) -> u32;
 
 extern "C" {
     pub fn RegisterActorOnHit(actor: *mut AActorOpaque);

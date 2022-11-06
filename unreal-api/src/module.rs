@@ -10,7 +10,7 @@ use unreal_reflect::{registry::ReflectDyn, uuid, TypeUuid, World};
 
 use crate::{
     core::{CoreStage, EntityEvent, SendEntityEvent, StartupStage, UnrealCore},
-    editor_component::{InsertEditorComponent, AddSerializedComponent},
+    editor_component::AddSerializedComponent,
     ffi::UnrealBindings,
     plugin::Plugin,
 };
@@ -31,6 +31,23 @@ macro_rules! register_components {
     ($($ty: ty,)* => $module: expr) => {
         $(
             $module.register_component::<$ty>();
+        )*
+    };
+}
+#[macro_export]
+macro_rules! register_editor_components {
+    ($($ty: ty,)* => $module: expr) => {
+        $(
+            $module.register_editor_component::<$ty>();
+        )*
+    };
+}
+
+#[macro_export]
+macro_rules! register_events {
+    ($($ty: ty,)* => $module: expr) => {
+        $(
+            $module.register_event::<$ty>();
         )*
     };
 }
@@ -132,13 +149,27 @@ impl Module {
     where
         T: RegisterReflection + TypeUuid + 'static,
     {
-        self.reflection_registry.register::<T>();
+        T::register_reflection(&mut self.reflection_registry);
+        self.reflection_registry.uuid_set.insert(T::TYPE_UUID);
+    }
+
+    pub fn register_editor_component<T>(&mut self)
+    where
+        T: RegisterReflection + RegisterSerializedComponent + TypeUuid + 'static,
+    {
+        T::register_reflection(&mut self.reflection_registry);
+        T::register_serialized_component(&mut self.reflection_registry);
+        self.reflection_registry.uuid_set.insert(T::TYPE_UUID);
+        self.reflection_registry
+            .editor_components
+            .insert(T::TYPE_UUID);
     }
 
     pub fn register_event<T>(&mut self)
     where
         T: RegisterReflection + RegisterEvent + TypeUuid + Send + Sync + 'static,
     {
+        self.reflection_registry.uuid_set.insert(T::TYPE_UUID);
         T::register_event(&mut self.reflection_registry);
         T::register_reflection(&mut self.reflection_registry);
 
