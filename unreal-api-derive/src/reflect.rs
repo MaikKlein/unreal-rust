@@ -126,8 +126,8 @@ pub fn reflect_derive(ast: &DeriveInput) -> proc_macro2::TokenStream {
 
         let insert_serialized_component = if is_editor_component {
             quote! {
-                impl unreal_api::editor_component::InsertSerializedComponent for #insert_struct_ident {
-                    unsafe fn insert_serialized_component(
+                impl unreal_api::editor_component::AddSerializedComponent for #insert_struct_ident {
+                    unsafe fn add_serialized_component(
                         &self,
                         json: &str,
                         commands: &mut bevy_ecs::system::EntityCommands<'_, '_, '_>,
@@ -181,8 +181,8 @@ pub fn reflect_derive(ast: &DeriveInput) -> proc_macro2::TokenStream {
             pub struct #insert_struct_ident;
             #insert_serialized_component
 
-            impl unreal_api::module::InsertReflectionStruct for #struct_ident {
-                fn insert(registry: &mut unreal_api::module::ReflectionRegistry) {
+            impl unreal_api::module::RegisterReflection for #struct_ident {
+                fn register_reflection(registry: &mut unreal_api::module::ReflectionRegistry) {
                     registry.reflect.insert(
                         <#struct_ident as unreal_api::TypeUuid>::TYPE_UUID,
                         Box::new(#reflect_struct_ident),

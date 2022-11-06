@@ -9,8 +9,8 @@ use bevy_ecs::{
 use unreal_reflect::{registry::ReflectDyn, uuid, TypeUuid, World};
 
 use crate::{
-    core::{CoreStage, StartupStage, UnrealCore, SendEntityEvent},
-    editor_component::{InsertEditorComponent, InsertSerializedComponent},
+    core::{CoreStage, EntityEvent, SendEntityEvent, StartupStage, UnrealCore},
+    editor_component::{InsertEditorComponent, AddSerializedComponent},
     ffi::UnrealBindings,
     plugin::Plugin,
 };
@@ -34,15 +34,23 @@ macro_rules! register_components {
         )*
     };
 }
-pub trait InsertReflectionStruct {
-    fn insert(registry: &mut ReflectionRegistry);
+pub trait RegisterReflection {
+    fn register_reflection(registry: &mut ReflectionRegistry);
+}
+
+pub trait RegisterSerializedComponent {
+    fn register_serialized_component(registry: &mut ReflectionRegistry);
+}
+
+pub trait RegisterEvent {
+    fn register_event(registry: &mut ReflectionRegistry);
 }
 
 #[derive(Default)]
 pub struct ReflectionRegistry {
     pub uuid_set: HashSet<uuid::Uuid>,
     pub reflect: HashMap<uuid::Uuid, Box<dyn ReflectDyn>>,
-    pub insert_serialized_component: HashMap<uuid::Uuid, Box<dyn InsertSerializedComponent>>,
+    pub insert_serialized_component: HashMap<uuid::Uuid, Box<dyn AddSerializedComponent>>,
     pub send_entity_event: HashMap<uuid::Uuid, Box<dyn SendEntityEvent>>,
     pub editor_components: HashSet<uuid::Uuid>,
     pub events: HashSet<uuid::Uuid>,
@@ -51,7 +59,7 @@ pub struct ReflectionRegistry {
 impl ReflectionRegistry {
     pub fn register<T>(&mut self)
     where
-        T: InsertReflectionStruct + TypeUuid + 'static,
+        T: RegisterReflection + TypeUuid + 'static,
     {
         if self.uuid_set.contains(&T::TYPE_UUID) {
             panic!(
@@ -60,7 +68,7 @@ impl ReflectionRegistry {
                 std::any::type_name::<T>()
             );
         }
-        T::insert(self);
+        T::register_reflection(self);
         self.uuid_set.insert(T::TYPE_UUID);
     }
 }
@@ -122,9 +130,20 @@ impl Module {
 
     pub fn register_component<T>(&mut self)
     where
-        T: InsertReflectionStruct + TypeUuid + 'static,
+        T: RegisterReflection + TypeUuid + 'static,
     {
         self.reflection_registry.register::<T>();
+    }
+
+    pub fn register_event<T>(&mut self)
+    where
+        T: RegisterReflection + RegisterEvent + TypeUuid + Send + Sync + 'static,
+    {
+        T::register_event(&mut self.reflection_registry);
+        T::register_reflection(&mut self.reflection_registry);
+
+        self.add_event::<EntityEvent<T>>();
+        self.add_event::<T>();
     }
 
     pub fn add_plugin<P: Plugin>(&mut self, plugin: P) -> &mut Self {

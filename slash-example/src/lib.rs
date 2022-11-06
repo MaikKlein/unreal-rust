@@ -3,9 +3,10 @@ use std::default;
 use bevy_ecs::prelude::*;
 use unreal_api::api::{SweepParams, UnrealApi};
 use unreal_api::core::{EntityEvent, SendEntityEvent};
-use unreal_api::editor_component::InsertSerializedComponent;
+use unreal_api::editor_component::AddSerializedComponent;
 use unreal_api::ffi::SendActorEventFn;
 use unreal_api::math::Vec2;
+use unreal_api::module::{RegisterSerializedComponent, RegisterEvent};
 use unreal_api::physics::PhysicsComponent;
 use unreal_api::registry::UClass;
 use unreal_api::{
@@ -40,8 +41,8 @@ pub struct PlayerComponent {
     pub actor: UClass,
 }
 
-impl InsertSerializedComponent for PlayerComponentReflect {
-    unsafe fn insert_serialized_component(
+impl AddSerializedComponent for PlayerComponentReflect {
+    unsafe fn add_serialized_component(
         &self,
         json: &str,
         commands: &mut bevy_ecs::system::EntityCommands<'_, '_, '_>,
@@ -61,6 +62,12 @@ pub struct WeaponComponent {}
 #[reflect(editor)]
 pub struct WeaponStartEvent {
     pub f: f32,
+}
+
+impl RegisterEvent for WeaponStartEvent {
+    fn register_event(registry: &mut unreal_api::module::ReflectionRegistry) {
+        registry.send_entity_event.insert(Self::TYPE_UUID, Box::new(WeaponStartEventReflect));
+    }
 }
 
 impl SendEntityEvent for WeaponStartEventReflect {

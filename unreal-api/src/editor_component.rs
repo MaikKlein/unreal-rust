@@ -18,9 +18,9 @@ pub trait InsertEditorComponent {
     );
 }
 
-pub trait InsertSerializedComponent {
+pub trait AddSerializedComponent {
     /// # Safety
-    unsafe fn insert_serialized_component(
+    unsafe fn add_serialized_component(
         &self,
         json: &str,
         commands: &mut EntityCommands<'_, '_, '_>,

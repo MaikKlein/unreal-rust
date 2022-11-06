@@ -844,7 +844,7 @@ fn process_actor_spawned(
                         .insert_serialized_component
                         .get(&uuid)
                     {
-                        insert.insert_serialized_component(&json, &mut entity_cmds);
+                        insert.add_serialized_component(&json, &mut entity_cmds);
                     }
                 }
 
