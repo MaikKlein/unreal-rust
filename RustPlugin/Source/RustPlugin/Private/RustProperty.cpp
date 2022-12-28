@@ -169,7 +169,7 @@ void FDynamicRustComponent::RenderComponents(TSharedRef<IPropertyHandle> MapHand
 					.ContentPadding(0)
 					[
 						SNew(SImage)
-						.Image(FEditorStyle::GetBrush("Icons.Delete"))
+						.Image(FAppStyle::GetBrush("Icons.Delete"))
 						.ColorAndOpacity(FSlateColor::UseForeground())
 					]
 				]
@@ -279,7 +279,7 @@ void FDynamicRustComponent::Render(TSharedPtr<IPropertyHandle> Self, IDetailChil
 					.ContentPadding(0)
 				[
 					SNew(SImage)
-						.Image(FEditorStyle::GetBrush("Icons.Delete"))
+						.Image(FAppStyle::GetBrush("Icons.Delete"))
 						.ColorAndOpacity(FSlateColor::UseForeground())
 				]
 			]
