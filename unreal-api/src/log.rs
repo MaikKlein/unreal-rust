@@ -15,7 +15,9 @@ impl log::Log for UnrealLogger {
     fn log(&self, record: &Record) {
         if self.enabled(record.metadata()) {
             let text = record.args().to_string();
-            (crate::module::bindings().log)(text.as_ptr() as *const _, text.len() as i32);
+            unsafe {
+                (crate::module::bindings().log)(ffi::Utf8Str::from(text.as_str()));
+            }
         }
     }
 

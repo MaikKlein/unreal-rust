@@ -65,6 +65,11 @@ using UObjectOpague = void;
 
 using AActorOpaque = void;
 
+struct Utf8Str {
+  const char *ptr;
+  uintptr_t len;
+};
+
 struct Vector3 {
   float x;
   float y;
@@ -83,11 +88,6 @@ struct Color {
   uint8_t g;
   uint8_t b;
   uint8_t a;
-};
-
-struct Utf8Str {
-  const char *ptr;
-  uintptr_t len;
 };
 
 struct Uuid {
@@ -263,7 +263,7 @@ struct PhysicsFns {
   GetCollisionShapeFn get_collision_shape;
 };
 
-using LogFn = void(*)(const char*, int32_t);
+using LogFn = void(*)(Utf8Str message);
 
 using IterateActorsFn = void(*)(AActorOpaque **array, uint64_t *len);
 
@@ -437,7 +437,7 @@ extern uint32_t IsA(UObjectOpague *object, UObjectType ty);
 
 extern void TickActor(AActorOpaque *actor, float dt);
 
-extern void Log(const char *s, int32_t len);
+extern void Log(Utf8Str message);
 
 extern void IterateActors(AActorOpaque **array, uint64_t *len);
 

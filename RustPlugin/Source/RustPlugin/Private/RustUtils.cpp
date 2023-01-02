@@ -167,7 +167,7 @@ FString ToFString(Utf8Str Str)
 	if (Str.len == 0)
 		return FString();
 
-	return FString(Str.len, UTF8_TO_TCHAR(Str.ptr));
+	return FString(Str.len, StringCast<TCHAR>(reinterpret_cast<const UTF8CHAR*>(Str.ptr), Str.len).Get());
 }
 
 FRustProperty* GetRustProperty(const AActorOpaque* actor, Uuid uuid, Utf8Str field)

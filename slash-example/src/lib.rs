@@ -20,6 +20,8 @@ use unreal_movement::{
 
 pub struct PlayerInput;
 impl PlayerInput {
+    pub const MOUSE_X: &'static str = "MouseX";
+    pub const MOUSE_Y: &'static str = "MouseY";
     pub const MOVE_FORWARD: &'static str = "MoveForward";
     pub const MOVE_RIGHT: &'static str = "MoveRight";
     pub const LOOK_UP: &'static str = "LookUp";
@@ -202,6 +204,8 @@ fn update_player_state(
 ) {
     for (cursor, mut state) in &mut query {
         state.is_cursor_visible = !input.is_action_pressed(PlayerInput::ROTATE_CAMERA);
+        log::info!("{}", cursor.position);
+
         state.cursor_position = cursor.position;
     }
 }
@@ -210,7 +214,7 @@ fn update_cursor(input: Res<Input>, mut cursor: Query<&mut CursorComponent>) {
     for mut cursor in &mut cursor {
         if !input.is_action_pressed(PlayerInput::ROTATE_CAMERA) {
             let (x, y) = input.get_mouse_delta();
-            cursor.position += Vec3::new(x, -y, 0.0) * 15.0;
+            cursor.position += Vec3::new(x, -y, 0.0) * 1.3;
         }
     }
 }
@@ -242,9 +246,10 @@ fn rotate_camera(
             (bindings().viewport_fns.get_viewport_size)(0, &mut screen_x, &mut screen_y);
         };
 
-        let mut dir = Vec2::new(mouse.x / screen_x, mouse.y / screen_y)
-            .mul_add(Vec2::splat(2.0), Vec2::splat(-1.0))
-            .normalize_or_zero();
+        // let mut dir = Vec2::new(mouse.x / screen_x, mouse.y / screen_y)
+        //     .mul_add(Vec2::splat(2.0), Vec2::splat(-1.0))
+        //     .normalize_or_zero();
+        let mut dir = Vec2::new(mouse.x, mouse.y).normalize_or_zero();
 
         dir.y *= -1.0;
 
@@ -255,7 +260,7 @@ fn rotate_camera(
 
         let rotation = if input.is_action_pressed(PlayerInput::ROTATE_CAMERA) {
             let (x, _) = input.get_mouse_delta();
-            cam.rotation += x * 0.03;
+            cam.rotation += x * 0.003;
             Quat::from_rotation_z(cam.rotation)
         } else {
             Quat::from_rotation_z(cam.rotation + angle)

@@ -154,7 +154,7 @@ pub type UObjectOpague = c_void;
 pub type USoundBaseOpague = c_void;
 pub type USceneComponentOpague = c_void;
 
-pub type LogFn = extern "C" fn(*const c_char, i32);
+pub type LogFn = unsafe extern "C" fn(message: Utf8Str);
 pub type IterateActorsFn = unsafe extern "C" fn(array: *mut *mut AActorOpaque, len: *mut u64);
 pub type GetActionStateFn =
     unsafe extern "C" fn(name: *const c_char, len: usize, state: ActionState, out: *mut u32);
@@ -191,7 +191,7 @@ pub type IsAFn = unsafe extern "C" fn(object: *mut UObjectOpague, ty: UObjectTyp
 extern "C" {
     pub fn IsA(object: *mut UObjectOpague, ty: UObjectType) -> u32;
     pub fn TickActor(actor: *mut AActorOpaque, dt: f32);
-    pub fn Log(s: *const c_char, len: i32);
+    pub fn Log(message: Utf8Str);
     pub fn IterateActors(array: *mut *mut AActorOpaque, len: *mut u64);
     pub fn GetActionState(name: *const c_char, len: usize, state: ActionState, out: *mut u32);
     pub fn GetAxisValue(name: *const c_char, len: usize, value: &mut f32);

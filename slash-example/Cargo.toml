@@ -4,17 +4,14 @@ version = "0.1.0"
 edition = "2021"
 license = "MIT OR Apache-2.0"
 
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
-
 [dependencies]
-unreal-api = { path = "../unreal-api"}
-unreal-reflect = { path = "../unreal-reflect" }
 bevy_ecs = "0.8"
 log = "0.4"
-unreal-movement = { path = "../gameplay-plugins/unreal-movement" }
 serde = {version = "1", features = ["derive"]}
 serde_json = "1"
+unreal-api = { path = "../unreal-api"}
+unreal-movement = { path = "../gameplay-plugins/unreal-movement" }
+unreal-reflect = { path = "../unreal-reflect" }
 
 [lib]
-crate-type = ["cdylib"]   
-
+crate-type = ["cdylib"]

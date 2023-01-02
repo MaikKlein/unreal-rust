@@ -1,12 +1,12 @@
 [workspace]
 members = [
+    "gameplay-plugins/unreal-movement",
+    "slash-example",
     "unreal-api",
+    "unreal-api-derive",
     "unreal-ffi",
     "unreal-reflect",
-    "unreal-api-derive",
     "unreal-rust-example",
-    "slash-example",
-    "gameplay-plugins/unreal-movement",
 ]
 #[profile.release]
 #debug = true

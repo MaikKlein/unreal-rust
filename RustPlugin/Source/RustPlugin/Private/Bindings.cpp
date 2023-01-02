@@ -41,10 +41,10 @@ void GetSpatialData(const AActorOpaque* actor,
 	*scale = ToVector3(Transform.GetScale3D());
 }
 
-void Log(const char* s, int32 len)
+void Log(Utf8Str message)
 {
 	// TODO: Can we get rid of that allocation?
-	FString LogString = FString(len, UTF8_TO_TCHAR(s));
+	FString LogString = ToFString(message);
 	UE_LOG(LogTemp, Warning, TEXT("%s"), *LogString);
 }
 
