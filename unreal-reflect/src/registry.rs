@@ -7,7 +7,7 @@ use unreal_ffi as ffi;
 
 #[derive(Copy, Clone, Debug)]
 pub struct UClass {
-    pub ptr: *mut ffi::UObjectOpague,
+    pub ptr: *mut ffi::UClassOpague,
 }
 unsafe impl Send for UClass {}
 unsafe impl Sync for UClass {}

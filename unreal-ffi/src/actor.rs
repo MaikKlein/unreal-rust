@@ -1,7 +1,7 @@
 use std::os::raw::c_char;
 
 use crate::{
-    AActorOpaque, ActorComponentPtr, Entity, Quaternion, RustAlloc, UClassOpague,
+    AActorOpaque, ActorComponentPtr, Entity, Quaternion, RustAlloc, UnrealTransform, UClassOpague,
     USceneComponentOpague, Vector3,
 };
 
@@ -51,6 +51,12 @@ pub type DestroyActorFn = unsafe extern "C" fn(actor: *const AActorOpaque);
 pub type GetParentActorFn =
     unsafe extern "C" fn(actor: *const AActorOpaque, parent: *mut *mut AActorOpaque) -> u32;
 
+pub type SpawnActorWithClassFn = unsafe extern "C" fn(
+    actor_class: *const UClassOpague,
+    transform: UnrealTransform,
+    out: *mut *mut AActorOpaque,
+) -> u32;
+
 extern "C" {
     pub fn RegisterActorOnHit(actor: *mut AActorOpaque);
     pub fn RegisterActorOnOverlap(actor: *mut AActorOpaque);
@@ -93,6 +99,12 @@ extern "C" {
     pub fn SetViewTarget(actor: *const AActorOpaque);
 
     pub fn GetParentActor(actor: *const AActorOpaque, parent: *mut *mut AActorOpaque) -> u32;
+
+    pub fn SpawnActorWithClass(
+        actor_class: *const UClassOpague,
+        transform: UnrealTransform,
+        out: *mut *mut AActorOpaque,
+    ) -> u32;
 }
 
 #[repr(C)]
@@ -112,4 +124,5 @@ pub struct ActorFns {
     pub is_moveable: IsMoveableFn,
     pub destroy_actor: DestroyActorFn,
     pub get_parent_actor: GetParentActorFn,
+    pub spawn_actor_with_class: SpawnActorWithClassFn,
 }

@@ -1,7 +1,6 @@
 use bevy_ecs::prelude::*;
 use unreal_api::api::{SweepParams, UnrealApi};
 use unreal_api::core::EntityEvent;
-use unreal_api::editor_component::AddSerializedComponent;
 use unreal_api::math::Vec2;
 use unreal_api::physics::PhysicsComponent;
 use unreal_api::registry::UClass;
@@ -37,17 +36,6 @@ impl PlayerInput {
 #[reflect(editor)]
 pub struct PlayerComponent {
     pub actor: UClass,
-}
-
-impl AddSerializedComponent for PlayerComponentReflect {
-    unsafe fn add_serialized_component(
-        &self,
-        json: &str,
-        commands: &mut bevy_ecs::system::EntityCommands<'_, '_, '_>,
-    ) {
-        let component = serde_json::de::from_str::<PlayerComponent>(json).unwrap();
-        commands.insert(component);
-    }
 }
 
 #[derive(Component, serde::Serialize, serde::Deserialize)]
@@ -310,14 +298,26 @@ fn update_camera(
 
 fn spawn_camera(
     mut commands: Commands,
-    mut query: Query<(Entity, &TransformComponent, Added<PlayerComponent>)>,
+    mut api: ResMut<UnrealApi>,
+    mut query: Query<(
+        Entity,
+        &TransformComponent,
+        &PlayerComponent,
+        Added<PlayerComponent>,
+    )>,
 ) {
-    for (entity, transform, added) in query.iter_mut() {
+    for (entity, transform, player, added) in query.iter_mut() {
         if !added {
             continue;
         }
 
         unsafe {
+            api.spawn_actor(
+                player.actor,
+                transform.position,
+                transform.rotation,
+                &mut commands,
+            );
             let actor = (bindings().spawn_actor)(
                 ffi::ActorClass::CameraActor,
                 // TODO: Compute correct location

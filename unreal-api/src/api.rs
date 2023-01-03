@@ -1,7 +1,9 @@
 use std::collections::HashMap;
 
 use crate::ffi;
+use bevy_ecs::system::Commands;
 use glam::{Quat, Vec3};
+use unreal_reflect::registry::UClass;
 
 use crate::core::ActorPtr;
 use crate::ecs::entity::Entity;
@@ -65,6 +67,29 @@ pub struct LineTraceHit {
 }
 
 impl UnrealApi {
+    pub fn spawn_actor(
+        &mut self,
+        class: UClass,
+        position: Vec3,
+        rotation: Quat,
+        commands: &mut Commands,
+    ) -> Entity {
+        let mut actor = std::ptr::null_mut();
+        unsafe {
+            (bindings().actor_fns.spawn_actor_with_class)(
+                class.ptr,
+                ffi::UnrealTransform {
+                    position: position.into(),
+                    rotation: rotation.into(),
+                    scale: Vec3::ONE.into(),
+                },
+                &mut actor,
+            );
+        }
+        let entity = commands.spawn().id();
+        self.register_actor(ActorPtr(actor), entity);
+        entity
+    }
     pub fn register_actor(&mut self, actor: ActorPtr, entity: Entity) {
         self.actor_to_entity.insert(actor, entity);
         self.entity_to_actor.insert(entity, actor);

@@ -806,7 +806,12 @@ fn process_actor_spawned(
     unsafe {
         if let Some(global) = crate::module::MODULE.as_mut() {
             for &ActorSpawnedEvent { actor } in reader.iter() {
-                let mut entity_cmds = commands.spawn();
+                // If we have already entity for this actor, we just get their entity commands
+                let mut entity_cmds = if let Some(&entity) = api.actor_to_entity.get(&actor) {
+                    commands.get_or_spawn(entity)
+                } else {
+                    commands.spawn()
+                };
 
                 let mut len = 0;
                 (bindings().editor_component_fns.get_editor_components)(

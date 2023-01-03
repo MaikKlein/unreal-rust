@@ -8,16 +8,10 @@ use unreal_reflect::{
 
 use crate::{core::to_ffi_uuid, module::bindings};
 
-pub trait InsertEditorComponent {
-    /// # Safety
-    unsafe fn insert_component(
-        &self,
-        actor: *const ffi::AActorOpaque,
-        uuid: Uuid,
-        commands: &mut EntityCommands<'_, '_, '_>,
-    );
-}
-
+/// Implemented by `Component` derive
+/// This allows Serialized components to be added to entities
+/// Currently only used for `EditorComponents`, which are added in unreal, serialized to json, and
+/// then added when creating the entity
 pub trait AddSerializedComponent {
     /// # Safety
     unsafe fn add_serialized_component(

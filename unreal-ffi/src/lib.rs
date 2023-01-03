@@ -107,6 +107,14 @@ pub struct Vector3 {
 
 #[repr(C)]
 #[derive(Default, Debug, Copy, Clone)]
+pub struct UnrealTransform {
+    pub position: Vector3,
+    pub rotation: Quaternion,
+    pub scale: Vector3,
+}
+
+#[repr(C)]
+#[derive(Default, Debug, Copy, Clone)]
 pub struct Movement {
     pub velocity: Vector3,
     pub is_falling: u32,

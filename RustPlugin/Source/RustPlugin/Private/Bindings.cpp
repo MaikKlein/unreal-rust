@@ -44,7 +44,7 @@ void GetSpatialData(const AActorOpaque* actor,
 void Log(Utf8Str message)
 {
 	// TODO: Can we get rid of that allocation?
-	FString LogString = ToFString(message);
+	const FString LogString = ToFString(message);
 	UE_LOG(LogTemp, Warning, TEXT("%s"), *LogString);
 }
 
@@ -63,9 +63,9 @@ void IterateActors(AActorOpaque** array, uint64_t* len)
 
 void GetActionState(const char* name, uintptr_t len, ActionState state, uint32_t* out)
 {
-	APlayerController* PC = UGameplayStatics::GetPlayerController(GetRustModule().GameMode, 0);
+	const APlayerController* PC = UGameplayStatics::GetPlayerController(GetRustModule().GameMode, 0);
 
-	FName ActionName((int32)len, name);
+	const FName ActionName((int32)len, name);
 
 	for (auto M : PC->PlayerInput->GetKeysForAction(ActionName))
 	{
@@ -119,6 +119,17 @@ void SetEntityForActor(AActorOpaque* actor, Entity entity)
 		ToAActor(actor)->AddOwnedComponent(Component);
 		Component->RegisterComponent();
 	}
+}
+
+uint32_t SpawnActorWithClass(const UClassOpague* actor_class, UnrealTransform transform, AActorOpaque** out)
+{
+	auto Pos = ToFVector(transform.position);
+	auto Rot = ToFQuat(transform.rotation).Rotator();
+	*out = (AActorOpaque*)GetRustModule().GameMode->GetWorld()->SpawnActor(
+		(UClass*)actor_class,
+		&Pos, &Rot,
+		FActorSpawnParameters{});
+	return 1;
 }
 
 AActorOpaque* SpawnActor(ActorClass class_,
@@ -304,7 +315,7 @@ void VisualLogCapsule(
 	                ToFColor(color), TEXT(""));
 }
 
-void GetRootComponent(const AActorOpaque* actor, USceneComponentOpague **data)
+void GetRootComponent(const AActorOpaque* actor, USceneComponentOpague** data)
 {
 	*data = static_cast<USceneComponentOpague*>(ToAActor(actor)->GetRootComponent());
 }
@@ -366,7 +377,7 @@ uint32_t SweepMulti(Vector3 start,
 	auto CollisionParams = FCollisionQueryParams();
 	for (uintptr_t i = 0; i < params.ignored_actors_len; ++i)
 	{
-		CollisionParams.AddIgnoredActor((AActor*)params.ignored_actors[i]);
+		CollisionParams.AddIgnoredActor(static_cast<AActor*>(params.ignored_actors[i]));
 		CollisionParams.bFindInitialOverlaps = true;
 		// TODO: Make configurable
 		CollisionParams.bDebugQuery = true;
@@ -614,7 +625,7 @@ void GetActorName(const AActorOpaque* actor, RustAlloc* data)
 
 void RegisterActorOnOverlap(AActorOpaque* actor)
 {
-	auto GameMode = GetRustModule().GameMode;
+	const auto GameMode = GetRustModule().GameMode;
 	AActor* Actor = ToAActor(actor);
 	if (!GameMode || !Actor)
 		return;
@@ -624,7 +635,7 @@ void RegisterActorOnOverlap(AActorOpaque* actor)
 
 void RegisterActorOnHit(AActorOpaque* actor)
 {
-	auto GameMode = GetRustModule().GameMode;
+	const auto GameMode = GetRustModule().GameMode;
 	AActor* Actor = ToAActor(actor);
 	if (!GameMode || !Actor)
 		return;
@@ -639,7 +650,7 @@ void DestroyActor(const AActorOpaque* actor)
 
 void GetMousePosition(LocalPlayerId player, float* x, float* y)
 {
-	APlayerController* PC = UGameplayStatics::GetPlayerController(GetRustModule().GameMode, player);
+	const APlayerController* PC = UGameplayStatics::GetPlayerController(GetRustModule().GameMode, player);
 
 	if (PC)
 	{
@@ -656,9 +667,9 @@ void SetMouseState(LocalPlayerId player, MouseState state)
 
 	if (PC)
 	{
-		if(state == MouseState::Visible)
+		if (state == MouseState::Visible)
 			PC->SetShowMouseCursor(true);
-		if(state == MouseState::Hidden)
+		if (state == MouseState::Hidden)
 			PC->SetShowMouseCursor(false);
 	}
 }
@@ -678,30 +689,31 @@ void GetViewportSize(LocalPlayerId player, float* x, float* y)
 
 uint32_t IsA(UObjectOpague* object, UObjectType ty)
 {
-	if(object == nullptr)
+	if (object == nullptr)
 		return 0;
-	
+
 	auto Object = static_cast<UObject*>(object);
 
 	bool Result = false;
-	switch (ty) {
-		case UObjectType::UPrimtiveComponent:
-			Result = Cast<UPrimitiveComponent>(Object) != nullptr;
-			break;
-		
-		case UObjectType::USceneComponent:
-			Result = Cast<USceneComponent>(Object) != nullptr;
-			break;
-		
-		case UObjectType::UClass:
-			Result = Cast<UClass>(Object) != nullptr;
-			break;
-		
-		default:
-			break;
+	switch (ty)
+	{
+	case UObjectType::UPrimtiveComponent:
+		Result = Cast<UPrimitiveComponent>(Object) != nullptr;
+		break;
+
+	case UObjectType::USceneComponent:
+		Result = Cast<USceneComponent>(Object) != nullptr;
+		break;
+
+	case UObjectType::UClass:
+		Result = Cast<UClass>(Object) != nullptr;
+		break;
+
+	default:
+		break;
 	}
 
-	if(Result)
+	if (Result)
 	{
 		return 1;
 	}
@@ -732,7 +744,7 @@ uint32_t GetSerializedJsonComponent(const AActorOpaque* actor, Uuid uuid, StrRus
 		return 0;
 
 	auto Json = Comp->SerializeToJson();
-	
+
 	auto Utf8 = FTCHARToUTF8(*Json);
 	GetRustModule().Plugin.Rust.allocate_fns.allocate(Utf8.Length(), 1, &out->alloc);
 	FMemory::Memcpy(out->alloc.ptr, Utf8.Get(), out->alloc.size);

@@ -51,6 +51,7 @@ UnrealBindings CreateBindings()
 	actor_fns.get_root_component = &GetRootComponent;
 	actor_fns.destroy_actor = &DestroyActor;
 	actor_fns.get_parent_actor = GetParentActor;
+	actor_fns.spawn_actor_with_class = SpawnActorWithClass;
 
 	UnrealBindings b = {};
 	b.is_a = IsA;

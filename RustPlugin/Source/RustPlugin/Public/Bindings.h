@@ -120,6 +120,12 @@ using USceneComponentOpague = void;
 
 using UClassOpague = void;
 
+struct UnrealTransform {
+  Vector3 position;
+  Quaternion rotation;
+  Vector3 scale;
+};
+
 using UPrimtiveOpaque = void;
 
 struct LineTraceParams {
@@ -209,6 +215,8 @@ using DestroyActorFn = void(*)(const AActorOpaque *actor);
 
 using GetParentActorFn = uint32_t(*)(const AActorOpaque *actor, AActorOpaque **parent);
 
+using SpawnActorWithClassFn = uint32_t(*)(const UClassOpague *actor_class, UnrealTransform transform, AActorOpaque **out);
+
 struct ActorFns {
   GetSpatialDataFn get_spatial_data;
   SetSpatialDataFn set_spatial_data;
@@ -225,6 +233,7 @@ struct ActorFns {
   IsMoveableFn is_moveable;
   DestroyActorFn destroy_actor;
   GetParentActorFn get_parent_actor;
+  SpawnActorWithClassFn spawn_actor_with_class;
 };
 
 using GetVelocityFn = Vector3(*)(const UPrimtiveOpaque *primitive);
@@ -533,6 +542,10 @@ extern void DestroyActor(const AActorOpaque *actor);
 extern void SetViewTarget(const AActorOpaque *actor);
 
 extern uint32_t GetParentActor(const AActorOpaque *actor, AActorOpaque **parent);
+
+extern uint32_t SpawnActorWithClass(const UClassOpague *actor_class,
+                                    UnrealTransform transform,
+                                    AActorOpaque **out);
 
 extern Vector3 GetVelocity(const UPrimtiveOpaque *primitive);
 
