@@ -13,7 +13,7 @@ public:
 		}
 
 		SLATE_ARGUMENT(FOnUuidPicked, OnUuidPickedDelegate)
-		SLATE_ATTRIBUTE( FText, SelectedComponentText );
+		SLATE_ATTRIBUTE(FText, SelectedComponentText);
 
 	SLATE_END_ARGS()
 

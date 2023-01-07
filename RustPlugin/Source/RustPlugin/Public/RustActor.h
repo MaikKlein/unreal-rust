@@ -28,10 +28,11 @@ public:
 	virtual void Tick(float DeltaTime) override;
 	UFUNCTION(BlueprintCallable, Category="Rust", meta=(DisplayName="Get Entity Component"))
 	UEntityComponent* GetEntityComponent() { return EntityComponent; }
+
 	UFUNCTION(BlueprintCallable, Category="Rust", meta=(DisplayName="Get Entity"))
 	FEntity GetEntity()
 	{
-		if(EntityComponent != nullptr)
+		if (EntityComponent != nullptr)
 		{
 			return EntityComponent->GetEntity();
 		}

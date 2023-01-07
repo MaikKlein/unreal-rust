@@ -93,11 +93,11 @@ void FDynamicRustComponent::Initialize(TSharedPtr<IPropertyHandle> Handle, FGuid
 	}
 	Map->Empty();
 	Map->GetNumElements(NumOfPreviousFields);
-	
+
 	UE_LOG(LogTemp, Warning, TEXT("Fields after delete %i"), NumOfPreviousFields);
-	if(NumOfPreviousFields != 0)
+	if (NumOfPreviousFields != 0)
 		return;
-	
+
 
 	Uuid Id = ToUuid(InitGuid);
 

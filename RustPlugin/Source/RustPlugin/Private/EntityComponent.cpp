@@ -6,7 +6,6 @@
 #include "RustProperty.h"
 
 
-
 // Sets default values for this component's properties
 UEntityComponent::UEntityComponent()
 {
@@ -17,6 +16,3 @@ FEntity UEntityComponent::GetEntity()
 {
 	return Id;
 }
-
-
-

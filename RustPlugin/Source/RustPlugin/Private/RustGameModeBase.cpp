@@ -43,7 +43,8 @@ ARustGameModeBase::ARustGameModeBase()
 void ARustGameModeBase::OnActorSpawnedHandler(AActor* actor)
 {
 	auto Module = GetRustModule();
-	if(!Module.Plugin.IsLoaded()){
+	if (!Module.Plugin.IsLoaded())
+	{
 		return;
 	}
 
@@ -99,7 +100,8 @@ void ARustGameModeBase::Tick(float Dt)
 	Super::Tick(Dt);
 	FRustPluginModule& Module = GetRustModule();
 
-	if(!Module.Plugin.IsLoaded()) {
+	if (!Module.Plugin.IsLoaded())
+	{
 		Module.Exit();
 		return;
 	}
@@ -119,7 +121,8 @@ void ARustGameModeBase::StartPlay()
 	Super::StartPlay();
 	FRustPluginModule& Module = GetRustModule();
 
-	if(!Module.Plugin.IsLoaded()) {
+	if (!Module.Plugin.IsLoaded())
+	{
 		Module.Exit();
 		return;
 	}

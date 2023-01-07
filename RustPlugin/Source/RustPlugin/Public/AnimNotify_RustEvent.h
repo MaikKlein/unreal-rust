@@ -17,9 +17,9 @@ class RUSTPLUGIN_API UAnimNotify_RustEvent : public UAnimNotify
 	GENERATED_BODY()
 
 public:
-	
 	UPROPERTY(EditAnywhere, Category="Rust")
 	FRustEvent Event;
-	
-	virtual void Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference);
+
+	virtual void Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation,
+	                    const FAnimNotifyEventReference& EventReference);
 };

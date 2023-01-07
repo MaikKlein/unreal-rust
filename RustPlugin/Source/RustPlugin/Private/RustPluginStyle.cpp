@@ -6,7 +6,7 @@
 #include "Slate/SlateGameResources.h"
 #include "Interfaces/IPluginManager.h"
 
-TSharedPtr< FSlateStyleSet > FRustPluginStyle::StyleInstance = NULL;
+TSharedPtr<FSlateStyleSet> FRustPluginStyle::StyleInstance = NULL;
 
 void FRustPluginStyle::Initialize()
 {
@@ -40,9 +40,9 @@ const FVector2D Icon16x16(16.0f, 16.0f);
 const FVector2D Icon20x20(20.0f, 20.0f);
 const FVector2D Icon40x40(40.0f, 40.0f);
 
-TSharedRef< FSlateStyleSet > FRustPluginStyle::Create()
+TSharedRef<FSlateStyleSet> FRustPluginStyle::Create()
 {
-	TSharedRef< FSlateStyleSet > Style = MakeShareable(new FSlateStyleSet("RustPluginStyle"));
+	TSharedRef<FSlateStyleSet> Style = MakeShareable(new FSlateStyleSet("RustPluginStyle"));
 	Style->SetContentRoot(IPluginManager::Get().FindPlugin("RustPlugin")->GetBaseDir() / TEXT("Resources"));
 
 	Style->Set("RustPlugin.OpenPluginWindow", new IMAGE_BRUSH(TEXT("ButtonIcon_40x"), Icon40x40));

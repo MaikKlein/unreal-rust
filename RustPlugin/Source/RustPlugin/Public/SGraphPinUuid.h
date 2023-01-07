@@ -3,5 +3,4 @@
 class SGraphPinUuid
 {
 public:
-	
 };

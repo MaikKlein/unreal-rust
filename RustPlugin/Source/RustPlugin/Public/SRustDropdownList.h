@@ -43,7 +43,7 @@ public:
 
 	void Construct(const FArguments& InArgs);
 	static TArray<TSharedPtr<FUuidViewNode>> FilterItems(TArray<TSharedPtr<FUuidViewNode>>& AllItems, FText Text);
-	
+
 	TSharedRef<ITableRow> OnGenerateRowForList(TSharedPtr<FUuidViewNode> Item,
 	                                           const TSharedRef<STableViewBase>& OwnerTable) const;
 	void OnClassViewerSelectionChanged(TSharedPtr<FUuidViewNode> Item, ESelectInfo::Type SelectInfo) const;

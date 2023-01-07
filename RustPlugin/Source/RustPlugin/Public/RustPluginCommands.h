@@ -9,9 +9,9 @@
 class FRustPluginCommands : public TCommands<FRustPluginCommands>
 {
 public:
-
 	FRustPluginCommands()
-		: TCommands<FRustPluginCommands>(TEXT("RustPlugin"), NSLOCTEXT("Contexts", "RustPlugin", "RustPlugin Plugin"), NAME_None, FRustPluginStyle::GetStyleSetName())
+		: TCommands<FRustPluginCommands>(TEXT("RustPlugin"), NSLOCTEXT("Contexts", "RustPlugin", "RustPlugin Plugin"),
+		                                 NAME_None, FRustPluginStyle::GetStyleSetName())
 	{
 	}
 
@@ -19,5 +19,5 @@ public:
 	virtual void RegisterCommands() override;
 
 public:
-	TSharedPtr< FUICommandInfo > OpenPluginWindow;
+	TSharedPtr<FUICommandInfo> OpenPluginWindow;
 };

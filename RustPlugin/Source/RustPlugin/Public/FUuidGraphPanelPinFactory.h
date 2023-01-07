@@ -5,7 +5,7 @@
 
 class SGraphPin;
 
-class FUuidGraphPanelPinFactory: public FGraphPanelPinFactory
+class FUuidGraphPanelPinFactory : public FGraphPanelPinFactory
 {
 	virtual TSharedPtr<class SGraphPin> CreatePin(class UEdGraphPin* InPin) const override;
 };

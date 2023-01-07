@@ -3,12 +3,12 @@
 
 #include "IDetailCustomization.h"
 
-class FRustDetailCustomization: public IDetailCustomization
+class FRustDetailCustomization : public IDetailCustomization
 {
 public:
 	// IDetailCustomization interface
 	virtual void CustomizeDetails(IDetailLayoutBuilder& DetailBuilder) override;
 	//
 
-	static TSharedRef< IDetailCustomization > MakeInstance();
+	static TSharedRef<IDetailCustomization> MakeInstance();
 };

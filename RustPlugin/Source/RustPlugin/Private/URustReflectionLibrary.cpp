@@ -85,6 +85,6 @@ bool URustReflectionLibrary::K2_HasComponent(UUuid* Id, FEntity EntityId)
 	{
 		return Module.Plugin.Rust.reflection_fns.has_component(E, Id->Id) > 0;
 	}
-	
+
 	return false;
 }

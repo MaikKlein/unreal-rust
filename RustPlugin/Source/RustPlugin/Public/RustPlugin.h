@@ -29,7 +29,8 @@ struct FReflectionData
 	TMap<FGuid, FRustReflection> Types;
 };
 
-struct FPlugin {
+struct FPlugin
+{
 	FString TargetPath;
 	void* Handle;
 	EntryUnrealBindingsFn Bindings;
@@ -54,23 +55,21 @@ FString PlatformExtensionName();
 class FRustPluginModule : public IModuleInterface
 {
 public:
-
 	/** IModuleInterface implementation */
 	virtual void StartupModule() override;
 	virtual void ShutdownModule() override;
-	
+
 	/** This function will be bound to Command (by default it will bring up plugin window) */
 	void PluginButtonClicked();
-	
+
 	FPlugin Plugin;
 	ARustGameModeBase* GameMode;
 	void Exit();
 private:
-
 	void RegisterMenus();
 
 	TSharedRef<class SDockTab> OnSpawnPluginTab(const class FSpawnTabArgs& SpawnTabArgs);
-	void OnProjectDirectoryChanged(const TArray<FFileChangeData> & Data);
+	void OnProjectDirectoryChanged(const TArray<FFileChangeData>& Data);
 
 private:
 	TSharedPtr<class FUICommandList> PluginCommands;

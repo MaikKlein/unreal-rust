@@ -108,7 +108,7 @@ AActor* ToAActor(const AActorOpaque* actor)
 
 AActor* ToAActor(AActorOpaque* actor)
 {
-	return (AActor*)actor;
+	return static_cast<AActor*>(actor);
 }
 
 FGuid ToFGuid(Uuid uuid)
@@ -166,7 +166,9 @@ FCollisionShape ToFCollisionShape(CollisionShape Shape)
 FString ToFString(Utf8Str Str)
 {
 	if (Str.len == 0)
+	{
 		return FString();
+	}
 
 	return FString(Str.len, StringCast<TCHAR>(reinterpret_cast<const UTF8CHAR*>(Str.ptr), Str.len).Get());
 }
@@ -175,16 +177,22 @@ FRustProperty* GetRustProperty(const AActorOpaque* actor, Uuid uuid, Utf8Str fie
 {
 	AActor* Actor = ToAActor(actor);
 	if (Actor == nullptr)
+	{
 		return nullptr;
+	}
 
 	UEntityComponent* EntityComponent = Actor->FindComponentByClass<UEntityComponent>();
 	if (EntityComponent == nullptr)
+	{
 		return nullptr;
+	}
 
 	FString FieldName = ToFString(field);
 
 	FDynamicRustComponent* Comp = EntityComponent->Components.Find(ToFGuid(uuid).ToString());
 	if (Comp == nullptr)
+	{
 		return nullptr;
+	}
 	return Comp->Fields.Find(FieldName);
 }
