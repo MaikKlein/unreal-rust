@@ -1,8 +1,8 @@
 use std::os::raw::c_char;
 
 use crate::{
-    AActorOpaque, ActorComponentPtr, Entity, Quaternion, RustAlloc, UnrealTransform, UClassOpague,
-    USceneComponentOpague, Vector3,
+    AActorOpaque, ActorComponentPtr, ActorSpawnOptions, Entity, Quaternion, RustAlloc,
+    UClassOpague, USceneComponentOpague, UnrealTransform, Vector3,
 };
 
 pub type GetSpatialDataFn = extern "C" fn(
@@ -54,6 +54,7 @@ pub type GetParentActorFn =
 pub type SpawnActorWithClassFn = unsafe extern "C" fn(
     actor_class: *const UClassOpague,
     transform: UnrealTransform,
+    options: ActorSpawnOptions,
     out: *mut *mut AActorOpaque,
 ) -> u32;
 
@@ -103,6 +104,7 @@ extern "C" {
     pub fn SpawnActorWithClass(
         actor_class: *const UClassOpague,
         transform: UnrealTransform,
+        options: ActorSpawnOptions,
         out: *mut *mut AActorOpaque,
     ) -> u32;
 }

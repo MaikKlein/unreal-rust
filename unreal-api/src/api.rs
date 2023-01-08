@@ -76,6 +76,10 @@ impl UnrealApi {
     ) -> Entity {
         let mut actor = std::ptr::null_mut();
         unsafe {
+            let options = ffi::ActorSpawnOptions {
+                // TODO: make configurable
+                actor_pivot: ffi::ActorPivot::Bottom,
+            };
             (bindings().actor_fns.spawn_actor_with_class)(
                 class.ptr,
                 ffi::UnrealTransform {
@@ -83,6 +87,7 @@ impl UnrealApi {
                     rotation: rotation.into(),
                     scale: Vec3::ONE.into(),
                 },
+                options,
                 &mut actor,
             );
         }

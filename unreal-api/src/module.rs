@@ -34,6 +34,7 @@ macro_rules! register_components {
         )*
     };
 }
+// TODO: Error on duplicated guids
 #[macro_export]
 macro_rules! register_editor_components {
     ($($ty: ty,)* => $module: expr) => {

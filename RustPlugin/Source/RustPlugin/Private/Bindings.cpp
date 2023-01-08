@@ -121,14 +121,70 @@ void SetEntityForActor(AActorOpaque* actor, Entity entity)
 	}
 }
 
-uint32_t SpawnActorWithClass(const UClassOpague* actor_class, UnrealTransform transform, AActorOpaque** out)
+uint32_t SpawnActorWithClass(const UClassOpague* actor_class, UnrealTransform transform, ActorSpawnOptions options,
+                             AActorOpaque** out)
 {
+	// HACK: We want to know where the pivot point is before we spawn the actor but that is not easily possible. The
+	// CDO doesn't have blueprint information in it and we need to use the Simple Construction Script (SCS) for it but
+	// also doesn't work in all cases apparently.
+	// So for now we just spawn the actor somehwere, then we can access the bounding box and properly align it.
+	// Maybe we have to do our own CDO for it in the future to handle it properly
+	// Some problems:
+	// if you have a kill plane your actors might die instantly, or you get incorrect collision events in the first
+	// frame.
+	auto StartPos = FVector(0.0, 0.0, -50000.0);
 	auto Pos = ToFVector(transform.position);
 	auto Rot = ToFQuat(transform.rotation).Rotator();
-	*out = (AActorOpaque*)GetRustModule().GameMode->GetWorld()->SpawnActor(
-		(UClass*)actor_class,
-		&Pos, &Rot,
+
+	UClass* Class = (UClass*)actor_class;
+
+	AActor* Actor = GetRustModule().GameMode->GetWorld()->SpawnActor(
+		Class,
+		&StartPos, &Rot,
 		FActorSpawnParameters{});
+
+	FVector ActorLocation = Pos;
+	switch (options.actor_pivot)
+	{
+	case ActorPivot::Default:
+		{
+			ActorLocation = Pos;
+			break;
+		};
+	case ActorPivot::Bottom:
+		{
+			FVector Origin;
+			FVector Extent;
+			Actor->GetActorBounds(true, Origin, Extent, false);
+
+			FVector CenterOffset = StartPos - Origin;
+			ActorLocation = Pos + CenterOffset + FVector(0.0, 0.0, Extent.Z);
+			break;
+		};
+	case ActorPivot::Top:
+		{
+			FVector Origin;
+			FVector Extent;
+			Actor->GetActorBounds(true, Origin, Extent, false);
+
+			FVector CenterOffset = StartPos - Origin;
+			ActorLocation = Pos + CenterOffset + FVector(0.0, 0.0, -Extent.Z);
+			break;
+		};
+	case ActorPivot::Center:
+		{
+			FVector Origin;
+			FVector Extent;
+			Actor->GetActorBounds(true, Origin, Extent, false);
+
+			FVector CenterOffset = StartPos - Origin;
+			ActorLocation = Pos + CenterOffset;
+			break;
+		};
+	default: ;
+	}
+	Actor->SetActorLocation(ActorLocation);
+	*out = (AActorOpaque*)Actor;
 	return 1;
 }
 

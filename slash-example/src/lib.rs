@@ -38,12 +38,19 @@ pub struct PlayerComponent {
     pub actor: UClass,
 }
 
-#[derive(Component, serde::Serialize, serde::Deserialize)]
+#[derive(Component, serde::Deserialize)]
 #[uuid = "e9815aea-f4e2-4953-9553-079e6a7b8055"]
 #[reflect(editor)]
 pub struct WeaponComponentTag {}
 
-#[derive(Debug, Event, serde::Serialize, serde::Deserialize)]
+#[derive(Component, serde::Deserialize)]
+#[uuid = "3b784796-6ed2-42be-87c1-8c00717166bc"]
+#[reflect(editor)]
+pub struct EnemySpawnerComponent {
+    pub enemy: UClass,
+}
+
+#[derive(Debug, Event, serde::Deserialize)]
 #[uuid = "479006cc-3c8f-4d16-b7c2-1bb81bcf43f2"]
 pub struct WeaponStartEvent {
     pub f: f32,
@@ -99,6 +106,21 @@ fn create_player(
             CursorComponent::default(),
             HeroComponent::default(),
         ));
+    }
+}
+
+fn spawn_enemy_at_start(
+    mut commands: Commands,
+    mut api: ResMut<UnrealApi>,
+    query: Query<(&TransformComponent, &EnemySpawnerComponent), Added<EnemySpawnerComponent>>,
+) {
+    for (spawn_transform, spawner) in &query {
+        api.spawn_actor(
+            spawner.enemy,
+            spawn_transform.position,
+            spawn_transform.rotation,
+            &mut commands,
+        );
     }
 }
 
@@ -192,8 +214,6 @@ fn update_player_state(
 ) {
     for (cursor, mut state) in &mut query {
         state.is_cursor_visible = !input.is_action_pressed(PlayerInput::ROTATE_CAMERA);
-        log::info!("{}", cursor.position);
-
         state.cursor_position = cursor.position;
     }
 }
@@ -213,6 +233,7 @@ fn rotate_camera(
     cursor: Query<&CursorComponent>,
 ) {
     if input.is_action_pressed(PlayerInput::ROTATE_CAMERA) {
+
         //unsafe { (bindings().viewport_fns.set_mouse_state)(0, ffi::MouseState::Hidden) };
     }
     if input.is_action_released(PlayerInput::ROTATE_CAMERA) {
@@ -312,12 +333,12 @@ fn spawn_camera(
         }
 
         unsafe {
-            api.spawn_actor(
-                player.actor,
-                transform.position,
-                transform.rotation,
-                &mut commands,
-            );
+            // api.spawn_actor(
+            //     player.actor,
+            //     transform.position,
+            //     transform.rotation,
+            //     &mut commands,
+            // );
             let actor = (bindings().spawn_actor)(
                 ffi::ActorClass::CameraActor,
                 // TODO: Compute correct location
@@ -358,6 +379,7 @@ impl UserModule for MyModule {
         register_editor_components! {
             PlayerComponent,
             WeaponComponentTag,
+            EnemySpawnerComponent,
             => module
         }
 
@@ -389,6 +411,7 @@ impl UserModule for MyModule {
                     .with_system(spawn_camera)
                     .with_system(rotate_camera)
                     .with_system(update_camera.after(rotate_camera))
+                    .with_system(spawn_enemy_at_start)
                     .with_system(update_controller_view.after(rotate_camera)),
             )
             .add_system_set_to_stage(

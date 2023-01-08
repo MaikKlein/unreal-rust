@@ -105,12 +105,28 @@ pub struct Vector3 {
     pub z: f32,
 }
 
+#[repr(u32)]
+#[derive(Copy, Clone, Default)]
+pub enum ActorPivot {
+    #[default]
+    Default,
+    Top,
+    Center,
+    Bottom,
+}
+
 #[repr(C)]
 #[derive(Default, Debug, Copy, Clone)]
 pub struct UnrealTransform {
     pub position: Vector3,
     pub rotation: Quaternion,
     pub scale: Vector3,
+}
+
+#[repr(C)]
+#[derive(Default, Copy, Clone)]
+pub struct ActorSpawnOptions {
+    pub actor_pivot: ActorPivot,
 }
 
 #[repr(C)]

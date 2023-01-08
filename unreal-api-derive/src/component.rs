@@ -29,7 +29,7 @@ pub fn component_derive(ast: &DeriveInput) -> proc_macro2::TokenStream {
                         json: &str,
                         commands: &mut bevy_ecs::system::EntityCommands<'_, '_, '_>,
                     ) {
-                        let component = unreal_api::serde_json::de::from_str::<#struct_ident>(json).unwrap();
+                        let component = unreal_api::serde_json::de::from_str::<#struct_ident>(json).expect(json);
                         commands.insert(component);
                     }
                 }
