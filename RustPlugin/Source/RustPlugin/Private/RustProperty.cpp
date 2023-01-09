@@ -147,7 +147,7 @@ void FDynamicRustComponent::Render(TSharedRef<IPropertyHandle> MapHandle, IDetai
 					.ContentPadding(0)
 					[
 						SNew(SImage)
-						.Image(FEditorStyle::GetBrush("Icons.Delete"))
+						.Image(FAppStyle::GetBrush("Icons.Delete"))
 						.ColorAndOpacity(FSlateColor::UseForeground())
 					]
 				]
