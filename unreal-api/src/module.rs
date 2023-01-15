@@ -219,6 +219,8 @@ macro_rules! implement_unreal_module {
             rust_bindings: *mut $crate::ffi::RustBindings,
         ) -> u32 {
             std::panic::set_hook(Box::new(|panic_info| {
+                let bt = std::backtrace::Backtrace::force_capture();
+                log::error!("{}", bt);
                 let info = panic_info
                     .payload()
                     .downcast_ref::<&'static str>()

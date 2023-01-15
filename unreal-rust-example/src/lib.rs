@@ -15,7 +15,7 @@ use unreal_api::{
 };
 use unreal_api::{register_editor_components, Component};
 use unreal_movement::{
-    CharacterConfigComponent, CharacterControllerComponent, MovementComponent, MovementPlugin,
+    CharacterConfigComponent, CharacterControllerComponent, MovementVariablesComponent, MovementPlugin,
 };
 
 #[repr(u32)]
@@ -168,7 +168,7 @@ fn spawn_class(
                         commands.entity(entity).insert_bundle((
                             CharacterConfigComponent::default(),
                             CharacterControllerComponent::default(),
-                            MovementComponent::default(),
+                            MovementVariablesComponent::default(),
                         ));
                     }
                 }

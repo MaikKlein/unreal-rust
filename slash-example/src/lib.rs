@@ -14,7 +14,8 @@ use unreal_api::{
 };
 use unreal_api::{register_editor_components, register_events, Component, Event};
 use unreal_movement::{
-    CharacterConfigComponent, CharacterControllerComponent, MovementComponent, MovementPlugin,
+    CharacterConfigComponent, CharacterControllerComponent, MovementPlugin,
+    MovementVariablesComponent,
 };
 
 pub struct PlayerInput;
@@ -101,7 +102,7 @@ fn create_player(
         commands.entity(entity).insert_bundle((
             CharacterConfigComponent::default(),
             CharacterControllerComponent::default(),
-            MovementComponent::default(),
+            MovementVariablesComponent::default(),
             PlayerStateComponent::default(),
             CursorComponent::default(),
             HeroComponent::default(),
@@ -129,6 +130,7 @@ fn register_player_input(mut input: ResMut<Input>) {
     input.register_axis_binding(PlayerInput::MOVE_RIGHT);
     input.register_action_binding(PlayerInput::ROTATE_CAMERA);
     input.register_action_binding(PlayerInput::PRIMARY_ATTACK);
+    input.register_action_binding(PlayerInput::JUMP);
 }
 
 fn player_attack(input: Res<Input>, mut query: Query<&mut HeroComponent>) {
@@ -151,9 +153,12 @@ fn register_weapon(
     query: Query<(Entity, &ActorComponent, Added<WeaponComponentTag>)>,
 ) {
     for (entity, actor, added) in &query {
-        if !added {
+        if added {
+            log::info!("Added");
             if let Some(parent) = actor.get_parent(&api) {
+                log::info!("parent");
                 if let Ok(mut hero) = hero.get_mut(parent) {
+                log::info!("hero");
                     hero.weapon = Some(entity);
                 }
             }
@@ -164,24 +169,15 @@ fn register_weapon(
 fn apply_weapon_forces(
     api: Res<UnrealApi>,
     query: Query<(Entity, &HeroComponent)>,
-    weapon: Query<(
-        Entity,
-        &WeaponComponentTag,
-        &PhysicsComponent,
-        &TransformComponent,
-    )>,
-    _physics_query: Query<(
-        &mut PhysicsComponent,
-        &ActorComponent,
-        Without<WeaponComponentTag>,
-    )>,
+    weapon: Query<(Entity, &PhysicsComponent, &TransformComponent), With<WeaponComponentTag>>,
+    mut physics_query: Query<(&mut PhysicsComponent, &ActorComponent), Without<WeaponComponentTag>>,
 ) {
     for (entity, hero) in &query {
-        if let Ok((weapon_entity, _, p, transform)) = weapon.get(hero.weapon.unwrap()) {
+        if let Ok((weapon_entity, p, transform)) = weapon.get(hero.weapon.unwrap()) {
             let params = SweepParams::default()
                 .add_ignored_entity(entity)
                 .add_ignored_entity(weapon_entity);
-            let _result = api.overlap_multi(
+            let result = api.overlap_multi(
                 transform.position,
                 transform.rotation,
                 p.get_collision_shape(),
@@ -189,22 +185,19 @@ fn apply_weapon_forces(
                 2,
             );
 
-            //for entity in result {
-            //    match physics_query.get_mut(entity) {
-            //        Ok((mut physics, actor, _)) => {
-            //            log::info!(
-            //                "test {} {}",
-            //                actor.get_actor_name(),
-            //                physics.ptr.ptr as usize
-            //            );
-            //            if physics.is_simulating {
-            //                log::info!("hit {}", actor.get_actor_name());
-            //                physics.add_impulse(Vec3::Z * 500000.0);
-            //            }
-            //        }
-            //        Err(err) => log::info!("{}", err),
-            //    }
-            //}
+            for entity in result {
+                if let Ok((physics, actor)) = physics_query.get_mut(entity) {
+                    log::info!(
+                        "test {} {}",
+                        actor.get_actor_name(),
+                        physics.ptr.ptr as usize
+                    );
+                    // if physics.is_simulating {
+                    //     log::info!("hit {}", actor.get_actor_name());
+                    //     physics.add_impulse(Vec3::Z * 500000.0);
+                    // }
+                }
+            }
         }
     }
 }
@@ -402,12 +395,12 @@ impl UserModule for MyModule {
             .add_system_set_to_stage(
                 CoreStage::Update,
                 SystemSet::new()
-                    .with_system(register_weapon)
                     .with_system(weapon_start)
                     .with_system(apply_weapon_forces.after(register_weapon))
                     .with_system(player_attack)
                     .with_system(update_cursor)
                     .with_system(create_player)
+                    .with_system(register_weapon).after(create_player)
                     .with_system(spawn_camera)
                     .with_system(rotate_camera)
                     .with_system(update_camera.after(rotate_camera))

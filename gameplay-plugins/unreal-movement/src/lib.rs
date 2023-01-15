@@ -1,5 +1,6 @@
 use bevy_ecs::{prelude::*, query::WorldQuery};
 use unreal_api::api::{SweepHit, SweepParams, UnrealApi};
+use unreal_api::core::EntityEvent;
 use unreal_api::{
     core::{ActorComponent, CoreStage, Frame, TransformComponent},
     ffi,
@@ -11,10 +12,14 @@ use unreal_api::{
     plugin::Plugin,
     register_components,
 };
-use unreal_api::{register_editor_components, Component};
+use unreal_api::{register_editor_components, register_events, Component, Event};
 fn project_onto_plane(dir: Vec3, normal: Vec3) -> Vec3 {
     dir - normal * Vec3::dot(dir, normal)
 }
+
+#[derive(Debug, Copy, Clone, Event, serde::Deserialize)]
+#[uuid = "5464a09a-51f8-4a34-92dd-ef4c043108fa"]
+pub struct JumpCommand {}
 
 #[derive(Debug, Copy, Clone)]
 pub enum MovementState {
@@ -41,7 +46,7 @@ impl Default for MovementState {
 
 #[derive(Default, Debug, Component)]
 #[uuid = "fc8bd668-fc0a-4ab7-8b3d-f0f22bb539e2"]
-pub struct MovementComponent {
+pub struct MovementVariablesComponent {
     pub velocity: Vec3,
     pub is_falling: bool,
     pub is_flying: bool,
@@ -118,7 +123,6 @@ pub struct StepUpResult {
 
 fn do_walking(
     movement: &mut MovementQueryItem,
-    input: &Input,
     dt: f32,
     query: &Query<&PhysicsComponent>,
     api: &UnrealApi,
@@ -129,10 +133,6 @@ fn do_walking(
             + movement.physics.get_collision_shape().extent().z
             + movement.config.walk_offset;
 
-        if input.is_action_pressed(PlayerInput::JUMP) {
-            movement.controller.vertical_velocity.z += movement.config.jump_velocity;
-            return Some(MovementState::Falling);
-        }
         let phys = query.get(hit.entity).ok();
         let velocity = phys.map(|p| p.velocity).unwrap_or_default();
         movement.do_movement(velocity, dt, api);
@@ -142,17 +142,10 @@ fn do_walking(
     }
 }
 
-fn do_falling(
-    movement: &mut MovementQueryItem,
-    input: &Input,
-    dt: f32,
-    api: &UnrealApi,
-) -> Option<MovementState> {
+fn do_falling(movement: &mut MovementQueryItem, dt: f32, api: &UnrealApi) -> Option<MovementState> {
     let is_downwards = movement.controller.vertical_velocity.z < 0.0;
     if movement.find_floor(api).is_some() && is_downwards {
         Some(MovementState::Walking)
-    } else if input.is_action_pressed(PlayerInput::JUMP) {
-        Some(MovementState::Gliding)
     } else {
         movement.controller.vertical_velocity +=
             movement.config.gravity_dir * movement.config.gravity_strength * dt;
@@ -161,18 +154,11 @@ fn do_falling(
     }
 }
 
-fn do_gliding(
-    movement: &mut MovementQueryItem,
-    input: &Input,
-    dt: f32,
-    api: &UnrealApi,
-) -> Option<MovementState> {
+fn do_gliding(movement: &mut MovementQueryItem, dt: f32, api: &UnrealApi) -> Option<MovementState> {
     let is_downwards = movement.controller.vertical_velocity.z < 0.0;
 
     if movement.find_floor(api).is_some() && is_downwards {
         Some(MovementState::Walking)
-    } else if input.is_action_pressed(PlayerInput::JUMP) {
-        Some(MovementState::Falling)
     } else {
         movement.controller.vertical_velocity += movement.config.gravity_dir
             * movement.config.gravity_strength
@@ -402,6 +388,33 @@ impl<'w> MovementQueryItem<'w> {
         })
     }
 }
+fn character_jump(
+    mut jumps: EventReader<EntityEvent<JumpCommand>>,
+    mut query: Query<MovementQuery>,
+) {
+    for jump in jumps.iter() {
+        if let Ok(mut movement) = query.get_mut(jump.entity) {
+            let new_state = match movement.controller.movement_state {
+                MovementState::Walking => {
+                    movement.controller.vertical_velocity.z += movement.config.jump_velocity;
+                    Some(MovementState::Falling)
+                }
+                MovementState::Falling => {
+                    if movement.controller.vertical_velocity.z < 0.0 {
+                        Some(MovementState::Gliding)
+                    } else {
+                        None
+                    }
+                }
+                MovementState::Gliding => Some(MovementState::Falling),
+            };
+
+            if let Some(state) = new_state {
+                movement.controller.movement_state = state;
+            }
+        }
+    }
+}
 
 fn character_control_system(
     input: Res<Input>,
@@ -409,6 +422,7 @@ fn character_control_system(
     api: Res<UnrealApi>,
     mut query: Query<MovementQuery>,
     phys: Query<&PhysicsComponent>,
+    mut jumps: EventWriter<EntityEvent<JumpCommand>>,
 ) {
     let api = &api;
     let forward = input
@@ -427,10 +441,18 @@ fn character_control_system(
             movement.transform.position = new_position;
         }
 
+        if input.is_action_pressed(PlayerInput::JUMP) {
+            log::info!("jump");
+            jumps.send(EntityEvent {
+                entity: movement.entity,
+                event: JumpCommand {},
+            });
+        }
+
         let new_state = match movement.controller.movement_state {
-            MovementState::Walking => do_walking(&mut movement, &input, frame.dt, &phys, api),
-            MovementState::Falling => do_falling(&mut movement, &input, frame.dt, api),
-            MovementState::Gliding => do_gliding(&mut movement, &input, frame.dt, api),
+            MovementState::Walking => do_walking(&mut movement, frame.dt, &phys, api),
+            MovementState::Falling => do_falling(&mut movement, frame.dt, api),
+            MovementState::Gliding => do_gliding(&mut movement, frame.dt, api),
         };
 
         if let Some(new_state) = new_state {
@@ -440,7 +462,10 @@ fn character_control_system(
 }
 
 fn update_movement_component(
-    mut query: Query<(&CharacterControllerComponent, &mut MovementComponent)>,
+    mut query: Query<(
+        &CharacterControllerComponent,
+        &mut MovementVariablesComponent,
+    )>,
 ) {
     for (controller, mut movement) in query.iter_mut() {
         movement.velocity = controller.horizontal_velocity + controller.vertical_velocity;
@@ -458,10 +483,18 @@ impl Plugin for MovementPlugin {
             => module
         }
         register_components! {
-            MovementComponent,
+            MovementVariablesComponent,
             => module
         };
+        register_events! {
+            JumpCommand,
+            => module
+        }
 
+        module.add_system_set_to_stage(
+            CoreStage::PostUpdate,
+            SystemSet::new().with_system(character_jump),
+        );
         module.add_system_set_to_stage(
             CoreStage::Update,
             SystemSet::new()

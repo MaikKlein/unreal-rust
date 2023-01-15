@@ -23,7 +23,7 @@ pub(crate) fn event_derive(ast: &syn::DeriveInput) -> proc_macro2::TokenStream {
         quote! {
 
             const _:() = {
-                use unreal_api::core::SendEntityEvent;
+                use unreal_api::core::{ SendEntityEvent, EntityEvent };
                 use unreal_api::*;
                 use unreal_api::module::*;
                 use unreal_api::ecs::component::{Component, TableStorage};
