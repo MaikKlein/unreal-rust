@@ -35,9 +35,7 @@ impl PlayerInput {
 #[derive(Component, serde::Deserialize)]
 #[uuid = "cdbbc147-058c-4079-aa85-a93a30d1edfc"]
 #[reflect(editor)]
-pub struct PlayerComponent {
-    pub actor: UClass,
-}
+pub struct PlayerComponent {}
 
 #[derive(Component, serde::Deserialize)]
 #[uuid = "e9815aea-f4e2-4953-9553-079e6a7b8055"]
@@ -99,7 +97,7 @@ fn create_player(
         unsafe {
             (bindings().actor_fns.register_actor_on_hit)(actor.actor.0);
         }
-        commands.entity(entity).insert_bundle((
+        commands.entity(entity).insert((
             CharacterConfigComponent::default(),
             CharacterControllerComponent::default(),
             MovementVariablesComponent::default(),
@@ -158,7 +156,7 @@ fn register_weapon(
             if let Some(parent) = actor.get_parent(&api) {
                 log::info!("parent");
                 if let Ok(mut hero) = hero.get_mut(parent) {
-                log::info!("hero");
+                    log::info!("hero");
                     hero.weapon = Some(entity);
                 }
             }
@@ -312,26 +310,10 @@ fn update_camera(
 
 fn spawn_camera(
     mut commands: Commands,
-    mut api: ResMut<UnrealApi>,
-    mut query: Query<(
-        Entity,
-        &TransformComponent,
-        &PlayerComponent,
-        Added<PlayerComponent>,
-    )>,
+    mut query: Query<(Entity, &TransformComponent), Added<PlayerComponent>>,
 ) {
-    for (entity, transform, player, added) in query.iter_mut() {
-        if !added {
-            continue;
-        }
-
+    for (entity, transform) in query.iter_mut() {
         unsafe {
-            // api.spawn_actor(
-            //     player.actor,
-            //     transform.position,
-            //     transform.rotation,
-            //     &mut commands,
-            // );
             let actor = (bindings().spawn_actor)(
                 ffi::ActorClass::CameraActor,
                 // TODO: Compute correct location
@@ -340,7 +322,7 @@ fn spawn_camera(
                 Vec3::ONE.into(),
             );
             (bindings().actor_fns.set_view_target)(actor);
-            commands.spawn().insert_bundle((
+            commands.spawn_empty().insert((
                 TransformComponent {
                     position: transform.position + Vec3::Z * 200.0,
                     rotation: Quat::from_rotation_y(f32::to_radians(60.0)),
@@ -400,7 +382,6 @@ impl UserModule for MyModule {
                     .with_system(player_attack)
                     .with_system(update_cursor)
                     .with_system(create_player)
-                    .with_system(register_weapon).after(create_player)
                     .with_system(spawn_camera)
                     .with_system(rotate_camera)
                     .with_system(update_camera.after(rotate_camera))
@@ -409,7 +390,9 @@ impl UserModule for MyModule {
             )
             .add_system_set_to_stage(
                 CoreStage::PostUpdate,
-                SystemSet::new().with_system(update_player_state),
+                SystemSet::new()
+                    .with_system(update_player_state)
+                    .with_system(register_weapon),
             );
     }
 }

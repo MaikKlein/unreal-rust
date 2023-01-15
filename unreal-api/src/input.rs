@@ -1,3 +1,4 @@
+use bevy_ecs::system::Resource;
 use unreal_ffi::ActionState;
 
 use crate::module::bindings;
@@ -17,6 +18,8 @@ pub struct Input {
     action_bindings: Vec<Binding>,
     axis_bindings: Vec<Binding>,
 }
+impl Resource for Input {}
+
 impl Input {
     pub fn get_mouse_delta(&self) -> (f32, f32) {
         let mut x = 0.0;

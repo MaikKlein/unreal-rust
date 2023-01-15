@@ -318,7 +318,7 @@ unsafe extern "C" fn number_of_fields(uuid: ffi::Uuid, out: *mut u32) -> u32 {
         let global = unsafe { crate::module::MODULE.as_mut() }?;
         let uuid = from_ffi_uuid(uuid);
         let reflect = global.core.module.reflection_registry.reflect.get(&uuid)?;
-        Some(reflect.number_of_fields() as u32)
+        Some(reflect.number_of_fields())
     }
     let result = panic::catch_unwind(|| {
         if let Some(count) = get_number_fields(uuid) {
@@ -362,19 +362,14 @@ unsafe extern "C" fn is_event(uuid: ffi::Uuid) -> u32 {
     fn is_editor_component_inner(uuid: ffi::Uuid) -> Option<u32> {
         let global = unsafe { crate::module::MODULE.as_mut() }?;
         let uuid = from_ffi_uuid(uuid);
-        Some(
-            if global
+        Some(u32::from(
+            global
                 .core
                 .module
                 .reflection_registry
                 .events
-                .contains(&uuid)
-            {
-                1
-            } else {
-                0
-            },
-        )
+                .contains(&uuid),
+        ))
     }
     let result = panic::catch_unwind(|| is_editor_component_inner(uuid).unwrap_or(0));
     result.unwrap_or(0)
@@ -384,19 +379,14 @@ unsafe extern "C" fn is_editor_component(uuid: ffi::Uuid) -> u32 {
     fn is_editor_component_inner(uuid: ffi::Uuid) -> Option<u32> {
         let global = unsafe { crate::module::MODULE.as_mut() }?;
         let uuid = from_ffi_uuid(uuid);
-        Some(
-            if global
+        Some(u32::from(
+            global
                 .core
                 .module
                 .reflection_registry
                 .editor_components
-                .contains(&uuid)
-            {
-                1
-            } else {
-                0
-            },
-        )
+                .contains(&uuid),
+        ))
     }
     let result = panic::catch_unwind(|| is_editor_component_inner(uuid).unwrap_or(0));
     result.unwrap_or(0)
@@ -540,12 +530,12 @@ pub enum CoreStage {
     Update,
     PostUpdate,
 }
-#[derive(Default, Debug, Copy, Clone)]
+#[derive(Resource, Default, Debug, Copy, Clone)]
 pub struct Frame {
     pub dt: f32,
 }
 
-#[derive(Default, Debug, Copy, Clone)]
+#[derive(Resource, Default, Debug, Copy, Clone)]
 pub struct Time {
     pub time: f64,
 }
@@ -810,7 +800,7 @@ fn process_actor_spawned(
                 let mut entity_cmds = if let Some(&entity) = api.actor_to_entity.get(&actor) {
                     commands.get_or_spawn(entity)
                 } else {
-                    commands.spawn()
+                    commands.spawn_empty()
                 };
 
                 let mut len = 0;
@@ -854,7 +844,7 @@ fn process_actor_spawned(
                 }
 
                 let entity = entity_cmds
-                    .insert_bundle((ActorComponent { actor }, TransformComponent::default()))
+                    .insert((ActorComponent { actor }, TransformComponent::default()))
                     .id();
 
                 // Create a physics component if the root component is a primitive

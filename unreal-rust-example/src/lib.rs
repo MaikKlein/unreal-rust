@@ -15,7 +15,8 @@ use unreal_api::{
 };
 use unreal_api::{register_editor_components, Component};
 use unreal_movement::{
-    CharacterConfigComponent, CharacterControllerComponent, MovementVariablesComponent, MovementPlugin,
+    CharacterConfigComponent, CharacterControllerComponent, MovementPlugin,
+    MovementVariablesComponent,
 };
 
 #[repr(u32)]
@@ -33,7 +34,7 @@ impl Class {
     }
 }
 
-#[derive(Default)]
+#[derive(Resource, Default)]
 pub struct ClassesResource {
     classes: HashMap<*mut ffi::UClassOpague, Class>,
 }
@@ -165,7 +166,7 @@ fn spawn_class(
             if let Some(&class) = class_resource.classes.get(&class_ptr) {
                 match class {
                     Class::Player => {
-                        commands.entity(entity).insert_bundle((
+                        commands.entity(entity).insert((
                             CharacterConfigComponent::default(),
                             CharacterControllerComponent::default(),
                             MovementVariablesComponent::default(),
@@ -270,7 +271,7 @@ fn spawn_camera(
                 Vec3::ONE.into(),
             );
             (bindings().actor_fns.set_view_target)(actor);
-            commands.spawn().insert_bundle((
+            commands.spawn((
                 TransformComponent {
                     position: pos,
                     ..Default::default()

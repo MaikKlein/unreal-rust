@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 
 use crate::ffi;
-use bevy_ecs::system::Commands;
+use bevy_ecs::system::{Commands, Resource};
 use glam::{Quat, Vec3};
 use unreal_reflect::registry::UClass;
 
@@ -16,6 +16,7 @@ pub struct UnrealApi {
     pub actor_to_entity: HashMap<ActorPtr, Entity>,
     pub entity_to_actor: HashMap<Entity, ActorPtr>,
 }
+impl Resource for UnrealApi {}
 
 #[derive(Default)]
 pub struct SweepParams {
@@ -91,7 +92,7 @@ impl UnrealApi {
                 &mut actor,
             );
         }
-        let entity = commands.spawn().id();
+        let entity = commands.spawn_empty().id();
         self.register_actor(ActorPtr(actor), entity);
         entity
     }
