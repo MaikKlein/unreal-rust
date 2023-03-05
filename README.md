@@ -20,7 +20,7 @@ I am releasing `unreal-rust` on github to develop it in the open.
 - **Editor integration**: Add Rust components to actors in the editor, or access Rust components from Blueprint to drive animations.
 - **Entity Component System**: unreal-rust is built on top of an ECS.
 - **Built on top of `AActor`**: Most gameplay features like `GameMode`, `Characters`, `GameState`, `GAS` are not directly accessible in unreal-rust. Instead unreal-rust will provide optional alternatives. But you can still interact with most parts of the engine as Rust components can be accessed in Blueprint.
-- **No engine modifications**: unreal-rust is only a `Plugin`, just drop it in your project. See [Supported versions](#supported-versions) for more information.
+- **No engine modifications**: unreal-rust is only a `Plugin`, just drop it in your project. See [Supported versions](#-supported-versions) for more information.
 - **Samples**: The development of unreal-rust is heavily driven by samples.
 - **Free**: Dual licensed under MIT/APACHE
 
