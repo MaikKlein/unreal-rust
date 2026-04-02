@@ -231,7 +231,9 @@ namespace
 
 FString PlatformExtensionName()
 {
-#if PLATFORM_LINUX || PLATFORM_MAC
+#if PLATFORM_MAC
+	return FString(TEXT("dylib"));
+#elif PLATFORM_LINUX
 	return FString(TEXT("so"));
 #elif PLATFORM_WINDOWS
 	return FString(TEXT("dll"));
@@ -313,18 +315,11 @@ bool FRustLoader::SetupLoader()
 
 	this->Handle = LocalHandle;
 
-	void* LocalBindings = FPlatformProcess::GetDllExport(LocalHandle, TEXT("register_unreal_bindings\0"));
-	// void* LocalEditorTick = FPlatformProcess::GetDllExport(LocalHandle, TEXT("editor_tick\0"));
-	this->TryLoadFunction = static_cast<TryLoadFn>(FPlatformProcess::GetDllExport(LocalHandle, TEXT("try_load\0")));
-	this->IsOutOfDateFunction = static_cast<IsOutOfDateFn>(FPlatformProcess::GetDllExport(
-		LocalHandle, TEXT("is_out_of_date\0")));
-	ensure(LocalBindings);
+	this->Bindings = reinterpret_cast<EntryUnrealBindingsFn>(FPlatformProcess::GetDllExport(LocalHandle, TEXT("register_unreal_bindings\0")));
+	this->TryLoadFunction = reinterpret_cast<TryLoadFn>(FPlatformProcess::GetDllExport(LocalHandle, TEXT("try_load\0")));
+	this->IsOutOfDateFunction = reinterpret_cast<IsOutOfDateFn>(FPlatformProcess::GetDllExport(LocalHandle, TEXT("is_out_of_date\0")));
+	ensure(this->Bindings);
 	ensure(this->TryLoadFunction);
-	// ensure(LocalEditorTick);
-
-	// this->EditorTick = static_cast<TickFn>(LocalEditorTick);
-
-	this->Bindings = static_cast<EntryUnrealBindingsFn>(LocalBindings);
 
 	this->TargetPath = LocalTargetDllPath;
 	NeedsInit = true;
